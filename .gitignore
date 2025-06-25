@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.db
+
+.env
+.env.*
+env/
+env310/
+
+.vscode/
+.idea/
+*.swp
+
