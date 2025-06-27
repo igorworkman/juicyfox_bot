@@ -1,13 +1,10 @@
-__pycache__/
-*.py[cod]
-*.db
 
 .env
-.env.*
 env/
 env310/
-
-.vscode/
-.idea/
-*.swp
-
+__pycache__/
+*.db
+*.sqlite3
+*.pyc
+.DS_Store
+.env.template
