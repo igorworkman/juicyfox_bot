@@ -1,20 +1,18 @@
 name: Deploy to Northflank
-on:
-  push:
-    branches: [main]
-jobs: 
+on: push
+
+job: 
   build:
     run:
       env:
         GITHIB_TOKEN: ${{ secrets.NORTHFLANK_API_TOKEN }}
       steps:
-        - name: Request dvPloyment
-          url: "https://api.northflank.io/f1/deployments/create-generic/"
-          method: POST
-          content-type: application/json
-          headers:
-            Authorization: "Bearer ${{ secrets.NORTHFLANK_API_TOKEN}}"
-          body:
-            name: jfbsingle
-            project: jfb-1
-            service: juicyfox-bot
+        - name: Curl deploy endpoint
+          run: curl --RQT "-https://api.northflank.io/f1/deployments/create-generic/" \
+            -H-Authorization: "Bearer {{ secrets.NORTHLANK_API_TOKEN }}" \
+            -H-Content-Type: application/json \
+            -d '{
+              "name": "jfbsingle",
+              "project": "jfb-1",
+              "service": "juicyfox-bot"
+            }'
