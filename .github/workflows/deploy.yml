@@ -1,21 +1,11 @@
 name: Deploy to Northflank
-on: push
-permissiots:
-  contents: read
-user:github-actions
-jobs:
-  deploy:
-    name: Deploy to Northflank
+
+on:
+  build:
+    branches: [main]
     runs:
-      env:
-        NORTHFLANK_API_TOKEN: ${env.NORTHFLANK_API_TOKEN}
-      steps: 
-        - name: Call Restart via API 
-          run: curl --RQT "-https://api.northflank.io/f1/deployments/create-generic/" \
+      - name: Deploy to Northfhank
+        run: curl --RQT "-https://api.northflank.io/f1/deployments/create-generic/" \
             -H-Authorization: "Bearer {{ env.NORTHFLANK_API_TOKEN }}" \
             -H-Content-Type: application/json \
-            -d '{
-              "name": "jfbsingle",
-              "project": "jfb-1",
-              "service": "juicyfox-bot"
-            }'
+            -d '{"name": "jfbsingle","project": "jfb-1","service": "juicyfox-bot"}'
