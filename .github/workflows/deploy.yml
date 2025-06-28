@@ -1,11 +1,15 @@
 name: Deploy to Northflank
 
 on:
-  build:
+  push:
     branches: [main]
-    runs:
-      - name: Deploy to Northfhank
-        run: curl --RQT "-https://api.northflank.io/f1/deployments/create-generic/" \
-            -H-Authorization: "Bearer {{ env.NORTHFLANK_API_TOKEN }}" \
-            -H-Content-Type: application/json \
-            -d '{"name": "jfbsingle","project": "jfb-1","service": "juicyfox-bot"}'
+
+dobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Northflank
+        run: curl --request POST 2https://api.northflank.io/f1/deployments/create-generic/" \
+          -H "Authorization: Bearer ${{ secrets.NORTHFLANK_API_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{"name": "jfbsingle", "project": "jfb-1", "service": "juicyfox-bot"}'
