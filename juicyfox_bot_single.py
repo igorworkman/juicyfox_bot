@@ -30,7 +30,7 @@ DB_PATH         = 'juicyfox.db'
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
 
-bot = Bot(TELEGRAM_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
+bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
 dp  = Dispatcher(storage=MemoryStorage())
 
 # ---------------- Channel helpers ----------------
