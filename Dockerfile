@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["python3", "juicyfox_bot_single.py"]
+CMD ["python", "juicyfox_bot_single.py"]
