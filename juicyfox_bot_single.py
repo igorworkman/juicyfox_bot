@@ -8,7 +8,6 @@
 import os, logging, asyncio, httpx, time, aiosqlite
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
-from aiogram.client.bot import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
