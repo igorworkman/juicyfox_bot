@@ -99,11 +99,10 @@ async def expire_date_str(user_id:int)->str:
 # ---------------- i18n -------------------
 L10N={
  'ru':{
-  'menu': """<b>Привет, сладкий 😘 я Juicy Fox.</b>
-Я создала три особенных канала, где ты узнаешь меня ближе, чем кто-либо...
-Каждый следующий — горячее предыдущего. 🖤
-А если хочешь поговорить лично — нажми на кнопку <b>Чат</b>, и я отвечу тебе уже сегодня 💌
-Это новый формат, и тебе здесь понравится — обещаю 💋""",
+  'menu': """Привет красавчик 😘 меня зовут Juicy Fox 🦊
+У меня есть 2 ПРИВАТНЫХ канала которые сведут тебя с ума! 🔞💦🔥
+А если хочешь поболтать со мной  — жми на кнопку Сhat...💬
+💐И я отвечу тебе уже сегодня 💌""",
   'btn_live':'👀 Juicy live - 0 $',
   'btn_club':'💎 Luxury Room - 1 $',
   'btn_vip':'🖤 Secret VIP Club - 1 $',
@@ -121,11 +120,10 @@ L10N={
   'nothing_cancel':'Нечего отменять.'
  },
  'en':{
-  'menu': """<b>Hi, sweetheart 😘 I'm Juicy Fox.</b>
-I've created three special channels where you'll get to know me more intimately than anyone else...
-Each level gets hotter than the last. 🖤
-And if you want to talk to me one-on-one — just tap the <b>Chat</b> button and I’ll reply to you today 💌
-It’s a new format, but I promise… you’re going to love it here 💋""",
+  'menu': """Hi, handsome 😘 My name is Juicy Fox 🦊
+I have 2 PRIVATE channels that will drive you crazy! 🔞💦🔥
+And if you want to chat with me — just tap the Chat button… 💬
+💐 And I’ll reply to you today 💌""",
   'btn_live':'👀 Juicy live - 0 $',
   'btn_club':'💎 Luxury Room - 1 $',
   'btn_vip':'🖤 Secret VIP Club - 1 $',
