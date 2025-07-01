@@ -188,7 +188,6 @@ async def choose_cur(cq:CallbackQuery):
     plan=cq.data.split(':')[1]; amt=TARIFFS[plan]
     kb=InlineKeyboardBuilder();
     for t,c in CURRENCIES: kb.button(text=t,callback_data=f'payc:{plan}:{c}')
-    kb.button(text=tr(cq.from_user.language_code, 'back'), callback_data='back_to_menu')
     kb.adjust(2)
     await cq.message.edit_text(tr(cq.from_user.language_code,'choose_cur',amount=amt),reply_markup=kb.as_markup())
 
@@ -267,10 +266,6 @@ async def cancel_any(msg: Message, state: FSMContext):
         await cmd_start(msg)  # показать меню заново
     else:
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
-
-@main_r.callback_query(F.data == 'back_to_menu')
-async def back_to_menu(cq: CallbackQuery):
-    await cmd_start(cq.message)
 
 # ---------------- Main menu / live ------------------------
 @main_r.message(Command('start'))
