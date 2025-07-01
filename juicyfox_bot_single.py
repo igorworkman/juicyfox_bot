@@ -138,7 +138,8 @@ And if you want to chat with me — just tap the Chat button… 💬
 {live_link}""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
-  'nothing_cancel':'Nothing to cancel.'
+  'nothing_cancel':'Nothing to cancel.',
+  'back': '🔙 Back'
  }
 }
 
