@@ -268,6 +268,10 @@ async def cancel_any(msg: Message, state: FSMContext):
     else:
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
 
+@main_r.callback_query(F.data == 'back_to_menu')
+async def back_to_menu(cq: CallbackQuery):
+    await cmd_start(cq.message)
+
 # ---------------- Main menu / live ------------------------
 @main_r.message(Command('start'))
 async def cmd_start(m: Message):
