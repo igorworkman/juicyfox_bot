@@ -188,6 +188,7 @@ async def choose_cur(cq:CallbackQuery):
     plan=cq.data.split(':')[1]; amt=TARIFFS[plan]
     kb=InlineKeyboardBuilder();
     for t,c in CURRENCIES: kb.button(text=t,callback_data=f'payc:{plan}:{c}')
+    kb.button(text=tr(cq.from_user.language_code, 'back'), callback_data='back_to_menu')
     kb.adjust(2)
     await cq.message.edit_text(tr(cq.from_user.language_code,'choose_cur',amount=amt),reply_markup=kb.as_markup())
 
