@@ -293,7 +293,13 @@ async def cmd_start(m: Message):
 
 @main_r.callback_query(F.data == 'live')
 async def live_link(cq: CallbackQuery):
-    await cq.message.edit_text(tr(cq.from_user.language_code, 'live', live_link=LIVE_CHANNEL_URL))
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(1)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'live', live_link=LIVE_CHANNEL_URL),
+        reply_markup=kb.as_markup()
+    )
 
 @router.callback_query(F.data == 'back')
 async def back_to_main(cq: CallbackQuery):
