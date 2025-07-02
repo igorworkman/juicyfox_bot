@@ -240,15 +240,17 @@ async def donate_amount(cq: CallbackQuery, state: FSMContext):
 # --- кнопка Назад из ввода суммы ---
 @donate_r.callback_query(F.data=='don_back', Donate.entering_amount)
 async def donate_back(cq: CallbackQuery, state: FSMContext):
-    """Возврат к выбору валюты"""
+    """Возврат к выбору валюты с кнопкой Назад"""
     await state.set_state(Donate.choosing_currency)
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
         kb.button(text=t, callback_data=f'doncur:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
     await cq.message.edit_text(
         tr(cq.from_user.language_code, 'choose_cur', amount='donate'),
         reply_markup=kb.as_markup()
+    )
     )
 
 @dp.message(Donate.entering_amount)
