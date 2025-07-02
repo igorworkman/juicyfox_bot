@@ -125,9 +125,9 @@ I have 2 PRIVATE channels that will drive you crazy! 🔞💦🔥
 And if you want to chat with me — just tap the Chat button… 💬
 💐 And I’ll reply to you today 💌""",
   'btn_live':'👀 Juicy live - 0 $',
-  'btn_club':'💎 Luxury Room - 1 $',
-  'btn_vip':'🖤 Secret VIP Club - 40 $',
-  'btn_chat':'💬 Juicy Chat - 1 $',
+  'btn_club':'💎 Luxury Room - 15 $',
+  'btn_vip':'🖤 Secret VIP Club - 35 $',
+  'btn_chat':'💬 Juicy Chat - 9 $',
   'btn_donate':'🎁 Custom',
   'choose_cur':'🧁 Ready to spoil me? Pick a currency 🛍️ ({amount}$)',
   'don_enter':'💸 Enter amount in USD (5/10/25/50/100/200)',
@@ -177,7 +177,7 @@ async def create_invoice(uid:int,usd:float,asset:str,desc:str,pl:str|None=None)-
 
 # ----- Data -----
 relay: dict[int, int] = {}  # group_msg_id -> user_id
-TARIFFS={'club':1.00,'vip':1.00,'chat':1.00}
+TARIFFS={'club':15.00,'vip':35.00,'chat':9.00}
 CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bnb'),('TRX','trx'),('DAI','dai'),('USDC','usdc')]
 
 
