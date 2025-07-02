@@ -297,7 +297,19 @@ async def live_link(cq: CallbackQuery):
 
 @router.callback_query(F.data == 'back')
 async def back_to_main(cq: CallbackQuery):
-    await cmd_start(cq.message)
+    lang = cq.from_user.language_code
+    kb = InlineKeyboardBuilder()
+    kb.button(text=tr(lang, 'btn_live'),   callback_data='live')
+    kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
+    kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
+    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
+    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
+    kb.adjust(1)
+    await cq.message.edit_text(
+        tr(lang, 'menu'),
+        reply_markup=kb.as_markup()
+    )
+
 
 # ---------------- Relay private ↔ group -------------------
 @dp.message((F.chat.type == 'private') & (~F.text.startswith('/')))
