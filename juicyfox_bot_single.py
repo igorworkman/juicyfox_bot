@@ -295,6 +295,10 @@ async def cmd_start(m: Message):
 async def live_link(cq: CallbackQuery):
     await cq.message.edit_text(tr(cq.from_user.language_code, 'live', live_link=LIVE_CHANNEL_URL))
 
+@router.callback_query(F.data == 'back')
+async def back_to_main(cq: CallbackQuery):
+    await cmd_start(cq.message)
+
 # ---------------- Relay private ↔ group -------------------
 @dp.message((F.chat.type == 'private') & (~F.text.startswith('/')))
 async def relay_private(msg: Message):
