@@ -211,12 +211,17 @@ async def pay_make(cq:CallbackQuery):
 # ---- Donate FSM ----
 class Donate(StatesGroup): choosing_currency=State(); entering_amount=State()
 
-@donate_r.callback_query(F.data=='donate')
-async def donate_currency(cq:CallbackQuery,state:FSMContext):
-    kb=InlineKeyboardBuilder();
-    for t,c in CURRENCIES: kb.button(text=t,callback_data=f'doncur:{c}')
+@donate_r.callback_query(F.data == 'donate')
+async def donate_currency(cq: CallbackQuery, state: FSMContext):
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'doncur:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
-    await cq.message.edit_text(tr(cq.from_user.language_code,'choose_cur',amount='donate'),reply_markup=kb.as_markup())
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'choose_cur', amount='donate'),
+        reply_markup=kb.as_markup()
+    )
     await state.set_state(Donate.choosing_currency)
 
 @donate_r.callback_query(F.data.startswith('doncur:'),Donate.choosing_currency)
