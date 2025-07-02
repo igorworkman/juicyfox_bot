@@ -251,7 +251,6 @@ async def donate_back(cq: CallbackQuery, state: FSMContext):
         tr(cq.from_user.language_code, 'choose_cur', amount='donate'),
         reply_markup=kb.as_markup()
     )
-    )
 
 @dp.message(Donate.entering_amount)
 async def donate_finish(msg: Message, state: FSMContext):
