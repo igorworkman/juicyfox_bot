@@ -184,12 +184,19 @@ CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bn
 router=Router(); donate_r=Router(); main_r=Router()
 
 @router.callback_query(F.data.startswith('pay:'))
-async def choose_cur(cq:CallbackQuery):
-    plan=cq.data.split(':')[1]; amt=TARIFFS[plan]
-    kb=InlineKeyboardBuilder();
-    for t,c in CURRENCIES: kb.button(text=t,callback_data=f'payc:{plan}:{c}')
+async def choose_cur(cq: CallbackQuery):
+    plan = cq.data.split(':')[1]
+    amt = TARIFFS[plan]
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'payc:{plan}:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
-    await cq.message.edit_text(tr(cq.from_user.language_code,'choose_cur',amount=amt),reply_markup=kb.as_markup())
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'choose_cur', amount=amt),
+        reply_markup=kb.as_markup()
+    )
+
 
 @router.callback_query(F.data.startswith('payc:'))
 async def pay_make(cq:CallbackQuery):
