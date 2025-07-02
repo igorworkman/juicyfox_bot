@@ -398,9 +398,31 @@ if __name__ == '__main__':
     asyncio.run(main())
 @router.callback_query(F.data == "back")
 async def go_back_callback(cq: CallbackQuery):
-    await cq.message.edit_text("⬅️ Главное меню", reply_markup=main_keyboard())
+    lang = cq.from_user.language_code
+    await cq.message.edit_text(tr(lang, 'menu'), reply_markup=main_keyboard(lang))
+
+def main_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=tr(lang, 'btn_live'),   callback_data='live')
+    kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
+    kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
+    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
+    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
+    kb.adjust(1)
+    return kb.as_markup()
 
 
 @router.callback_query(F.data == "back")
 async def go_back_callback(cq: CallbackQuery):
-    await cq.message.edit_text("⬅️ Главное меню", reply_markup=main_keyboard())
+    lang = cq.from_user.language_code
+    await cq.message.edit_text(tr(lang, 'menu'), reply_markup=main_keyboard(lang))
+
+def main_keyboard(lang: str = 'ru') -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=tr(lang, 'btn_live'),   callback_data='live')
+    kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
+    kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
+    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
+    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
+    kb.adjust(1)
+    return kb.as_markup()
