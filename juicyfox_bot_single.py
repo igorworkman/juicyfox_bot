@@ -388,3 +388,11 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+@router.callback_query(F.data == "back")
+async def go_back_callback(cq: CallbackQuery):
+    await cq.message.edit_text("⬅️ Главное меню", reply_markup=main_keyboard())
+
+
+@router.callback_query(F.data == "back")
+async def go_back_callback(cq: CallbackQuery):
+    await cq.message.edit_text("⬅️ Главное меню", reply_markup=main_keyboard())
