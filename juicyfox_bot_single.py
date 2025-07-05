@@ -140,7 +140,25 @@ And if you want to chat with me — just tap the Chat button… 💬
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
   'back': '🔙 Back'
- }
+ },
+'es': {
+  'menu': "Hola, guapo 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Chat… 💬\n💐 Te responderé hoy mismo 💌",
+  'btn_live': '👀 Juicy live - 0 $',
+  'btn_club': '💎 Luxury Room - 15 $',
+  'btn_vip': '🖤 Secret VIP Club - 35 $',
+  'btn_chat': '💬 Juicy Chat - 9 $',
+  'btn_donate': '🎁 Custom',
+  'choose_cur': '🧁 ¿Listo para consentirme? Elige una moneda 🛍️ ({amount}$)',
+  'don_enter': '💸 Introduce el monto en USD (5/10/25/50/100/200)',
+  'don_num': '💸 Introduce una cantidad válida en USD',
+  'inv_err': '⚠️ No se pudo crear la factura. Intenta con otra moneda, cariño 😉',
+  'not_paid': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
+  'live': "💎 Bienvenido a mi mundo 💋\n{live_link}",
+  'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
+  'cancel': '❌ Quizás en otro momento… 😔'
+  'nothing_cancel': 'No hay nada que cancelar.',
+  'back': '🔙 Back'
+  }
 }
 
 def tr(code:Optional[str],key:str,**kw):
