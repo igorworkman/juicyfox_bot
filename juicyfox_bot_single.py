@@ -157,7 +157,7 @@ And if you want to chat with me — just tap the Chat button… 💬
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.'
-  'back': '🔙 Back'
+  'back': '🔙 Back',
   }
 }
 
