@@ -3,7 +3,7 @@
 # • Club / VIP / Chat  → 8 валют → счёт → доступ ровно 30 суток
 # • Donate             → валюта → сумма (USD) → счёт
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
-# • RU/EN UI           → auto by language_code
+# • RU/EN/ES UI           → auto by language_code
 
 import os, logging, asyncio, httpx, time, aiosqlite
 from typing import Dict, Any, Optional, Tuple
@@ -155,8 +155,8 @@ And if you want to chat with me — just tap the Chat button… 💬
   'not_paid': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
   'live': "💎 Bienvenido a mi mundo 💋\n{live_link}",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
-  'cancel': '❌ Quizás en otro momento… 😔'
-  'nothing_cancel': 'No hay nada que cancelar.',
+  'cancel': '❌ Quizás en otro momento… 😔',
+  'nothing_cancel': 'No hay nada que cancelar.'
   'back': '🔙 Back'
   }
 }
