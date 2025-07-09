@@ -121,7 +121,8 @@ L10N={
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
-'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈'
+'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
+ 'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈'
  },
  'en':{
   'menu': """Hi, {name} 😘 My name is Juicy Fox 🦊
@@ -143,7 +144,8 @@ And if you want to chat with me — just tap the Juicy Chat button… 💬
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
-  'back': '🔙 Back'
+  'back': '🔙 Back',
+  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈'
  },
 'es': {
   'menu': "Hola, {name} 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Juicy Chat… 💬\n💐 Te responderé hoy mismo 💌",
@@ -161,7 +163,8 @@ And if you want to chat with me — just tap the Juicy Chat button… 💬
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
-  'back': '🔙 Back'
+  'back': '🔙 Back',
+  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈'
   }
 }
 
@@ -214,10 +217,12 @@ async def choose_cur(cq: CallbackQuery):
         kb.button(text=t, callback_data=f'payc:{plan}:{c}')
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'choose_cur', amount=amt),
-        reply_markup=kb.as_markup()
-    )
+    if plan == 'club':
+        lang = cq.from_user.language_code
+        text = L10N.get(lang, L10N["en"])['luxury_desc']
+    else:
+        text = tr(cq.from_user.language_code, 'choose_cur', amount=amt)
+    await cq.message.edit_text(text, reply_markup=kb.as_markup())
 
 
 @router.callback_query(F.data.startswith('payc:'))
