@@ -1,0 +1,24 @@
+name: Validate PR Length
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-length:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Count lines changed
+      id: line_count
+      run: |
+        lines=$(git diff --unified=0 origin/main...HEAD | grep '^@@' | wc -l)
+        echo "lines=$lines" >> $GITHUB_OUTPUT
+
+    - name: Fail if change too big
+      if: ${{ steps.line_count.outputs.lines }} > 30
+      run: |
+        echo "Too many changed blocks (${{ steps.line_count.outputs.lines }}) — please split the PR."
+        exit 1
