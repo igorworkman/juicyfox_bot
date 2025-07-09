@@ -1,0 +1,41 @@
+name: Validate .env.template Keys
+
+on:
+  pull_request:
+    paths:
+      - ".env.template"
+      - ".github/workflows/env-validator.yml"
+
+jobs:
+  check-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Validate .env.template
+        run: |
+          required_keys=(
+            BOT_TOKEN
+            CRYPTO_BOT_TOKEN
+            VIP_CHANNEL_ID
+            CHAT_GROUP_ID
+            LIVE_CHANNEL_URL
+            LOG_CHANNEL_ID
+            LUXURY_CHANNEL_ID
+          )
+
+          missing=0
+          for key in "${required_keys[@]}"; do
+            if ! grep -q "^$key=" .env.template; then
+              echo "❌ Missing key: $key"
+              missing=1
+            fi
+          done
+
+          if [ $missing -eq 1 ]; then
+            echo "Environment validation failed. Please update .env.template."
+            exit 1
+          fi
+
+          echo "✅ All required environment keys are present."
