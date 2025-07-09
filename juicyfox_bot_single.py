@@ -101,7 +101,7 @@ L10N={
  'ru':{
   'menu': """Привет красавчик 😘 меня зовут Juicy Fox 🦊
 У меня есть 2 ПРИВАТНЫХ канала которые сведут тебя с ума! 🔞💦🔥
-А если хочешь поболтать со мной  — жми на кнопку Сhat...💬
+А если хочешь поболтать со мной  — жми на кнопку Juicy Сhat...💬
 💐И я отвечу тебе уже сегодня 💌""",
   'btn_live':'👀 Juicy live - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
@@ -123,7 +123,7 @@ L10N={
  'en':{
   'menu': """Hi, handsome 😘 My name is Juicy Fox 🦊
 I have 2 PRIVATE channels that will drive you crazy! 🔞💦🔥
-And if you want to chat with me — just tap the Chat button… 💬
+And if you want to chat with me — just tap the Juicy Chat button… 💬
 💐 And I’ll reply to you today 💌""",
   'btn_live':'👀 Juicy live - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
@@ -143,7 +143,7 @@ And if you want to chat with me — just tap the Chat button… 💬
   'back': '🔙 Back'
  },
 'es': {
-  'menu': "Hola, guapo 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Chat… 💬\n💐 Te responderé hoy mismo 💌",
+  'menu': "Hola, guapo 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Juicy Chat… 💬\n💐 Te responderé hoy mismo 💌",
   'btn_live': '👀 Juicy live - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 Secret VIP Club - 35 $',
