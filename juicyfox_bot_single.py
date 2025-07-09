@@ -99,7 +99,7 @@ async def expire_date_str(user_id:int)->str:
 # ---------------- i18n -------------------
 L10N={
  'ru':{
-  'menu': """Привет красавчик 😘
+  'menu': """Привет, {name} 😘
  меня зовут Juicy Fox 🦊
 У меня есть 2 ПРИВАТНЫХ канала 
 которые сведут тебя с ума! 🔞💦🔥
@@ -124,7 +124,7 @@ L10N={
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈'
  },
  'en':{
-  'menu': """Hi, handsome 😘 My name is Juicy Fox 🦊
+  'menu': """Hi, {name} 😘 My name is Juicy Fox 🦊
 I have 2 PRIVATE channels that will drive you crazy! 🔞💦🔥
 And if you want to chat with me — just tap the Juicy Chat button… 💬
 💐 And I’ll reply to you today 💌""",
@@ -146,7 +146,7 @@ And if you want to chat with me — just tap the Juicy Chat button… 💬
   'back': '🔙 Back'
  },
 'es': {
-  'menu': "Hola, guapo 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Juicy Chat… 💬\n💐 Te responderé hoy mismo 💌",
+  'menu': "Hola, {name} 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Juicy Chat… 💬\n💐 Te responderé hoy mismo 💌",
   'btn_live': '👀 Juicy live - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 Secret VIP Club - 35 $',
@@ -317,7 +317,7 @@ async def cmd_start(m: Message):
     kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
     kb.adjust(1)
-    await m.answer(tr(lang, 'menu'), reply_markup=kb.as_markup())
+    await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
 
 @main_r.callback_query(F.data == 'live')
 async def live_link(cq: CallbackQuery):
@@ -340,7 +340,7 @@ async def back_to_main(cq: CallbackQuery):
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
     kb.adjust(1)
     await cq.message.edit_text(
-        tr(lang, 'menu'),
+        tr(lang, 'menu', name=cq.from_user.first_name),
         reply_markup=kb.as_markup()
     )
 
