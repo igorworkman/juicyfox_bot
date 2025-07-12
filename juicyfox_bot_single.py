@@ -122,10 +122,10 @@ L10N={
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈'
  },
  'en':{
-  'menu': """Hi, {name} 😘 My name is Juicy Fox 🦊
-I have 2 PRIVATE channels that will drive you crazy! 🔞💦🔥
-And if you want to chat with me — just tap the Juicy Chat button… 💬
-💐 And I’ll reply to you today 💌""",
+  'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
+My 2 PRIVATE channels will drive you wild… 🔞💦🔥
+Just you and me… Ready for some late-night fun? 💋
+Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'btn_live':'👀 Juicy live - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 Secret VIP Club - 35 $',
@@ -145,7 +145,10 @@ And if you want to chat with me — just tap the Juicy Chat button… 💬
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈'
  },
 'es': {
-  'menu': "Hola, {name} 😘 Soy Juicy Fox 🦊\nTengo 2 canales PRIVADOS que te volverán loco! 🔞💦🔥\nY si quieres hablar conmigo — pulsa el botón Juicy Chat… 💬\n💐 Te responderé hoy mismo 💌",
+  'menu': "Hola, {name} 😘 Esta noche soy tu Juicy Fox 🦊
+Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
+Solo tú y yo… ¿Listo para jugar esta noche? 💋
+Haz clic en Juicy Chat 💬 — y te espero adentro 💌",
   'btn_live': '👀 Juicy live - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 Secret VIP Club - 35 $',
