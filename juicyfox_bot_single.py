@@ -72,6 +72,10 @@ CREATE TABLE IF NOT EXISTS payments(
   asset    TEXT,
   ts       INTEGER
 );
+CREATE TABLE IF NOT EXISTS msg_count(
+  user_id INTEGER PRIMARY KEY,
+  cnt INTEGER DEFAULT 0
+);
 """
 
 async def _db_exec(q:str,*a):
@@ -107,6 +111,17 @@ async def expire_date_str(user_id:int)->str:
             if not row: return 'нет доступа'
             return time.strftime('%d.%m.%Y', time.localtime(row[0]))
 
+async def inc_msg(uid:int)->int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.executescript(CREATE_SQL)
+        await db.execute('INSERT OR IGNORE INTO msg_count VALUES(?,0)',(uid,))
+        await db.execute('UPDATE msg_count SET cnt=cnt+1 WHERE user_id=?',(uid,))
+        await db.commit()
+        row=await (await db.execute('SELECT cnt FROM msg_count WHERE user_id=?',(uid,))).fetchone(); return row[0]
+
+async def reset_msg(uid:int):
+    await _db_exec('INSERT OR REPLACE INTO msg_count VALUES(?,0)',uid)
+
 # ---------------- i18n -------------------
 L10N={
  'ru':{
@@ -129,6 +144,7 @@ L10N={
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
+  'consecutive_limit':'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
  'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35$\n💳💵💱 — выбери, как тебе удобнее'
@@ -153,6 +169,7 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
+  'consecutive_limit':'You can\'t send more than 3 messages in a row, please wait for a reply from Juicy Fox',
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
@@ -176,6 +193,7 @@ Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
+  'consecutive_limit': 'No puedes enviar más de 3 mensajes seguidos, espera la respuesta de Juicy Fox',
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
   'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida"
@@ -375,6 +393,11 @@ async def relay_private(msg: Message):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
 
+    cnt=await inc_msg(msg.from_user.id)
+    if cnt>3:
+        await msg.answer(tr(msg.from_user.language_code,'consecutive_limit'))
+        return
+
     # Формируем шапку
     expires = await expire_date_str(msg.from_user.id)
     donated = await total_donated(msg.from_user.id)
@@ -395,10 +418,11 @@ async def relay_private(msg: Message):
 # ---------------- Group → user relay ----------------------
 @dp.message(F.chat.id == CHAT_GROUP_ID)
 async def relay_group(msg: Message):
-    if (msg.reply_to_message and 
+    if (msg.reply_to_message and
         msg.reply_to_message.message_id in relay):
         uid = relay[msg.reply_to_message.message_id]
         await bot.copy_message(uid, CHAT_GROUP_ID, msg.message_id)
+        await reset_msg(uid)
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
