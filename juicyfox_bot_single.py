@@ -25,6 +25,7 @@ CHAT_GROUP_ID   = int(os.getenv('CHAT_GROUP_ID', '-1002813332213'))
 LIVE_CHANNEL_URL= os.getenv('LIVE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
+CLUB_CHANNEL_ID = int(os.getenv('CLUB_CHANNEL_ID', '-1002808420871'))
 DB_PATH         = 'juicyfox.db'
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
@@ -46,6 +47,16 @@ async def give_vip_channel(user_id:int):
             await bot.send_message(user_id, f'🔑 Ваш доступ к VIP каналу: {link.invite_link}')
         except TelegramBadRequest as e:
             log.warning('Cannot give VIP link: %s', e)
+
+async def give_club_channel(user_id: int):
+    try:
+        await bot.add_chat_member(CLUB_CHANNEL_ID, user_id)
+    except TelegramForbiddenError:
+        try:
+            link = await bot.create_chat_invite_link(CLUB_CHANNEL_ID, member_limit=1, expire_date=int(time.time())+3600)
+            await bot.send_message(user_id, f'🔑 Доступ к Luxury Room: {link.invite_link}')
+        except TelegramBadRequest as e:
+            log.warning('Cannot give CLUB link: %s', e)
 
 # ---------------- DB helpers -----------------
 CREATE_SQL = """
@@ -406,6 +417,8 @@ async def cryptobot_hook(request: web.Request):
         return web.json_response({'ok': False})
 
     await add_paid(user_id)  # +30 дней от текущего момента
+    if plan == 'club':
+        await give_club_channel(user_id)
     if plan == 'vip':
         await give_vip_channel(user_id)  # канал VIP
 
