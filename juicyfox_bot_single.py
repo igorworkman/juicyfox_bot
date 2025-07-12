@@ -322,7 +322,7 @@ async def cmd_start(m: Message):
     kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
     kb.adjust(1)
-    await m.answer_photo("https://i.postimg.cc/15nfSDwL/temp-Imageaj-TSoh.avif")
+    await m.answer_photo("https://i.postimg.cc/15nfSDwL/temp-Imageaj-TSoh.jpg")
     await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
 
 @main_r.callback_query(F.data == 'live')
