@@ -101,7 +101,7 @@ L10N={
  'ru':{
   'menu': """Привет, {name} 😘 Я Juicy Fox 🦊
 Мои 2 ПРИВАТНЫХ канала сведут тебя с ума! 🔞💦🔥
-А если хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
+Хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
 И я отвечу тебе уже сегодня 💌""",
   'btn_live':'👀 Juicy live - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
@@ -319,7 +319,7 @@ async def cmd_start(m: Message):
     kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
     kb.adjust(1)
-    await m.answer_photo("https://files.catbox.moe/24zyej.jpg")
+    await m.answer_photo("https://files.catbox.moe/cqckle.jpg")
     await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
 
 @main_r.callback_query(F.data == 'live')
