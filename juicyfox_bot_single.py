@@ -145,10 +145,10 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈'
  },
 'es': {
-  'menu': "Hola, {name} 😘 Esta noche soy tu Juicy Fox 🦊
+  'menu': """Hola, {name} 😘 Esta noche soy tu Juicy Fox 🦊
 Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
 Solo tú y yo… ¿Listo para jugar esta noche? 💋
-Haz clic en Juicy Chat 💬 — y te espero adentro 💌",
+Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   'btn_live': '👀 Juicy live - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 Secret VIP Club - 35 $',
