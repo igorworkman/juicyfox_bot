@@ -22,10 +22,10 @@ log = logging.getLogger(__name__)
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 CHAT_GROUP_ID   = int(os.getenv('CHAT_GROUP_ID', '-1002813332213'))
-LIVE_CHANNEL_URL= os.getenv('LIVE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
+LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
-CLUB_CHANNEL_ID = int(os.getenv('CLUB_CHANNEL_ID', '-1002808420871'))
+LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
 DB_PATH         = 'juicyfox.db'
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
@@ -50,10 +50,10 @@ async def give_vip_channel(user_id:int):
 
 async def give_club_channel(user_id: int):
     try:
-        await bot.add_chat_member(CLUB_CHANNEL_ID, user_id)
+        await bot.add_chat_member(LUXURY_CHANNEL_ID, user_id)
     except TelegramForbiddenError:
         try:
-            link = await bot.create_chat_invite_link(CLUB_CHANNEL_ID, member_limit=1, expire_date=int(time.time())+3600)
+            link = await bot.create_chat_invite_link(LUXURY_CHANNEL_ID, member_limit=1, expire_date=int(time.time())+3600)
             await bot.send_message(user_id, f'🔑 Доступ к Luxury Room: {link.invite_link}')
         except TelegramBadRequest as e:
             log.warning('Cannot give CLUB link: %s', e)
@@ -129,7 +129,7 @@ L10N={
 Мои 2 ПРИВАТНЫХ канала сведут тебя с ума! 🔞💦🔥
 Хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
 И я отвечу тебе уже сегодня 💌""",
-  'btn_live':'👀 Juicy life - 0 $',
+  'btn_life':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat - 9 $',
@@ -139,8 +139,8 @@ L10N={
   'don_num':'💸 Введи сумму доната в USD',
   'inv_err':'⚠️ Не удалось создать счёт. Попробуй другую валюту, милый 😉',
   'not_paid':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
-  'live': """💎 Добро пожаловать в мой мир 💋
-{live_link}""",
+  'life': """💎 Добро пожаловать в мой мир 💋
+{life_link}""",
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
@@ -154,7 +154,7 @@ L10N={
 My 2 PRIVATE channels will drive you wild… 🔞💦🔥
 Just you and me… Ready for some late-night fun? 💋
 Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
-  'btn_live':'👀 Juicy life - 0 $',
+  'btn_life':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat - 9 $',
@@ -165,7 +165,7 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'inv_err':'⚠️ Failed to create invoice. Try another currency, sweetheart 😉',
   'not_paid':'💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘',
   'live': """💎 Welcome to my world 💋
-{live_link}""",
+{life_link}""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
@@ -179,7 +179,7 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
 Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
 Solo tú y yo… ¿Listo para jugar esta noche? 💋
 Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
-  'btn_live': '👀 Juicy life - 0 $',
+  'btn_life': '👀 Juicy life - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
   'btn_chat': '💬 Juicy Chat - 9 $',
@@ -189,7 +189,7 @@ Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   'don_num': '💸 Introduce una cantidad válida en USD',
   'inv_err': '⚠️ No se pudo crear la factura. Intenta con otra moneda, cariño 😉',
   'not_paid': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
-  'live': "💎 Bienvenido a mi mundo 💋\n{live_link}",
+  'life': "💎 Bienvenido a mi mundo 💋\n{live_link}",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
@@ -351,7 +351,7 @@ async def cmd_start(m: Message):
         await state.clear()
     lang = m.from_user.language_code
     kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, 'btn_live'),   callback_data='live')
+    kb.button(text=tr(lang, 'btn_life'),   callback_data='life')
     kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
     kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
     kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
@@ -360,7 +360,7 @@ async def cmd_start(m: Message):
     await m.answer_photo("https://files.catbox.moe/cqckle.jpg")
     await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
 
-@main_r.callback_query(F.data == 'live')
+@main_r.callback_query(F.data == 'life')
 async def live_link(cq: CallbackQuery):
     kb = InlineKeyboardBuilder()
     kb.button(text="⬅️ Назад", callback_data="back")
@@ -374,7 +374,7 @@ async def live_link(cq: CallbackQuery):
 async def back_to_main(cq: CallbackQuery):
     lang = cq.from_user.language_code
     kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, 'btn_live'),   callback_data='live')
+    kb.button(text=tr(lang, 'btn_life'),   callback_data='life')
     kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
     kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
     kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
