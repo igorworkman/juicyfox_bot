@@ -284,22 +284,6 @@ async def choose_cur(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text(text, reply_markup=kb.as_markup())
 
 
-@router.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
-async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
-    days = int(cq.data.split(':')[1])
-    amt = CHAT_TIERS.get(days, 0)
-    kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f'payc:chat:{days}:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(2)
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'choose_cur', amount=amt),
-        reply_markup=kb.as_markup(),
-    )
-    await state.clear()
-
-
 @router.callback_query(F.data.startswith('payc:'))
 async def pay_make(cq: CallbackQuery):
     parts = cq.data.split(':')
@@ -320,12 +304,27 @@ async def pay_make(cq: CallbackQuery):
         await cq.answer(tr(cq.from_user.language_code,'inv_err'),show_alert=True)
 
 # ---- Donate FSM ----
-class ChatGift(StatesGroup):
-    choose_tier = State()
-
 class Donate(StatesGroup):
     choosing_currency = State()
     entering_amount = State()
+
+class ChatGift(StatesGroup):
+    choose_tier = State()
+
+@router.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
+async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
+    days = int(cq.data.split(':')[1])
+    amt = CHAT_TIERS.get(days, 0)
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'payc:chat:{days}:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(2)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'choose_cur', amount=amt),
+        reply_markup=kb.as_markup(),
+    )
+    await state.clear()
 
 @donate_r.callback_query(F.data == 'donate')
 async def donate_currency(cq: CallbackQuery, state: FSMContext):
