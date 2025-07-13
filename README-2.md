@@ -19,7 +19,7 @@ JuicyFox Bot — это Telegram-бот, предназначенный для �
   - 👀 Juicy Life — $0
   - 🔓 luxaru room — $15
   - 👑 VIP Secret — $35
-  - 💬 Juicy Chat — $9
+  - 💬 Juicy Chat
   - ❤️ Custom
 - Обработка выбора тарифа через callback-кнопки
 - Выбор валюты: 💵 USDT / 🔮 TON / ₿ BTC
