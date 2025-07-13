@@ -145,10 +145,15 @@ L10N={
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
   'consecutive_limit':'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
-'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
-'chat_flower_1': '🌷 — 5$ / 7 дней',
-'chat_flower_2': '🌹 — 9$ / 15 дней',
-'chat_flower_3': '💐 — 15$ / 30 дней',
+  'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
+  'chat_flower_1': '🌷 — 5$ / 7 дней',
+  'chat_flower_2': '🌹 — 9$ / 15 дней',
+  'chat_flower_3': '💐 — 15$ / 30 дней',
+  'chat_flower_desc': """💬 Juicy Chat — твоя личная связь с Juicy Fox 😘
+Здесь начинается настоящий приват 💋
+💌 Я отвечаю видео-кружками и голосовыми
+📸 Иногда присылаю эксклюзивные селфи 😉
+🤗 Я открою чат как только увижу твои цветы 💐🌷🌹""",
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
  'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35$\n💳💵💱 — выбери, как тебе удобнее'
@@ -178,6 +183,11 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'chat_flower_1': '🌷 — $5 / 7 days',
   'chat_flower_2': '🌹 — $9 / 15 days',
   'chat_flower_3': '💐 — $15 / 30 days',
+  'chat_flower_desc': """💬 Juicy Chat — your personal connection with Juicy Fox 😘
+Just you and me... Let’s get a little closer 💋
+💌 I love sending video rolls and voice replies
+📸 I like sending private selfies... when you’ve been sweet 😉
+🤗 I open the chat once I see your flowers 💐🌷🌹""",
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
@@ -206,6 +216,11 @@ Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   'chat_flower_1': '🌷 — $5 / 7 días',
   'chat_flower_2': '🌹 — $9 / 15 días',
   'chat_flower_3': '💐 — $15 / 30 días',
+  'chat_flower_desc': """💬 Juicy Chat — tu conexión personal con Juicy Fox 😘
+Solo tú y yo... Acércate un poquito más 💋
+💌 Me encanta enviarte videomensajes y notas de voz
+📸 Me gusta mandarte selfies privados... si te portas bien 😉
+🤗 Abro el chat en cuanto vea tus flores 💐🌷🌹""",
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
   'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida"
@@ -261,13 +276,14 @@ router=Router(); donate_r=Router(); main_r=Router()
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
     if plan == 'chat':
+        desc = tr(cq.from_user.language_code, 'chat_flower_desc')
         kb = InlineKeyboardBuilder()
         kb.button(text=tr(cq.from_user.language_code, 'chat_flower_1'), callback_data='chatgift:7')
         kb.button(text=tr(cq.from_user.language_code, 'chat_flower_2'), callback_data='chatgift:15')
         kb.button(text=tr(cq.from_user.language_code, 'chat_flower_3'), callback_data='chatgift:30')
         kb.button(text="⬅️ Назад", callback_data="back")
         kb.adjust(1)
-        await cq.message.edit_text(tr(cq.from_user.language_code, 'chat_flower_q'), reply_markup=kb.as_markup())
+        await cq.message.edit_text(desc, reply_markup=kb.as_markup())
         await state.set_state(ChatGift.choose_tier)
         return
 
