@@ -129,7 +129,7 @@ L10N={
 Мои 2 ПРИВАТНЫХ канала сведут тебя с ума! 🔞💦🔥
 Хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
 И я отвечу тебе уже сегодня 💌""",
-  'btn_live':'👀 Juicy live - 0 $',
+  'btn_live':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat - 9 $',
@@ -154,7 +154,7 @@ L10N={
 My 2 PRIVATE channels will drive you wild… 🔞💦🔥
 Just you and me… Ready for some late-night fun? 💋
 Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
-  'btn_live':'👀 Juicy live - 0 $',
+  'btn_live':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat - 9 $',
@@ -179,7 +179,7 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
 Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
 Solo tú y yo… ¿Listo para jugar esta noche? 💋
 Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
-  'btn_live': '👀 Juicy live - 0 $',
+  'btn_live': '👀 Juicy life - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
   'btn_chat': '💬 Juicy Chat - 9 $',
