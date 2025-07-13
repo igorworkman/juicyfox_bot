@@ -168,7 +168,7 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'don_num':'💸 Enter a donation amount in USD',
   'inv_err':'⚠️ Failed to create invoice. Try another currency, sweetheart 😉',
   'not_paid':'💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘',
-  'live': """💎 Welcome to my world 💋
+  'life': """💎 Welcome to my world 💋
 {life_link}""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
