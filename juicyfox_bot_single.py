@@ -212,8 +212,12 @@ Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   }
 }
 
-def tr(code:Optional[str],key:str,**kw):
-    lang='en' if code and code.startswith('en') else 'ru'
+def tr(code: Optional[str], key: str, **kw):
+    lang = 'ru'  # fallback по умолчанию
+    if code and code.startswith('en'):
+        lang = 'en'
+    elif code and code.startswith('es'):
+        lang = 'es'
     return L10N[lang][key].format(**kw)
 
 # ----- CryptoBot helpers -----
