@@ -366,7 +366,7 @@ async def live_link(cq: CallbackQuery):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(1)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'live', live_link=LIFE_CHANNEL_URL),
+        tr(cq.from_user.language_code, 'life', live_link=LIFE_CHANNEL_URL),
         reply_markup=kb.as_markup()
     )
 
