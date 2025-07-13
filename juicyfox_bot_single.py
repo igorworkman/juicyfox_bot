@@ -137,18 +137,22 @@ L10N={
   'choose_cur':'🧁 Готов побаловать меня? Выбери валюту 🛍️ ({amount}$)',
   'don_enter':'💸 Введи сумму в USD (5/10/25/50/100/200)',
   'don_num':'💸 Введи сумму доната в USD',
-  'inv_err':'⚠️ Не удалось создать счёт. Попробуй другую валюту, милый 😉',
-  'not_paid':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
+ 'inv_err':'⚠️ Не удалось создать счёт. Попробуй другую валюту, милый 😉',
+ 'not_paid':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
   'life': """💎 Добро пожаловать в мой мир 💋
 {life_link}""",
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
   'consecutive_limit':'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
+'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
+'chat_flower_1': '🌷 — 5$ / 7 дней',
+'chat_flower_2': '🌹 — 9$ / 15 дней',
+'chat_flower_3': '💐 — 15$ / 30 дней',
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
  'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35$\n💳💵💱 — выбери, как тебе удобнее'
- },
+},
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
 My 2 PRIVATE channels will drive you wild… 🔞💦🔥
@@ -170,6 +174,10 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
   'consecutive_limit':'You can\'t send more than 3 messages in a row, please wait for a reply from Juicy Fox',
+  'chat_flower_q': 'What flowers would you like to gift Juicy Fox?',
+  'chat_flower_1': '🌷 — $5 / 7 days',
+  'chat_flower_2': '🌹 — $9 / 15 days',
+  'chat_flower_3': '💐 — $15 / 30 days',
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
@@ -194,6 +202,10 @@ Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
   'consecutive_limit': 'No puedes enviar más de 3 mensajes seguidos, espera la respuesta de Juicy Fox',
+  'chat_flower_q': '¿Qué flores deseas regalar a Juicy Fox?',
+  'chat_flower_1': '🌷 — $5 / 7 días',
+  'chat_flower_2': '🌹 — $9 / 15 días',
+  'chat_flower_3': '💐 — $15 / 30 días',
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
   'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida"
@@ -234,15 +246,27 @@ async def create_invoice(uid:int,usd:float,asset:str,desc:str,pl:str|None=None)-
 
 # ----- Data -----
 relay: dict[int, int] = {}  # group_msg_id -> user_id
-TARIFFS={'club':15.00,'vip':35.00,'chat':9.00}
+TARIFFS={'club':15.00,'vip':35.00}
+CHAT_TIERS={7:5.0,15:9.0,30:15.0}
 CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bnb'),('TRX','trx'),('DAI','dai'),('USDC','usdc')]
 
 
 router=Router(); donate_r=Router(); main_r=Router()
 
 @router.callback_query(F.data.startswith('pay:'))
-async def choose_cur(cq: CallbackQuery):
+async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
+    if plan == 'chat':
+        kb = InlineKeyboardBuilder()
+        kb.button(text=tr(cq.from_user.language_code, 'chat_flower_1'), callback_data='chatgift:7')
+        kb.button(text=tr(cq.from_user.language_code, 'chat_flower_2'), callback_data='chatgift:15')
+        kb.button(text=tr(cq.from_user.language_code, 'chat_flower_3'), callback_data='chatgift:30')
+        kb.button(text="⬅️ Назад", callback_data="back")
+        kb.adjust(1)
+        await cq.message.edit_text(tr(cq.from_user.language_code, 'chat_flower_q'), reply_markup=kb.as_markup())
+        await state.set_state(ChatGift.choose_tier)
+        return
+
     amt = TARIFFS[plan]
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
@@ -260,10 +284,35 @@ async def choose_cur(cq: CallbackQuery):
     await cq.message.edit_text(text, reply_markup=kb.as_markup())
 
 
+@router.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
+async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
+    days = int(cq.data.split(':')[1])
+    amt = CHAT_TIERS.get(days, 0)
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'payc:chat:{days}:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(2)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'choose_cur', amount=amt),
+        reply_markup=kb.as_markup(),
+    )
+    await state.clear()
+
+
 @router.callback_query(F.data.startswith('payc:'))
-async def pay_make(cq:CallbackQuery):
-    _,plan,cur=cq.data.split(':'); amt=TARIFFS[plan]
-    url=await create_invoice(cq.from_user.id, amt, cur, 'JuicyFox Subscription', pl=plan)
+async def pay_make(cq: CallbackQuery):
+    parts = cq.data.split(':')
+    if len(parts) == 4 and parts[1] == 'chat':
+        _, plan, days_str, cur = parts
+        days = int(days_str)
+        amt = CHAT_TIERS.get(days, 0)
+        payload = f'chat_{days}'
+    else:
+        _, plan, cur = parts
+        amt = TARIFFS[plan]
+        payload = plan
+    url = await create_invoice(cq.from_user.id, amt, cur, 'JuicyFox Subscription', pl=payload)
     if url:
         await cq.message.edit_text(f"Счёт на оплату ({plan.upper()}): {url}")
         
@@ -271,7 +320,12 @@ async def pay_make(cq:CallbackQuery):
         await cq.answer(tr(cq.from_user.language_code,'inv_err'),show_alert=True)
 
 # ---- Donate FSM ----
-class Donate(StatesGroup): choosing_currency=State(); entering_amount=State()
+class ChatGift(StatesGroup):
+    choose_tier = State()
+
+class Donate(StatesGroup):
+    choosing_currency = State()
+    entering_amount = State()
 
 @donate_r.callback_query(F.data == 'donate')
 async def donate_currency(cq: CallbackQuery, state: FSMContext):
@@ -446,7 +500,10 @@ async def cryptobot_hook(request: web.Request):
         log.warning('[WEBHOOK] Bad payload: %s', payload_str)
         return web.json_response({'ok': False})
 
-    await add_paid(user_id)  # +30 дней от текущего момента
+    days = 30
+    if plan.startswith('chat_'):
+        days = int(plan.split('_')[1])
+    await add_paid(user_id, days)
     if plan == 'club':
         await give_club_channel(user_id)
     if plan == 'vip':
