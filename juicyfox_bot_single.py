@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 # ---------------- Config ----------------
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
-CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID"))
+CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
 HISTORY_GROUP_ID = -1002721298286
 ADMINS = [7893194894]
 LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
