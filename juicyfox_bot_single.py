@@ -15,6 +15,20 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 
+async def _init_db():
+    async with aiosqlite.connect('messages.sqlite') as db:
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS messages(
+              ts INTEGER,
+              user_id INTEGER,
+              msg_id INTEGER,
+              is_reply INTEGER
+            );
+        ''')
+        await db.commit()
+
+asyncio.get_event_loop().run_until_complete(_init_db())
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
