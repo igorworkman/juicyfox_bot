@@ -527,9 +527,9 @@ async def relay_private(msg: Message):
         'ru': '🇷🇺', 'en': '🇺🇸', 'tr': '🇹🇷', 'de': '🇩🇪'
     }.get(msg.from_user.language_code[:2], '🏳️')
     header = (f"[{msg.from_user.first_name}](tg://user?id={msg.from_user.id}) "
-              f"• до {expires} • 💰 ${donated:.2f} • {flag}")
+              f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
-    header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode='Markdown')
+    header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
     relay[header_msg.message_id] = msg.from_user.id
     cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
