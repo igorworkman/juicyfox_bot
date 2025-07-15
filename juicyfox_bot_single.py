@@ -184,7 +184,7 @@ L10N={
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
-  'consecutive_limit':'(3 из 3) — Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
+  'consecutive_limit': 'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
   'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
   'chat_flower_1': '🌷 — 5$ / 7 дней',
   'chat_flower_2': '🌹 — 9$ / 15 дней',
@@ -532,8 +532,11 @@ async def relay_private(msg: Message):
 # ---------------- Group → user relay ----------------------
 @dp.message(F.chat.id == CHAT_GROUP_ID)
 async def relay_group(msg: Message):
-    if (msg.reply_to_message and
-        msg.reply_to_message.message_id in relay):
+    if (
+        msg.reply_to_message and
+        msg.reply_to_message.message_id in relay and
+        msg.from_user.id in [admin.user.id for admin in await msg.chat.get_administrators()]
+    ):
         uid = relay[msg.reply_to_message.message_id]
         await bot.copy_message(uid, CHAT_GROUP_ID, msg.message_id)
         await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), uid, msg.message_id, 1)
