@@ -526,7 +526,7 @@ async def relay_private(msg: Message):
     flag = {
         'ru': '🇷🇺', 'en': '🇺🇸', 'tr': '🇹🇷', 'de': '🇩🇪'
     }.get(msg.from_user.language_code[:2], '🏳️')
-    username = msg.from_user.username or "User"
+    username = msg.from_user.full_name
     header = (f"{username} "
               f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
