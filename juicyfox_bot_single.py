@@ -22,6 +22,8 @@ log = logging.getLogger(__name__)
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 CHAT_GROUP_ID   = int(os.getenv('CHAT_GROUP_ID', '-1002813332213'))
+HISTORY_GROUP_ID = -1002721298286
+ADMINS = [7893194894]
 LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
@@ -75,6 +77,12 @@ CREATE TABLE IF NOT EXISTS payments(
 CREATE TABLE IF NOT EXISTS msg_count(
   user_id INTEGER PRIMARY KEY,
   cnt INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS messages(
+  ts INTEGER,
+  user_id INTEGER,
+  msg_id INTEGER,
+  is_reply INTEGER
 );
 """
 
@@ -484,6 +492,7 @@ async def relay_private(msg: Message):
     relay[header_msg.message_id] = msg.from_user.id
     cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
+    await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), msg.from_user.id, msg.message_id, 0)
 
 
     
@@ -496,6 +505,42 @@ async def relay_group(msg: Message):
         uid = relay[msg.reply_to_message.message_id]
         await bot.copy_message(uid, CHAT_GROUP_ID, msg.message_id)
         await reset_msg(uid)
+        await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), uid, msg.message_id, 1)
+
+@dp.message(Command('history'))
+async def history_request(msg: Message):
+    if msg.chat.id != HISTORY_GROUP_ID or msg.from_user.id not in ADMINS:
+        return
+
+    args = msg.text.split()
+    if len(args) < 2:
+        await msg.reply("❌ Укажи user_id (и необязательно кол-во сообщений)")
+        return
+
+    try:
+        uid = int(args[1])
+        limit = int(args[2]) if len(args) > 2 else 10
+    except ValueError:
+        await msg.reply("❌ Неверный формат запроса.")
+        return
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        rows = await db.execute_fetchall(
+            'SELECT ts, user_id, msg_id, is_reply FROM messages WHERE user_id=? ORDER BY ts DESC LIMIT ?',
+            (uid, limit)
+        )
+
+    if not rows:
+        await msg.reply("История пуста.")
+        return
+
+    await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
+
+    for ts, user_id, mid, is_reply in reversed(rows):
+        try:
+            await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID if is_reply else user_id, mid)
+        except Exception:
+            await msg.reply(f"⚠️ Не удалось переслать msg_id={mid}")
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
