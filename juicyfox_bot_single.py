@@ -572,6 +572,8 @@ async def history_request(msg: Message):
 
     for ts, user_id, msg_id, is_reply in reversed(rows):
         try:
+            arrow = '⬅️' if is_reply else '➡️'
+            await bot.send_message(HISTORY_GROUP_ID, f"{arrow}")
             await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, msg_id)
         except Exception:
             await msg.reply(f"⚠️ Не удалось переслать msg_id={msg_id}")
