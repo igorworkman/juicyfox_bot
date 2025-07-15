@@ -10,3 +10,4 @@ COPY . .
 EXPOSE 8080
 
 CMD ["python", "juicyfox_bot_single.py"]
+VOLUME /data

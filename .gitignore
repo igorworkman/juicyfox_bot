@@ -5,6 +5,7 @@ env310/
 __pycache__/
 *.db
 *.sqlite3
+messages.sqlite
 *.pyc
 .DS_Store
 .env.template
