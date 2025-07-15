@@ -552,11 +552,11 @@ async def history_request(msg: Message):
 
     await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
 
-    for ts, user_id, mid, is_reply in reversed(rows):
+    for ts, user_id, msg_id, is_reply in reversed(rows):
         try:
-            await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, message_id)
+            await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, msg_id)
         except Exception:
-            await msg.reply(f"⚠️ Не удалось переслать msg_id={mid}")
+            await msg.reply(f"⚠️ Не удалось переслать msg_id={msg_id}")
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
