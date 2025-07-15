@@ -135,16 +135,31 @@ async def expire_date_str(user_id:int)->str:
             if not row: return 'нет доступа'
             return time.strftime('%d.%m.%Y', time.localtime(row[0]))
 
-async def inc_msg(uid:int)->int:
+# ----------- User message tracking -----------------
+CONSECUTIVE_LIMIT = 3
+COOLDOWN_SECS = 18 * 3600
+
+async def inc_msg(uid: int) -> int:
+    """Return how many messages in a row the user has sent including the current one."""
+    now = int(time.time())
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(CREATE_SQL)
-        await db.execute('INSERT OR IGNORE INTO msg_count VALUES(?,0)',(uid,))
-        await db.execute('UPDATE msg_count SET cnt=cnt+1 WHERE user_id=?',(uid,))
-        await db.commit()
-        row=await (await db.execute('SELECT cnt FROM msg_count WHERE user_id=?',(uid,))).fetchone(); return row[0]
+        rows = await db.execute_fetchall(
+            'SELECT ts, is_reply FROM messages WHERE user_id=? ORDER BY ts DESC LIMIT 10',
+            (uid,)
+        )
+
+    cnt = 0
+    for ts, is_reply in rows:
+        if is_reply == 1 or now - ts > COOLDOWN_SECS:
+            break
+        cnt += 1
+
+    return cnt + 1
 
 async def reset_msg(uid:int):
-    await _db_exec('INSERT OR REPLACE INTO msg_count VALUES(?,0)',uid)
+    # Message history itself resets the counter. Kept for compatibility.
+    return
 
 # ---------------- i18n -------------------
 L10N={
@@ -168,7 +183,7 @@ L10N={
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
-  'consecutive_limit':'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
+  'consecutive_limit':'(3 из 3) — жду ответа от Juicy Fox. Вы сможете продолжить переписку через 18 часов или после ответа.',
   'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
   'chat_flower_1': '🌷 — 5$ / 7 дней',
   'chat_flower_2': '🌹 — 9$ / 15 дней',
@@ -202,7 +217,7 @@ Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
-  'consecutive_limit':'You can\'t send more than 3 messages in a row, please wait for a reply from Juicy Fox',
+  'consecutive_limit':'(3 of 3) — waiting for Juicy Fox\'s reply. You can continue in 18 hours or after she answers.',
   'chat_flower_q': 'What flowers would you like to gift Juicy Fox?',
   'chat_flower_1': '🌷 — $5 / 7 days',
   'chat_flower_2': '🌹 — $9 / 15 days',
@@ -235,7 +250,7 @@ Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
-  'consecutive_limit': 'No puedes enviar más de 3 mensajes seguidos, espera la respuesta de Juicy Fox',
+  'consecutive_limit': '(3 de 3) — esperando la respuesta de Juicy Fox. Podrás continuar la conversación en 18 horas o cuando responda.',
   'chat_flower_q': '¿Qué flores deseas regalar a Juicy Fox?',
   'chat_flower_1': '🌷 — $5 / 7 días',
   'chat_flower_2': '🌹 — $9 / 15 días',
@@ -490,9 +505,9 @@ async def relay_private(msg: Message):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
 
-    cnt=await inc_msg(msg.from_user.id)
-    if cnt>3:
-        await msg.answer(tr(msg.from_user.language_code,'consecutive_limit'))
+    cnt = await inc_msg(msg.from_user.id)
+    if cnt > CONSECUTIVE_LIMIT:
+        await msg.answer(tr(msg.from_user.language_code, 'consecutive_limit'))
         return
 
     # Формируем шапку
@@ -520,7 +535,6 @@ async def relay_group(msg: Message):
         msg.reply_to_message.message_id in relay):
         uid = relay[msg.reply_to_message.message_id]
         await bot.copy_message(uid, CHAT_GROUP_ID, msg.message_id)
-        await reset_msg(uid)
         await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), uid, msg.message_id, 1)
 
 @dp.message(Command('history'))
