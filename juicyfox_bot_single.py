@@ -526,7 +526,8 @@ async def relay_private(msg: Message):
     flag = {
         'ru': '🇷🇺', 'en': '🇺🇸', 'tr': '🇹🇷', 'de': '🇩🇪'
     }.get(msg.from_user.language_code[:2], '🏳️')
-    header = (f"[{msg.from_user.first_name}](tg://user?id={msg.from_user.id}) "
+    username = msg.from_user.username or "User"
+    header = (f"{username} "
               f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
     header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
