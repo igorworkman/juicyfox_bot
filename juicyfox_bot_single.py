@@ -15,8 +15,10 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 
+DB_PATH = '/data/messages.sqlite'
+
 async def _init_db():
-    async with aiosqlite.connect('messages.sqlite') as db:
+    async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('''
             CREATE TABLE IF NOT EXISTS messages(
               ts INTEGER,
@@ -42,7 +44,6 @@ LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLi
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
-DB_PATH         = 'messages.sqlite'
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
