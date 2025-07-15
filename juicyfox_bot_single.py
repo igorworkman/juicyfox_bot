@@ -28,7 +28,7 @@ LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLi
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
-DB_PATH         = 'juicyfox.db'
+DB_PATH         = 'messages.sqlite'
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -492,7 +492,7 @@ async def relay_private(msg: Message):
     relay[header_msg.message_id] = msg.from_user.id
     cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
-    await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), msg.from_user.id, msg.message_id, 0)
+    await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), msg.from_user.id, cp.message_id, 0)
 
 
     
