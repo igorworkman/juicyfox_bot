@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 # ---------------- Config ----------------
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
-CHAT_GROUP_ID   = int(os.getenv('CHAT_GROUP_ID', '-1002813332213'))
+CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID"))
 HISTORY_GROUP_ID = -1002721298286
 ADMINS = [7893194894]
 LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
@@ -554,7 +554,7 @@ async def history_request(msg: Message):
 
     for ts, user_id, mid, is_reply in reversed(rows):
         try:
-            await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID if is_reply else user_id, mid)
+            await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, message_id)
         except Exception:
             await msg.reply(f"⚠️ Не удалось переслать msg_id={mid}")
 
