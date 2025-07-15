@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 CHAT_GROUP_ID   = int(os.getenv('CHAT_GROUP_ID', '-1002813332213'))
-LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
+LIFE_URL        = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
@@ -439,7 +439,7 @@ async def life_link(cq: CallbackQuery):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(1)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'life', life_link=LIFE_CHANNEL_URL),
+        tr(cq.from_user.language_code, 'life', life_link=LIFE_URL),
         reply_markup=kb.as_markup()
     )
 
