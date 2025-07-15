@@ -7,6 +7,16 @@
 
 import os, logging, asyncio, httpx, time, aiosqlite
 os.makedirs('/data', exist_ok=True)
+
+DB_PATH = '/data/messages.sqlite'
+
+if not os.path.exists('/data'):
+    os.makedirs('/data', exist_ok=True)
+
+if not os.path.exists(DB_PATH):
+    import sqlite3
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute('CREATE TABLE IF NOT EXISTS messages (timestamp INT, user_id INT, message_id INT, is_reply INT)')
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
@@ -15,8 +25,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-
-DB_PATH = '/data/messages.sqlite'
 
 async def _init_db():
     async with aiosqlite.connect(DB_PATH) as db:
