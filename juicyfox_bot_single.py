@@ -6,6 +6,7 @@
 # • RU/EN/ES UI           → auto by language_code
 
 import os, logging, asyncio, httpx, time, aiosqlite
+os.makedirs('/data', exist_ok=True)
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
