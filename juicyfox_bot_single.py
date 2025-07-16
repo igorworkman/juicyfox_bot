@@ -667,7 +667,7 @@ async def scheduled_poster():
             except Exception:
                 continue
 
-async def on_startup(_):
+async def on_startup(_: Dispatcher):
     asyncio.create_task(scheduled_poster())
 
 dp.startup.register(on_startup)
