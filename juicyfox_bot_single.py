@@ -50,6 +50,7 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
 HISTORY_GROUP_ID = -1002721298286
 ADMINS = [7893194894]
+LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID", "-1"))
 LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
@@ -57,9 +58,9 @@ LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
 POST_PLAN_CHANNEL_ID = int(os.getenv('POST_PLAN_CHANNEL_ID', '-1002791131375'))
 
 CHANNELS = {
-  "life": int(os.getenv("LIFE_CHANNEL_ID", "-1")),
-"luxury": int(os.getenv("LUXURY_CHANNEL_ID", "-1")),
-"vip": int(os.getenv("VIP_CHANNEL_ID", "-1")),
+  "life": LIFE_CHANNEL_ID,
+  "luxury": LUXURY_CHANNEL_ID,
+  "vip": VIP_CHANNEL_ID,
 }
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
