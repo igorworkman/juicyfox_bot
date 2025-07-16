@@ -7,12 +7,9 @@
 
 import os, logging, asyncio, httpx, time, aiosqlite
 from datetime import datetime
-os.makedirs('/data', exist_ok=True)
-
 DB_PATH = '/data/messages.sqlite'
 
-if not os.path.exists('/data'):
-    os.makedirs('/data', exist_ok=True)
+os.makedirs('/data', exist_ok=True)
 
 if not os.path.exists(DB_PATH):
     import sqlite3
@@ -39,7 +36,6 @@ async def _init_db():
         ''')
         await db.commit()
 
-asyncio.get_event_loop().run_until_complete(_init_db())
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -668,6 +664,8 @@ async def scheduled_poster():
                 continue
 
 async def on_startup(_: Dispatcher):
+    os.makedirs('/data', exist_ok=True)
+    await _init_db()
     asyncio.create_task(scheduled_poster())
 
 dp.startup.register(on_startup)
