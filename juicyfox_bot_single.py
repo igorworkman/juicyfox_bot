@@ -667,7 +667,10 @@ async def scheduled_poster():
             except Exception:
                 continue
 
-asyncio.create_task(scheduled_poster())
+async def on_startup(_):
+    asyncio.create_task(scheduled_poster())
+
+dp.startup.register(on_startup)
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
