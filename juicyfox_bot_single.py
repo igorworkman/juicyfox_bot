@@ -57,9 +57,9 @@ LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
 POST_PLAN_CHANNEL_ID = int(os.getenv('POST_PLAN_CHANNEL_ID', '-1002791131375'))
 
 CHANNELS = {
-  "life": -1000000000000,
-  "luxury": -1000000000000,
-  "vip": -1000000000000,
+  "life": int(os.getenv("LIFE_CHANNEL_ID")),
+  "luxury": int(os.getenv("LUXURY_CHANNEL_ID")),
+  "vip": int(os.getenv("VIP_CHANNEL_ID")),
 }
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
