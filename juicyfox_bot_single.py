@@ -6,6 +6,7 @@
 # • RU/EN/ES UI           → auto by language_code
 
 import os, logging, asyncio, httpx, time, aiosqlite
+from datetime import datetime
 os.makedirs('/data', exist_ok=True)
 
 DB_PATH = '/data/messages.sqlite'
@@ -53,6 +54,13 @@ LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLi
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1001234567890'))  # приватный VIP‑канал
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
+POST_PLAN_CHANNEL_ID = int(os.getenv('POST_PLAN_CHANNEL_ID', '-1002791131375'))
+
+CHANNELS = {
+  "life": -1000000000000,
+  "luxury": -1000000000000,
+  "vip": -1000000000000,
+}
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -108,6 +116,15 @@ CREATE TABLE IF NOT EXISTS messages(
   msg_id INTEGER,
   is_reply INTEGER
 );
+CREATE TABLE IF NOT EXISTS scheduled_posts(
+  created_ts INTEGER,
+  publish_ts INTEGER,
+  channel TEXT,
+  price INTEGER,
+  text TEXT,
+  from_chat_id INTEGER,
+  from_msg_id INTEGER
+);
 """
 
 async def _db_exec(q:str,*a):
@@ -115,6 +132,11 @@ async def _db_exec(q:str,*a):
         await db.executescript(CREATE_SQL)  # ensure both tables
         await db.execute(q,a)
         await db.commit()
+
+async def _db_fetchall(q:str,*a):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.executescript(CREATE_SQL)
+        return await db.execute_fetchall(q,a)
 
 async def add_paid(user_id:int, days:int=30):
     expires=int(time.time())+days*24*3600
@@ -587,6 +609,64 @@ async def history_request(msg: Message):
             await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, msg_id)
         except Exception:
             await msg.reply(f"⚠️ Не удалось переслать msg_id={msg_id}")
+
+@dp.channel_post()
+async def handle_posting_plan(msg: Message):
+    if msg.chat.id != POST_PLAN_CHANNEL_ID:
+        return
+
+    if not msg.text:
+        return
+
+    lines = msg.text.strip().split('\n')
+    hashtags = {l.split('=')[0][1:]: l.split('=')[1] for l in lines if l.startswith('#') and '=' in l}
+    description = '\n'.join(l for l in lines if not l.startswith('#'))
+
+    target = hashtags.get("send_to")
+    price = int(hashtags.get("price", 0))
+    dt_str = hashtags.get("date")
+
+    if target not in {"life", "luxury", "vip"}:
+        await msg.reply("❌ Неизвестный канал назначения.")
+        return
+
+    if dt_str:
+        try:
+            ts = int(datetime.strptime(dt_str, "%Y-%m-%d %H:%M").timestamp())
+        except Exception:
+            await msg.reply("❌ Неверный формат даты.")
+            return
+    else:
+        ts = int(time.time())
+
+    await _db_exec(
+        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
+        int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id
+    )
+
+    await msg.reply("✅ Пост запланирован!")
+
+async def scheduled_poster():
+    while True:
+        await asyncio.sleep(10)
+        now = int(time.time())
+
+        rows = await _db_fetchall(
+            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id FROM scheduled_posts WHERE publish_ts <= ?",
+            now
+        )
+
+        for rowid, _, channel, price, text, from_chat, from_msg in rows:
+            chat_id = CHANNELS.get(channel)
+            if not chat_id:
+                continue
+            try:
+                await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+            except Exception:
+                continue
+
+asyncio.create_task(scheduled_poster())
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
