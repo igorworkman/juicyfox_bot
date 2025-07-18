@@ -664,6 +664,7 @@ async def debug_all_channel_posts(msg: Message):
     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
 async def scheduled_poster():
+    log.info("[POSTING PLAN] Стартовал планировщик scheduled_poster")
     while True:
         await asyncio.sleep(10)
         now = int(time.time())
