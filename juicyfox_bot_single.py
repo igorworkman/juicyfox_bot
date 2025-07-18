@@ -638,6 +638,7 @@ async def handle_posting_plan(msg: Message):
         try:
             ts = int(datetime.strptime(dt_str, "%Y-%m-%d %H:%M").timestamp())
         except Exception:
+            log.warning("[POST PLAN] Bad date format: %s", dt_str)
             await msg.reply("❌ Неверный формат даты.")
             return
     else:
@@ -648,7 +649,12 @@ async def handle_posting_plan(msg: Message):
         int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id
     )
 
+    log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
+
+@dp.channel_post()
+async def debug_all_channel_posts(msg: Message):
+    log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
 async def scheduled_poster():
     while True:
@@ -665,6 +671,7 @@ async def scheduled_poster():
             if not chat_id:
                 continue
             try:
+                log.info("[POSTING] Sending post to %s: %s", channel, text[:30])
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
             except Exception:
