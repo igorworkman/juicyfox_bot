@@ -63,8 +63,9 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
 
 # --- Startup ------------------------------------------------
-async def on_startup(_: Dispatcher):
+async def on_startup():
     asyncio.create_task(scheduled_poster())
+
 
 bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
 dp  = Dispatcher(storage=MemoryStorage())
