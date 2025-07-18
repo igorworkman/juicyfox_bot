@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
 
-dobs:
+jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Northflank
-        run: curl --request POST 2https://api.northflank.io/f1/deployments/create-generic/" \
+        run: curl --request POST https://api.northflank.io/f1/deployments/create-generic/" \
           -H "Authorization: Bearer ${{ secrets.NORTHFLANK_API_TOKEN }}" \
           -H "Content-Type: application/json" \
           -d '{"name": "jfbsingle", "project": "jfb-1", "service": "juicyfox-bot"}'
