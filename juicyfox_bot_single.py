@@ -62,16 +62,16 @@ CHANNELS = {
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
 
-bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
-dp  = Dispatcher(storage=MemoryStorage())
-
 # --- Startup ------------------------------------------------
 async def on_startup(_: Dispatcher):
     os.makedirs('/data', exist_ok=True)
     await _init_db()
     asyncio.create_task(scheduled_poster())
 
+bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
+dp  = Dispatcher(storage=MemoryStorage())
 dp.startup.register(on_startup)
+
 
 # ---------------- Channel helpers ----------------
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
