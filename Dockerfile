@@ -8,8 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем только нужные файлы
 COPY juicyfox_bot_single.py .
-COPY locales ./locales
-COPY static ./static
 
 # Запуск бота
 EXPOSE 8080
