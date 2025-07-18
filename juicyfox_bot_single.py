@@ -620,8 +620,8 @@ async def handle_posting_plan(msg: Message):
         return
 
     text = msg.text or msg.caption
-if not text:
-    return
+    if not text:
+        return
 
     log.info(
         "[POSTING PLAN] Анализируем сообщение: %s от %s",
@@ -629,7 +629,7 @@ if not text:
         msg.chat.id,
     )
 
-    lines = msg.text.strip().split('\n')
+    lines = text.strip().split('\n')
     hashtags = {l.split('=')[0][1:]: l.split('=')[1] for l in lines if l.startswith('#') and '=' in l}
     description = '\n'.join(l for l in lines if not l.startswith('#'))
 
