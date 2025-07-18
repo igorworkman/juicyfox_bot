@@ -673,17 +673,26 @@ async def scheduled_poster():
         )
 
         for rowid, _, channel, price, text, from_chat, from_msg in rows:
+            log.info(
+                "[JFB PLAN] Проверка сообщения %s из %s",
+                from_msg,
+                from_chat,
+            )
             chat_id = CHANNELS.get(channel)
             if not chat_id:
                 continue
+            log.info(
+                "[JFB PLAN] Отправка поста в канал %s c контентом: %s",
+                channel,
+                text,
+            )
             try:
-                log.info("[POSTING] Sending post to %s: %s", channel, text[:30])
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
-                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-                log.info("[POSTING PLAN] Отправка в %s завершена успешно", channel)
             except Exception as e:
-                log.error("[POSTING PLAN] Ошибка отправки в %s: %s", channel, e)
+                log.error("[JFB PLAN] Ошибка при отправке в %s: %s", channel, e)
                 continue
+            await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+            log.info("[POSTING PLAN] Отправка в %s завершена успешно", channel)
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
