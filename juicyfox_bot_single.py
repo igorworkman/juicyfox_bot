@@ -619,8 +619,9 @@ async def handle_posting_plan(msg: Message):
     if msg.chat.id != POST_PLAN_CHANNEL_ID:
         return
 
-    if not msg.text:
-        return
+    text = msg.text or msg.caption
+if not text:
+    return
 
     log.info(
         "[POSTING PLAN] Анализируем сообщение: %s от %s",
