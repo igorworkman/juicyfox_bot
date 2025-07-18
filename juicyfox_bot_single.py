@@ -64,8 +64,6 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 
 # --- Startup ------------------------------------------------
 async def on_startup(_: Dispatcher):
-    os.makedirs('/data', exist_ok=True)
-    await _init_db()
     asyncio.create_task(scheduled_poster())
 
 bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
