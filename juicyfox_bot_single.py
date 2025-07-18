@@ -622,6 +622,12 @@ async def handle_posting_plan(msg: Message):
     if not msg.text:
         return
 
+    log.info(
+        "[POSTING PLAN] Анализируем сообщение: %s от %s",
+        msg.message_id,
+        msg.chat.id,
+    )
+
     lines = msg.text.strip().split('\n')
     hashtags = {l.split('=')[0][1:]: l.split('=')[1] for l in lines if l.startswith('#') and '=' in l}
     description = '\n'.join(l for l in lines if not l.startswith('#'))
@@ -674,7 +680,9 @@ async def scheduled_poster():
                 log.info("[POSTING] Sending post to %s: %s", channel, text[:30])
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-            except Exception:
+                log.info("[POSTING PLAN] Отправка в %s завершена успешно", channel)
+            except Exception as e:
+                log.error("[POSTING PLAN] Ошибка отправки в %s: %s", channel, e)
                 continue
 
 # ---------------- Mount & run -----------------------------
