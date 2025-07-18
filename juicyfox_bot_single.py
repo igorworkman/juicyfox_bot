@@ -769,3 +769,11 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+@dp.message(Command("test"))
+async def test_vip_channel(msg: Message):
+    try:
+        await bot.send_message(CHANNELS["vip"], "✅ Тестовое сообщение: доступ к VIP-каналу есть")
+        await msg.reply("✅ Сообщение отправлено в VIP-канал")
+    except Exception as e:
+        await msg.reply(f"❌ Ошибка при отправке: {e}")
