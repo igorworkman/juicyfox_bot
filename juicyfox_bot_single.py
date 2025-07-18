@@ -65,6 +65,14 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
 dp  = Dispatcher(storage=MemoryStorage())
 
+# --- Startup ------------------------------------------------
+async def on_startup(_: Dispatcher):
+    os.makedirs('/data', exist_ok=True)
+    await _init_db()
+    asyncio.create_task(scheduled_poster())
+
+dp.startup.register(on_startup)
+
 # ---------------- Channel helpers ----------------
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 async def give_vip_channel(user_id:int):
@@ -662,13 +670,6 @@ async def scheduled_poster():
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
             except Exception:
                 continue
-
-async def on_startup(_: Dispatcher):
-    os.makedirs('/data', exist_ok=True)
-    await _init_db()
-    asyncio.create_task(scheduled_poster())
-
-dp.startup.register(on_startup)
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
