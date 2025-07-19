@@ -705,20 +705,12 @@ async def scheduled_poster():
             )
             try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
-                log.info(f"[DEBUG] Message copied to {channel}")
-            except TelegramBadRequest as e:
-                if "message to copy not found" in str(e):
-                    log.error(f"[POST FAIL] Message not found: chat={from_chat}, msg={from_msg}")
-                elif "chat not found" in str(e):
-                    log.error(f"[POST FAIL] Chat not found: {chat_id}")
-                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-                continue
             except Exception as e:
-                log.exception(f"[ERROR] Failed to copy to {channel}: {e}")
-                await bot.send_message(chat_id, text if text else "[пусто]")
-                continue
+                log.warning(f"[POST FAIL] Cannot copy to {channel}: {e}")
+                await bot.send_message(chat_id, text or "[пусто]")
+
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-            log.info("[POSTING PLAN] Отправка в %s завершена успешно", channel)
+            log.info("[POSTING PLAN] Отправка в %s завершена", channel)
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
