@@ -685,11 +685,6 @@ async def scheduled_poster():
         )
 
         for rowid, _, channel, price, text, from_chat, from_msg in rows:
-            if channel in {'vip', 'luxury'}:
-                # Проверка наличия оплаты для VIP/Luxury
-                if not await is_paid_for(CHAT_GROUP_ID, channel):
-                    log.warning(f"[SKIP] Нет доступа к {channel}")
-                    continue
             log.info(
                 "[JFB PLAN] Проверка сообщения %s из %s",
                 from_msg,
