@@ -700,7 +700,7 @@ async def scheduled_poster():
                 )
                 continue
             try:
-                await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                await bot.send_message(chat_id, text or "<empty>")
             except Exception as e:
                 log.error("[JFB PLAN] Ошибка при отправке в %s: %s", channel, e)
                 continue
