@@ -709,18 +709,6 @@ async def scheduled_poster():
                 f"[DEBUG COPY] chat={chat_id}, from_chat={from_chat}, from_msg={from_msg}, text={text}"
             )
             try:
-                test_msg = await bot.copy_message(HISTORY_GROUP_ID, from_chat, from_msg)
-                await bot.delete_message(HISTORY_GROUP_ID, test_msg.message_id)
-            except TelegramBadRequest as e:
-                if "message to copy not found" in str(e):
-                    log.error(f"[POST FAIL] Message not found: chat={from_chat}, msg={from_msg}")
-                elif "chat not found" in str(e):
-                    log.error(f"[POST FAIL] Chat not found: {chat_id}")
-                continue
-            except Exception as e:
-                log.error(f"[POST FAIL] Unexpected check error: {e}")
-                continue
-            try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                 log.info(f"[DEBUG] Message copied to {channel}")
             except TelegramBadRequest as e:
