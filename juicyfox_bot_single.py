@@ -37,7 +37,7 @@ async def _init_db():
         await db.commit()
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 log = logging.getLogger(__name__)
 
 # ---------------- Config ----------------
@@ -793,9 +793,6 @@ async def main():
     log.info('JuicyFox Bot started')
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
-    asyncio.run(main())
-
 @dp.message(Command("test"))
 async def test_vip_channel(msg: Message):
     try:
@@ -803,3 +800,6 @@ async def test_vip_channel(msg: Message):
         await msg.reply("✅ Сообщение отправлено в VIP-канал")
     except Exception as e:
         await msg.reply(f"❌ Ошибка при отправке: {e}")
+
+if __name__ == '__main__':
+    asyncio.run(main())
