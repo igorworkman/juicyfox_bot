@@ -685,32 +685,20 @@ async def scheduled_poster():
         )
 
         for rowid, _, channel, price, text, from_chat, from_msg in rows:
-            log.info(
-                "[JFB PLAN] Проверка сообщения %s из %s",
-                from_msg,
-                from_chat,
-            )
             chat_id = CHANNELS.get(channel)
             if not chat_id:
                 continue
-            log.info(
-                "[JFB PLAN] Отправка поста в канал %s c контентом: %s",
-                channel,
-                text,
-            )
-            log.info(f"[DEBUG] Extracted tag: {channel}, chat_id: {chat_id}")
-            log.info(f"[DEBUG] Will try to copy message {from_msg} from {from_chat}")
-            log.warning(
-                f"[DEBUG COPY] chat={chat_id}, from_chat={from_chat}, from_msg={from_msg}, text={text}"
-            )
             try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+            except TelegramBadRequest as e:
+                log.warning(f"[POST FAIL] {e}")
+                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+                continue
             except Exception as e:
-                log.warning(f"[POST FAIL] Cannot copy to {channel}: {e}")
-                await bot.send_message(chat_id, text or "[пусто]")
-
+                log.error(f"[FATAL POST FAIL] {e}")
+                continue
+            await asyncio.sleep(0.2)
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-            log.info("[POSTING PLAN] Отправка в %s завершена", channel)
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
