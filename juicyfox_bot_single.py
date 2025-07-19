@@ -703,7 +703,7 @@ async def scheduled_poster():
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
             except Exception as e:
                 log.error("[JFB PLAN] Ошибка при отправке в %s: %s", channel, e)
-                await bot.send_message(chat_id, text or "<empty>")
+                await bot.send_message(chat_id, text if text else "[пусто]")
                 continue
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
             log.info("[POSTING PLAN] Отправка в %s завершена успешно", channel)
