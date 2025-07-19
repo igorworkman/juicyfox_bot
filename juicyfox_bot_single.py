@@ -690,7 +690,7 @@ async def scheduled_poster():
             )
             try:
                 await bot.get_chat(from_chat)
-                await bot.get_message(from_chat, from_msg)
+                # await bot.get_message(from_chat, from_msg)
             except Exception as e:
                 log.error(
                     "[JFB PLAN] Проверка сообщения %s из %s: недоступно (%s)",
@@ -700,9 +700,10 @@ async def scheduled_poster():
                 )
                 continue
             try:
-                await bot.send_message(chat_id, text or "<empty>")
+                await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
             except Exception as e:
                 log.error("[JFB PLAN] Ошибка при отправке в %s: %s", channel, e)
+                await bot.send_message(chat_id, text or "<empty>")
                 continue
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
             log.info("[POSTING PLAN] Отправка в %s завершена успешно", channel)
