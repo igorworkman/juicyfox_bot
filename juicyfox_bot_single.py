@@ -690,20 +690,31 @@ async def scheduled_poster():
             )
             log.info(f"[DEBUG] Extracted tag: {channel}, chat_id: {chat_id}")
             log.info(f"[DEBUG] Will try to copy message {from_msg} from {from_chat}")
+            log.warning(
+                f"[DEBUG COPY] chat={chat_id}, from_chat={from_chat}, from_msg={from_msg}, text={text}"
+            )
             try:
-                await bot.get_chat(from_chat)
-                # await bot.get_message(from_chat, from_msg)
+                test_msg = await bot.copy_message(HISTORY_GROUP_ID, from_chat, from_msg)
+                await bot.delete_message(HISTORY_GROUP_ID, test_msg.message_id)
+            except TelegramBadRequest as e:
+                if "message to copy not found" in str(e):
+                    log.error(f"[POST FAIL] Message not found: chat={from_chat}, msg={from_msg}")
+                elif "chat not found" in str(e):
+                    log.error(f"[POST FAIL] Chat not found: {chat_id}")
+                continue
             except Exception as e:
-                log.error(
-                    "[JFB PLAN] Проверка сообщения %s из %s: недоступно (%s)",
-                    from_msg,
-                    from_chat,
-                    e,
-                )
+                log.error(f"[POST FAIL] Unexpected check error: {e}")
                 continue
             try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                 log.info(f"[DEBUG] Message copied to {channel}")
+            except TelegramBadRequest as e:
+                if "message to copy not found" in str(e):
+                    log.error(f"[POST FAIL] Message not found: chat={from_chat}, msg={from_msg}")
+                elif "chat not found" in str(e):
+                    log.error(f"[POST FAIL] Chat not found: {chat_id}")
+                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+                continue
             except Exception as e:
                 log.exception(f"[ERROR] Failed to copy to {channel}: {e}")
                 await bot.send_message(chat_id, text if text else "[пусто]")
