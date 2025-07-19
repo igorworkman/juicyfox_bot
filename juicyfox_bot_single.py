@@ -154,6 +154,16 @@ async def is_paid(user_id:int)->bool:
         async with db.execute('SELECT expires FROM paid_users WHERE user_id=?',(user_id,)) as cur:
             row=await cur.fetchone(); return bool(row and row[0]>time.time())
 
+async def is_paid_for(user_id: int, plan: str) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT expires FROM paid_users WHERE user_id=?", (user_id,)) as cur:
+            row = await cur.fetchone()
+            if not row:
+                return False
+            if row[0] < time.time():
+                return False
+            return plan in ['vip', 'club']
+
 async def add_payment(user_id:int, usd:float, asset:str):
     ts=int(time.time())
     await _db_exec('INSERT INTO payments(user_id,usd,asset,ts) VALUES(?,?,?,?)',user_id,usd,asset,ts)
@@ -675,6 +685,11 @@ async def scheduled_poster():
         )
 
         for rowid, _, channel, price, text, from_chat, from_msg in rows:
+            if channel in {'vip', 'luxury'}:
+                # Проверка наличия оплаты для VIP/Luxury
+                if not await is_paid_for(CHAT_GROUP_ID, channel):
+                    log.warning(f"[SKIP] Нет доступа к {channel}")
+                    continue
             log.info(
                 "[JFB PLAN] Проверка сообщения %s из %s",
                 from_msg,
