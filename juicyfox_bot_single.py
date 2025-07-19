@@ -688,6 +688,8 @@ async def scheduled_poster():
                 channel,
                 text,
             )
+            log.info(f"[DEBUG] Extracted tag: {channel}, chat_id: {chat_id}")
+            log.info(f"[DEBUG] Will try to copy message {from_msg} from {from_chat}")
             try:
                 await bot.get_chat(from_chat)
                 # await bot.get_message(from_chat, from_msg)
@@ -701,8 +703,9 @@ async def scheduled_poster():
                 continue
             try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                log.info(f"[DEBUG] Message copied to {channel}")
             except Exception as e:
-                log.error("[JFB PLAN] Ошибка при отправке в %s: %s", channel, e)
+                log.exception(f"[ERROR] Failed to copy to {channel}: {e}")
                 await bot.send_message(chat_id, text if text else "[пусто]")
                 continue
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
