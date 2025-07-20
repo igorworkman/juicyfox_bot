@@ -688,6 +688,7 @@ async def handle_posting_plan(msg: Message):
         await msg.reply("⛔️ Только админ может планировать посты.")
         return
 
+    log.info(f"[DEBUG PLAN] msg.caption={msg.caption} | msg.text={msg.text}")
     text = msg.caption or msg.text
     if not text:
         return
@@ -723,6 +724,7 @@ async def handle_posting_plan(msg: Message):
 
     try:
         await _db_exec("INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)", int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id)
+        log.info(f"[DEBUG PLAN] Пост добавлен: {target} {dt_str} {description[:30]}")
         log.info(f"[SCHEDULED_POST] Added post: {target} text={(description or '<media>')[:40]} publish_ts={ts}")
     except Exception as e:
         log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); return
@@ -746,6 +748,8 @@ async def scheduled_poster():
             "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id FROM scheduled_posts WHERE publish_ts <= ?",
             now
         )
+
+        log.info(f"[DEBUG POSTER] найдено {len(rows)} пост(ов) к публикации")
 
         if not rows:
             log.debug("[SCHEDULED_POSTER] No posts scheduled for now.")
