@@ -50,14 +50,14 @@ LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID", "-1"))
 LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1002756750911'))  # приватный VIP‑канал
-log.warning(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
+log.debug(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
 POST_PLAN_CHANNEL_ID = int(os.getenv('POST_PLAN_CHANNEL_ID', '-1002791131375'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
     "luxury": LUXURY_CHANNEL_ID,
-    "vip": os.getenv("VIP_CHANNEL_ID"),
+    "vip": int(os.getenv("VIP_CHANNEL_ID")),
 }
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
@@ -691,6 +691,7 @@ async def scheduled_poster():
                 continue
             try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                log.warning(f"[POST OK] Message sent to {channel}")
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
