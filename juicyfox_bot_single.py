@@ -234,7 +234,8 @@ L10N={
   'menu': """Привет, {name} 😘 Я Juicy Fox 🦊
 Мои 2 ПРИВАТНЫХ канала сведут тебя с ума! 🔞💦🔥
 Хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
-И я отвечу тебе уже сегодня 💌""",
+И я отвечу тебе уже сегодня 💌
+Не забудь подписаться на мой бесплатный канал 👇🏼👇🏼👇🏼""",
   'btn_life':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
@@ -268,7 +269,8 @@ L10N={
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
 My 2 PRIVATE channels will drive you wild… 🔞💦🔥
 Just you and me… Ready for some late-night fun? 💋
-Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
+Open Juicy Chat 💬 — and I’ll be waiting inside 💌
+Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'btn_life':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
@@ -302,7 +304,8 @@ Just you and me... Let’s get a little closer 💋
   'menu': """Hola, {name} 😘 Esta noche soy tu Juicy Fox 🦊
 Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
 Solo tú y yo… ¿Listo para jugar esta noche? 💋
-Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
+Haz clic en Juicy Chat 💬 — y te espero adentro 💌
+No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'btn_life': '👀 Juicy life - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
