@@ -688,7 +688,7 @@ async def handle_posting_plan(msg: Message):
         await msg.reply("⛔️ Только админ может планировать посты.")
         return
 
-    text = msg.text or msg.caption
+    text = msg.caption or msg.text
     if not text:
         return
 
