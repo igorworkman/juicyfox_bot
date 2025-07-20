@@ -50,13 +50,14 @@ LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID", "-1"))
 LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1002756750911'))  # приватный VIP‑канал
+log.warning(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
 POST_PLAN_CHANNEL_ID = int(os.getenv('POST_PLAN_CHANNEL_ID', '-1002791131375'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
     "luxury": LUXURY_CHANNEL_ID,
-    "vip": VIP_CHANNEL_ID,
+    "vip": os.getenv("VIP_CHANNEL_ID"),
 }
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
@@ -771,13 +772,13 @@ async def main():
     log.info('JuicyFox Bot started')
     await dp.start_polling(bot)
 
-@dp.message(Command("test"))
-async def test_vip_channel(msg: Message):
+@dp.message(Command("test_vip"))
+async def test_vip_post(msg: Message):
     try:
-        await bot.send_message(CHANNELS["vip"], "✅ Тестовое сообщение: доступ к VIP-каналу есть")
-        await msg.reply("✅ Сообщение отправлено в VIP-канал")
+        await bot.send_message(CHANNELS["vip"], "✅ Проверка: бот может писать в VIP")
+        await msg.reply("✅ Успешно отправлено в VIP-канал")
     except Exception as e:
-        await msg.reply(f"❌ Ошибка при отправке: {e}")
+        await msg.reply(f"❌ Ошибка при отправке в VIP: {e}")
 
 if __name__ == '__main__':
     asyncio.run(main())
