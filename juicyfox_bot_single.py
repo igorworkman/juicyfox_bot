@@ -83,6 +83,7 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 
 # --- Startup ------------------------------------------------
 async def on_startup():
+    print("DEBUG: on_startup called")
     asyncio.create_task(scheduled_poster())
 
 
@@ -728,6 +729,7 @@ async def handle_posting_plan(msg: Message):
 #     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
 async def scheduled_poster():
+    print("DEBUG: scheduled_poster started!")
     log.info("[POSTING PLAN] Стартовал планировщик scheduled_poster")
     while True:
         await asyncio.sleep(10)
@@ -813,6 +815,7 @@ async def cryptobot_hook(request: web.Request):
 
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
+    print("DEBUG: main() called")
     # aiohttp web‑server
     app = web.Application()
     app.router.add_post('/cryptobot/webhook', cryptobot_hook)
