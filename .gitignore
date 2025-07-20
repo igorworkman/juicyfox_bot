@@ -8,4 +8,7 @@ __pycache__/
 messages.sqlite
 *.pyc
 .DS_Store
+.swp
+*~
+Thumbs.db
 .env.template
