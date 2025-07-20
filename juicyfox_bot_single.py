@@ -47,12 +47,12 @@ CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
 HISTORY_GROUP_ID = -1002721298286
 ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID", "-1"))
-LIFE_CHANNEL_URL= os.getenv('LIFE_CHANNEL_URL', 'https://t.me/JuisyFoxOfficialLife')
+LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1002756750911'))  # приватный VIP‑канал
 log.debug(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
-POST_PLAN_CHANNEL_ID = int(os.getenv('POST_PLAN_CHANNEL_ID', '-1002791131375'))
+POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID', '-1002791131375'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
@@ -525,7 +525,7 @@ async def life_link(cq: CallbackQuery):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(1)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'life', life_link=LIFE_CHANNEL_URL),
+        tr(cq.from_user.language_code, 'life', life_link=LIFE_URL),
         reply_markup=kb.as_markup()
     )
 
@@ -625,10 +625,9 @@ async def history_request(msg: Message):
         except Exception:
             await msg.reply(f"⚠️ Не удалось переслать msg_id={msg_id}")
 
-@dp.channel_post()
+@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def handle_posting_plan(msg: Message):
-    if msg.chat.id != POST_PLAN_CHANNEL_ID:
-        return
+
 
     text = msg.text or msg.caption
     if not text:
