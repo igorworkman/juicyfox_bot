@@ -729,7 +729,7 @@ async def handle_posting_plan(msg: Message):
 #     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
 async def scheduled_poster():
-    print("DEBUG: scheduled_poster started!")
+    print("DEBUG: scheduled_poster called!")
     log.info("[POSTING PLAN] Стартовал планировщик scheduled_poster")
     while True:
         await asyncio.sleep(10)
@@ -815,7 +815,7 @@ async def cryptobot_hook(request: web.Request):
 
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
-    print("DEBUG: main() called")
+    print("DEBUG: Inside main()")
     # aiohttp web‑server
     app = web.Application()
     app.router.add_post('/cryptobot/webhook', cryptobot_hook)
@@ -841,4 +841,5 @@ async def test_vip_post(msg: Message):
         await msg.reply(f"❌ Ошибка при отправке в VIP: {e}")
 
 if __name__ == '__main__':
+    print("DEBUG: JuicyFox main() will run")
     asyncio.run(main())
