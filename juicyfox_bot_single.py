@@ -643,9 +643,21 @@ async def history_request(msg: Message):
         except Exception:
             await msg.reply(f"⚠️ Не удалось переслать msg_id={msg_id}")
 
+@dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
+async def cmd_post(msg: Message, state: FSMContext):
+    if msg.from_user.id not in ADMINS:
+        await msg.reply("⛔️ Только админ может запускать постинг.")
+        return
+    await state.clear()
+    await state.set_state(Post.wait_channel)
+    await msg.answer("Куда постить?", reply_markup=post_plan_kb)
+
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def handle_posting_plan(msg: Message):
-
+    if msg.from_user.id not in ADMINS:
+        await msg.reply("⛔️ Только админ может планировать посты.")
+        return
 
     text = msg.text or msg.caption
     if not text:
@@ -687,9 +699,9 @@ async def handle_posting_plan(msg: Message):
     log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
 
-@dp.channel_post()
-async def debug_all_channel_posts(msg: Message):
-    log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
+# @dp.channel_post()
+# async def debug_all_channel_posts(msg: Message):
+#     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
 async def scheduled_poster():
     log.info("[POSTING PLAN] Стартовал планировщик scheduled_poster")
@@ -792,6 +804,9 @@ async def main():
 
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
+    if msg.from_user.id not in ADMINS:
+        await msg.reply("⛔️ Нет доступа.")
+        return
     try:
         await bot.send_message(CHANNELS["vip"], "✅ Проверка: бот может писать в VIP")
         await msg.reply("✅ Успешно отправлено в VIP-канал")
