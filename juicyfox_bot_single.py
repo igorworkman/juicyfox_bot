@@ -668,6 +668,7 @@ async def post_content(msg: Message, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
     if not channel:
+        log.error("[POST_CONTENT] Channel not selected")
         await msg.reply("Ошибка: не выбран канал.")
         await state.clear()
         return
@@ -675,6 +676,7 @@ async def post_content(msg: Message, state: FSMContext):
         "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
         int(time.time()), int(time.time()), channel, 0, msg.text or "<media>", msg.chat.id, msg.message_id
     )
+    log.info(f"[SCHEDULED_POST] Added post: target={channel}, ts={int(time.time())}, msg_id={msg.message_id}")
     await msg.reply("✅ Пост запланирован!")
     await state.clear()
 
@@ -704,6 +706,7 @@ async def handle_posting_plan(msg: Message):
     dt_str = hashtags.get("date")
 
     if target not in {"life", "luxury", "vip"}:
+        log.warning(f"[POST PLAN] Unknown channel: {target}")
         await msg.reply("❌ Неизвестный канал назначения.")
         return
 
@@ -721,6 +724,8 @@ async def handle_posting_plan(msg: Message):
         "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
         int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id
     )
+
+    log.info(f"[SCHEDULED_POST] Added post: target={target}, ts={ts}, msg_id={msg.message_id}")
 
     log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
@@ -742,9 +747,13 @@ async def scheduled_poster():
             now
         )
 
+        if not rows:
+            log.debug("[SCHEDULED_POSTER] No posts scheduled for now.")
+
         for rowid, _, channel, price, text, from_chat, from_msg in rows:
             chat_id = CHANNELS.get(channel)
             if not chat_id:
+                log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
