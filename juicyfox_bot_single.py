@@ -55,7 +55,8 @@ async def _init_db():
         await db.commit()
 
 
-logging.basicConfig(level=logging.WARNING)
+import os
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 log = logging.getLogger(__name__)
 
 # ---------------- Config ----------------
