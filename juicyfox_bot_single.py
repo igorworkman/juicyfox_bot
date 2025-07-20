@@ -672,12 +672,13 @@ async def post_content(msg: Message, state: FSMContext):
         await msg.reply("Ошибка: не выбран канал.")
         await state.clear()
         return
-    await _db_exec(
-        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
-        int(time.time()), int(time.time()), channel, 0, msg.text or "<media>", msg.chat.id, msg.message_id
-    )
-    log.info(f"[SCHEDULED_POST] Added post: target={channel}, ts={int(time.time())}, msg_id={msg.message_id}")
-    await msg.reply("✅ Пост запланирован!")
+    ts = int(time.time())
+    try:
+        await _db_exec("INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)", int(time.time()), ts, channel, 0, msg.text or "<media>", msg.chat.id, msg.message_id)
+        log.info(f"[SCHEDULED_POST] Added post: {channel} text={(msg.text or '<media>')[:40]} publish_ts={ts}")
+        await msg.reply("✅ Пост запланирован!")
+    except Exception as e:
+        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); await state.clear(); return
     await state.clear()
 
 
@@ -720,12 +721,11 @@ async def handle_posting_plan(msg: Message):
     else:
         ts = int(time.time())
 
-    await _db_exec(
-        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
-        int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id
-    )
-
-    log.info(f"[SCHEDULED_POST] Added post: target={target}, ts={ts}, msg_id={msg.message_id}")
+    try:
+        await _db_exec("INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)", int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id)
+        log.info(f"[SCHEDULED_POST] Added post: {target} text={(description or '<media>')[:40]} publish_ts={ts}")
+    except Exception as e:
+        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); return
 
     log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
