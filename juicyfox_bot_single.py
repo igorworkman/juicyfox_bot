@@ -5,7 +5,7 @@
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
 # • RU/EN/ES UI           → auto by language_code
 
-import os, logging, asyncio, httpx, time, aiosqlite
+import os, logging, asyncio, httpx, time, aiosqlite, traceback
 from datetime import datetime
 DB_PATH = '/data/messages.sqlite'
 
@@ -56,7 +56,7 @@ async def _init_db():
 
 
 import os
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 
 # ---------------- Config ----------------
@@ -735,6 +735,7 @@ async def scheduled_poster():
     while True:
         await asyncio.sleep(10)
         now = int(time.time())
+        log.debug(f"[DEBUG] Checking scheduled_posts, now={now}")
 
         rows = await _db_fetchall(
             "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id FROM scheduled_posts WHERE publish_ts <= ?",
@@ -745,15 +746,16 @@ async def scheduled_poster():
             chat_id = CHANNELS.get(channel)
             if not chat_id:
                 continue
+            log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
                 await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
-                log.warning(f"[POST OK] Message sent to {channel}")
+                log.info(f"[POST OK] Message sent to {channel}")
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
                 continue
             except Exception as e:
-                log.error(f"[FATAL POST FAIL] {e}")
+                log.error(f"[FATAL POST FAIL] {e}\n{traceback.format_exc()}")
                 continue
             await asyncio.sleep(0.2)
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
