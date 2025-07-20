@@ -653,6 +653,30 @@ async def cmd_post(msg: Message, state: FSMContext):
     await msg.answer("Куда постить?", reply_markup=post_plan_kb)
 
 
+@dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
+async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
+    channel = cq.data.split(":")[1]
+    await state.update_data(channel=channel)
+    await state.set_state(Post.wait_content)
+    await cq.message.edit_text(f"Канал выбран: {channel}\n\nПришли текст поста или медиа.")
+
+
+@dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
+async def post_content(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    channel = data.get("channel")
+    if not channel:
+        await msg.reply("Ошибка: не выбран канал.")
+        await state.clear()
+        return
+    await _db_exec(
+        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
+        int(time.time()), int(time.time()), channel, 0, msg.text or "<media>", msg.chat.id, msg.message_id
+    )
+    await msg.reply("✅ Пост запланирован!")
+    await state.clear()
+
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def handle_posting_plan(msg: Message):
     if msg.from_user.id not in ADMINS:
