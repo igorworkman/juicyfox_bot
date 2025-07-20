@@ -52,7 +52,7 @@ API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1002756750911'))  # приватный VIP‑канал
 log.debug(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
-POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID', '-1002791131375'))
+POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID', '-4823992857'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
