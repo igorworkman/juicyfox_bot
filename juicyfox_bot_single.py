@@ -20,7 +20,25 @@ from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+def get_post_plan_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="👀 Life", callback_data="post_to:life")
+    kb.button(text="💿 Luxury", callback_data="post_to:luxury")
+    kb.button(text="👑 VIP", callback_data="post_to:vip")
+    kb.button(text="💬 Chat", callback_data="post_to:chat")
+    kb.adjust(2)
+    return kb.as_markup()
+
+post_plan_kb = get_post_plan_kb()
+
+
 from aiogram.fsm.state import StatesGroup, State
+class Post(StatesGroup):
+    wait_channel = State()
+    wait_content = State()
+    wait_confirm = State()
+
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 
