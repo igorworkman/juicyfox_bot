@@ -828,6 +828,9 @@ async def scheduled_poster():
                                 m = InputMediaVideo(media=file_id, caption=text if i == 0 else None)
                             media.append(m)
                         await bot.send_media_group(chat_id, media)
+                elif not media_ids and text:
+                    # Если только текст — отправить текстовое сообщение
+                    await bot.send_message(chat_id, text)
                 elif text == '<media>' or not text:
                     await bot.copy_message(chat_id, from_chat, from_msg)
                 else:
