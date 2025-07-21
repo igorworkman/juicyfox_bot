@@ -857,7 +857,7 @@ async def scheduled_poster():
                     await _db_exec(
                         "INSERT INTO published_posts VALUES(?,?,?)",
                         rowid,
-                        channel,
+                        chat_id,
                         ','.join(sent_ids),
                     )
             except TelegramBadRequest as e:
@@ -973,8 +973,7 @@ async def delete_post_cmd(msg: Message):
         if not row:
             await msg.reply("❌ Пост не найден")
             return
-        channel, message_id = row
-    chat_id = CHANNELS.get(channel)
+        chat_id, message_id = row
     try:
         for mid in str(message_id).split(','):
             await bot.delete_message(chat_id, int(mid))
