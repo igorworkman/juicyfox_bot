@@ -677,8 +677,20 @@ async def post_content(msg: Message, state: FSMContext):
         return
     ts = int(time.time())
     try:
-        await _db_exec("INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)", int(time.time()), ts, channel, 0, msg.text or "<media>", msg.chat.id, msg.message_id)
-        log.info(f"[SCHEDULED_POST] Added post: {channel} text={(msg.text or '<media>')[:40]} publish_ts={ts}")
+        caption = msg.caption or msg.text or ""
+        await _db_exec(
+            "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
+            int(time.time()),
+            ts,
+            channel,
+            0,
+            caption if caption else "<media>",
+            msg.chat.id,
+            msg.message_id,
+        )
+        log.info(
+            f"[SCHEDULED_POST] Added post: {channel} text={(caption or '<media>')[:40]} publish_ts={ts}"
+        )
         await msg.reply("✅ Пост запланирован!")
     except Exception as e:
         log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); await state.clear(); return
@@ -769,7 +781,10 @@ async def scheduled_poster():
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
-                await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                if text == '<media>' or not text:
+                    await bot.copy_message(chat_id, from_chat, from_msg)
+                else:
+                    await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                 log.info(f"[POST OK] Message sent to {channel}")
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
