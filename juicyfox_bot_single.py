@@ -845,6 +845,8 @@ async def scheduled_poster():
                 continue
             await asyncio.sleep(0.2)
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+            await bot.send_message(POST_PLAN_GROUP_ID,
+                                   f"✅ Пост опубликован! Для удаления: /delete_post {rowid}")
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
@@ -928,6 +930,32 @@ async def test_vip_post(msg: Message):
         await msg.reply("✅ Успешно отправлено в VIP-канал")
     except Exception as e:
         await msg.reply(f"❌ Ошибка при отправке в VIP: {e}")
+
+@dp.message(Command("delete_post"), F.chat.id == POST_PLAN_GROUP_ID)
+async def delete_post_cmd(msg: Message):
+    if msg.from_user.id not in ADMINS:
+        await msg.reply("⛔️ Только админ может удалять посты.")
+        return
+    parts = msg.text.strip().split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await msg.reply("❌ Используй /delete_post <id>")
+        return
+    rowid = int(parts[1])
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await db.execute_fetchone(
+            "SELECT channel, from_chat_id, from_msg_id FROM scheduled_posts WHERE rowid=?",
+            (rowid,)
+        )
+        if not row:
+            await msg.reply("❌ Пост не найден или уже опубликован")
+            return
+        channel, from_chat_id, from_msg_id = row
+        chat_id = CHANNELS.get(channel)
+        try:
+            await bot.delete_message(chat_id, from_msg_id)
+            await msg.reply(f"✅ Пост {rowid} удалён из канала!")
+        except Exception as e:
+            await msg.reply(f"❌ Ошибка удаления: {e}")
 
 if __name__ == '__main__':
     print("DEBUG: JuicyFox main() will run")
