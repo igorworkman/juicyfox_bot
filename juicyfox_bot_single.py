@@ -148,7 +148,8 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
   price INTEGER,
   text TEXT,
   from_chat_id INTEGER,
-  from_msg_id INTEGER
+  from_msg_id INTEGER,
+  media_ids TEXT
 );
 """
 
@@ -661,9 +662,15 @@ async def cmd_post(msg: Message, state: FSMContext):
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel = cq.data.split(":")[1]
-    await state.update_data(channel=channel)
+    await state.update_data(channel=channel, media_ids=[], text="")
     await state.set_state(Post.wait_content)
-    await cq.message.edit_text(f"Канал выбран: {channel}\n\nПришли текст поста или медиа.")
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Готово", callback_data="post_done")
+    kb.adjust(1)
+    await cq.message.edit_text(
+        f"Канал выбран: {channel}\n\nПришли текст поста или медиа.",
+        reply_markup=kb.as_markup(),
+    )
 
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
@@ -675,25 +682,37 @@ async def post_content(msg: Message, state: FSMContext):
         await msg.reply("Ошибка: не выбран канал.")
         await state.clear()
         return
+    if msg.photo or msg.video:
+        ids = data.get("media_ids", [])
+        file_id = msg.photo[-1].file_id if msg.photo else msg.video.file_id
+        ids.append(file_id)
+        await state.update_data(media_ids=ids)
+        if msg.caption:
+            await state.update_data(text=msg.caption)
+        await msg.reply("Медиа добавлено")
+    elif msg.text:
+        await state.update_data(text=msg.text)
+        await msg.reply("Текст сохранён")
+
+@dp.callback_query(F.data == "post_done", Post.wait_content)
+async def post_done(cq: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    channel = data.get("channel")
+    media_ids = ','.join(data.get("media_ids", []))
+    text = data.get("text", "")
     ts = int(time.time())
-    try:
-        caption = msg.caption or msg.text or ""
-        await _db_exec(
-            "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
-            int(time.time()),
-            ts,
-            channel,
-            0,
-            caption if caption else "<media>",
-            msg.chat.id,
-            msg.message_id,
-        )
-        log.info(
-            f"[SCHEDULED_POST] Added post: {channel} text={(caption or '<media>')[:40]} publish_ts={ts}"
-        )
-        await msg.reply("✅ Пост запланирован!")
-    except Exception as e:
-        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); await state.clear(); return
+    await _db_exec(
+        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
+        int(time.time()),
+        ts,
+        channel,
+        0,
+        text,
+        cq.message.chat.id,
+        cq.message.message_id,
+        media_ids,
+    )
+    await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
 
@@ -738,7 +757,17 @@ async def handle_posting_plan(msg: Message):
         ts = int(time.time())
 
     try:
-        await _db_exec("INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)", int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id)
+        await _db_exec(
+            "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
+            int(time.time()),
+            ts,
+            target,
+            price,
+            description,
+            msg.chat.id,
+            msg.message_id,
+            "",
+        )
         log.info(f"[DEBUG PLAN] Пост добавлен: {target} {dt_str} {description[:30]}")
         log.info(f"[SCHEDULED_POST] Added post: {target} text={(description or '<media>')[:40]} publish_ts={ts}")
     except Exception as e:
@@ -760,8 +789,8 @@ async def scheduled_poster():
         log.debug(f"[DEBUG] Checking scheduled_posts, now={now}")
 
         rows = await _db_fetchall(
-            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id FROM scheduled_posts WHERE publish_ts <= ?",
-            now
+            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids FROM scheduled_posts WHERE publish_ts <= ?",
+            now,
         )
 
         log.info(f"[DEBUG POSTER] найдено {len(rows)} пост(ов) к публикации")
@@ -769,7 +798,7 @@ async def scheduled_poster():
         if not rows:
             log.debug("[SCHEDULED_POSTER] No posts scheduled for now.")
 
-        for rowid, _, channel, price, text, from_chat, from_msg in rows:
+        for rowid, _, channel, price, text, from_chat, from_msg, media_ids in rows:
             chat_id = CHANNELS.get(channel)
             if not chat_id:
                 log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
@@ -781,7 +810,18 @@ async def scheduled_poster():
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
-                if text == '<media>' or not text:
+                if media_ids:
+                    from aiogram.types import InputMediaPhoto, InputMediaVideo
+                    media = []
+                    for file_id in media_ids.split(','):
+                        if file_id.startswith("AgA"):
+                            media.append(InputMediaPhoto(media=file_id))
+                        else:
+                            media.append(InputMediaVideo(media=file_id))
+                    await bot.send_media_group(chat_id, media)
+                    if text:
+                        await bot.send_message(chat_id, text)
+                elif text == '<media>' or not text:
                     await bot.copy_message(chat_id, from_chat, from_msg)
                 else:
                     await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
