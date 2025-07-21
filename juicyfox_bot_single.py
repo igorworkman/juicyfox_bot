@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
 CREATE TABLE IF NOT EXISTS published_posts(
   rowid INTEGER PRIMARY KEY,
   channel TEXT,
-  message_id INTEGER
+  message_id TEXT
 );
 """
 
@@ -269,7 +269,8 @@ L10N={
 🤗 Я открою чат как только увижу твои цветы 💐🌷🌹""",
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
- 'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35$\n💳💵💱 — выбери, как тебе удобнее'
+ 'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35,\n💳💵💱 — выбери, как тебе удобнее',
+ 'post_deleted':'Пост удалён',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
@@ -304,6 +305,7 @@ Just you and me... Let’s get a little closer 💋
 🤗 I open the chat once I see your flowers 💐🌷🌹""",
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
+  'post_deleted':'Post deleted',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -338,7 +340,8 @@ Solo tú y yo... Acércate un poquito más 💋
 🤗 Abro el chat en cuanto vea tus flores 💐🌷🌹""",
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
-  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida"
+  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
+  'post_deleted':'Post eliminado',
   }
 }
 
@@ -816,6 +819,7 @@ async def scheduled_poster():
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
                 sent_msg = None
+                sent_ids = []
                 if media_ids:
                     ids = media_ids.split(',')
                     if len(ids) == 1:
@@ -824,6 +828,7 @@ async def scheduled_poster():
                             sent_msg = await bot.send_photo(chat_id, file_id, caption=text)
                         else:
                             sent_msg = await bot.send_video(chat_id, file_id, caption=text)
+                        sent_ids.append(str(sent_msg.message_id))
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo
                         media = []
@@ -836,20 +841,24 @@ async def scheduled_poster():
                         grp = await bot.send_media_group(chat_id, media)
                         if grp:
                             sent_msg = grp[0]
+                            sent_ids = [str(m.message_id) for m in grp]
                 elif not media_ids and text:
                     # Если только текст — отправить текстовое сообщение
                     sent_msg = await bot.send_message(chat_id, text)
+                    sent_ids.append(str(sent_msg.message_id))
                 elif text == '<media>' or not text:
                     sent_msg = await bot.copy_message(chat_id, from_chat, from_msg)
+                    sent_ids.append(str(sent_msg.message_id))
                 else:
                     sent_msg = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                    sent_ids.append(str(sent_msg.message_id))
                 log.info(f"[POST OK] Message sent to {channel}")
                 if sent_msg:
                     await _db_exec(
                         "INSERT INTO published_posts VALUES(?,?,?)",
                         rowid,
                         channel,
-                        sent_msg.message_id,
+                        ','.join(sent_ids),
                     )
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
@@ -967,9 +976,10 @@ async def delete_post_cmd(msg: Message):
         channel, message_id = row
     chat_id = CHANNELS.get(channel)
     try:
-        await bot.delete_message(chat_id, message_id)
+        for mid in str(message_id).split(','):
+            await bot.delete_message(chat_id, int(mid))
         await _db_exec("DELETE FROM published_posts WHERE rowid=?", rowid)
-        await msg.reply(f"✅ Пост {rowid} удалён из канала!")
+        await msg.reply(tr(msg.from_user.language_code, 'post_deleted'))
     except Exception as e:
         await msg.reply(f"❌ Ошибка удаления: {e}")
 
