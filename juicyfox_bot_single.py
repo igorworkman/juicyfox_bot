@@ -151,6 +151,11 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
   from_msg_id INTEGER,
   media_ids TEXT
 );
+CREATE TABLE IF NOT EXISTS published_posts(
+  rowid INTEGER PRIMARY KEY,
+  channel TEXT,
+  message_id INTEGER
+);
 """
 
 async def _db_exec(q:str,*a):
@@ -810,14 +815,15 @@ async def scheduled_poster():
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
+                sent_msg = None
                 if media_ids:
                     ids = media_ids.split(',')
                     if len(ids) == 1:
                         file_id = ids[0]
                         if file_id.startswith("AgA"):
-                            await bot.send_photo(chat_id, file_id, caption=text)
+                            sent_msg = await bot.send_photo(chat_id, file_id, caption=text)
                         else:
-                            await bot.send_video(chat_id, file_id, caption=text)
+                            sent_msg = await bot.send_video(chat_id, file_id, caption=text)
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo
                         media = []
@@ -827,15 +833,24 @@ async def scheduled_poster():
                             else:
                                 m = InputMediaVideo(media=file_id, caption=text if i == 0 else None)
                             media.append(m)
-                        await bot.send_media_group(chat_id, media)
+                        grp = await bot.send_media_group(chat_id, media)
+                        if grp:
+                            sent_msg = grp[0]
                 elif not media_ids and text:
                     # Если только текст — отправить текстовое сообщение
-                    await bot.send_message(chat_id, text)
+                    sent_msg = await bot.send_message(chat_id, text)
                 elif text == '<media>' or not text:
-                    await bot.copy_message(chat_id, from_chat, from_msg)
+                    sent_msg = await bot.copy_message(chat_id, from_chat, from_msg)
                 else:
-                    await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                    sent_msg = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                 log.info(f"[POST OK] Message sent to {channel}")
+                if sent_msg:
+                    await _db_exec(
+                        "INSERT INTO published_posts VALUES(?,?,?)",
+                        rowid,
+                        channel,
+                        sent_msg.message_id,
+                    )
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
@@ -943,19 +958,20 @@ async def delete_post_cmd(msg: Message):
     rowid = int(parts[1])
     async with aiosqlite.connect(DB_PATH) as db:
         row = await db.execute_fetchone(
-            "SELECT channel, from_chat_id, from_msg_id FROM scheduled_posts WHERE rowid=?",
-            (rowid,)
+            "SELECT channel, message_id FROM published_posts WHERE rowid=?",
+            (rowid,),
         )
         if not row:
-            await msg.reply("❌ Пост не найден или уже опубликован")
+            await msg.reply("❌ Пост не найден")
             return
-        channel, from_chat_id, from_msg_id = row
-        chat_id = CHANNELS.get(channel)
-        try:
-            await bot.delete_message(chat_id, from_msg_id)
-            await msg.reply(f"✅ Пост {rowid} удалён из канала!")
-        except Exception as e:
-            await msg.reply(f"❌ Ошибка удаления: {e}")
+        channel, message_id = row
+    chat_id = CHANNELS.get(channel)
+    try:
+        await bot.delete_message(chat_id, message_id)
+        await _db_exec("DELETE FROM published_posts WHERE rowid=?", rowid)
+        await msg.reply(f"✅ Пост {rowid} удалён из канала!")
+    except Exception as e:
+        await msg.reply(f"❌ Ошибка удаления: {e}")
 
 if __name__ == '__main__':
     print("DEBUG: JuicyFox main() will run")
