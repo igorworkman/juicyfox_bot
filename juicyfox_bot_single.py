@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
 );
 CREATE TABLE IF NOT EXISTS published_posts(
   rowid INTEGER PRIMARY KEY,
-  channel TEXT,
+  chat_id INTEGER,
   message_id TEXT
 );
 """
@@ -967,7 +967,7 @@ async def delete_post_cmd(msg: Message):
     rowid = int(parts[1])
     async with aiosqlite.connect(DB_PATH) as db:
         row = await db.execute_fetchone(
-            "SELECT channel, message_id FROM published_posts WHERE rowid=?",
+            "SELECT chat_id, message_id FROM published_posts WHERE rowid=?",
             (rowid,),
         )
         if not row:
