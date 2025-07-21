@@ -7,7 +7,7 @@
 
 import os, logging, asyncio, httpx, time, aiosqlite, traceback
 from datetime import datetime
-DB_PATH = '/data/messages.sqlite'
+DB_PATH = '/app/messages.sqlite'
 
 os.makedirs('/data', exist_ok=True)
 
