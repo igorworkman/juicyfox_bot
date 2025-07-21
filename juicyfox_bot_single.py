@@ -811,16 +811,23 @@ async def scheduled_poster():
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
                 if media_ids:
-                    from aiogram.types import InputMediaPhoto, InputMediaVideo
-                    media = []
-                    for file_id in media_ids.split(','):
+                    ids = media_ids.split(',')
+                    if len(ids) == 1:
+                        file_id = ids[0]
                         if file_id.startswith("AgA"):
-                            media.append(InputMediaPhoto(media=file_id))
+                            await bot.send_photo(chat_id, file_id, caption=text)
                         else:
-                            media.append(InputMediaVideo(media=file_id))
-                    await bot.send_media_group(chat_id, media)
-                    if text:
-                        await bot.send_message(chat_id, text)
+                            await bot.send_video(chat_id, file_id, caption=text)
+                    else:
+                        from aiogram.types import InputMediaPhoto, InputMediaVideo
+                        media = []
+                        for i, file_id in enumerate(ids):
+                            if file_id.startswith("AgA"):
+                                m = InputMediaPhoto(media=file_id, caption=text if i == 0 else None)
+                            else:
+                                m = InputMediaVideo(media=file_id, caption=text if i == 0 else None)
+                            media.append(m)
+                        await bot.send_media_group(chat_id, media)
                 elif text == '<media>' or not text:
                     await bot.copy_message(chat_id, from_chat, from_msg)
                 else:
