@@ -26,7 +26,6 @@ def get_post_plan_kb():
     kb.button(text="👀 Life", callback_data="post_to:life")
     kb.button(text="💿 Luxury", callback_data="post_to:luxury")
     kb.button(text="👑 VIP", callback_data="post_to:vip")
-    kb.button(text="💬 Chat", callback_data="post_to:chat")
     kb.adjust(2)
     return kb.as_markup()
 
@@ -810,11 +809,6 @@ async def scheduled_poster():
             chat_id = CHANNELS.get(channel)
             if not chat_id:
                 log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
-                continue
-            # Block sending to CHAT_GROUP_ID from scheduler
-            if chat_id == CHAT_GROUP_ID:
-                log.warning(f"[SCHEDULED_POSTER] Posting to CHAT_GROUP_ID is forbidden, skipping rowid={rowid}")
-                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
