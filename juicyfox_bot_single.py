@@ -600,9 +600,23 @@ async def relay_private(msg: Message):
 
     header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
     relay[header_msg.message_id] = msg.from_user.id
+    await _db_exec(
+        'INSERT INTO messages VALUES(?,?,?,?)',
+        int(time.time()),
+        msg.from_user.id,
+        header_msg.message_id,
+        0,
+    )
+
     cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
-    await _db_exec('INSERT INTO messages VALUES(?,?,?,?)', int(time.time()), msg.from_user.id, cp.message_id, 0)
+    await _db_exec(
+        'INSERT INTO messages VALUES(?,?,?,?)',
+        int(time.time()),
+        msg.from_user.id,
+        cp.message_id,
+        0,
+    )
 
 
     
@@ -610,9 +624,20 @@ async def relay_private(msg: Message):
 # ---------------- Group → user relay ----------------------
 @dp.message(F.chat.id == CHAT_GROUP_ID)
 async def relay_group(msg: Message):
-    if msg.reply_to_message and msg.reply_to_message.message_id in relay:
+    if (
+        msg.reply_to_message
+        and msg.reply_to_message.message_id in relay
+        and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]
+    ):
         uid = relay[msg.reply_to_message.message_id]
-        await bot.send_message(uid, msg.text)
+        cp = await bot.copy_message(uid, CHAT_GROUP_ID, msg.message_id)
+        await _db_exec(
+            'INSERT INTO messages VALUES(?,?,?,?)',
+            int(time.time()),
+            uid,
+            cp.message_id,
+            1,
+        )
 
 @dp.message(Command('history'))
 async def history_request(msg: Message):
