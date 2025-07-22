@@ -26,7 +26,6 @@ def get_post_plan_kb():
     kb.button(text="👀 Life", callback_data="post_to:life")
     kb.button(text="💿 Luxury", callback_data="post_to:luxury")
     kb.button(text="👑 VIP", callback_data="post_to:vip")
-    kb.button(text="💬 Chat", callback_data="post_to:chat")
     kb.adjust(2)
     return kb.as_markup()
 
