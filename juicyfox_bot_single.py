@@ -7,7 +7,7 @@
 
 import os, logging, asyncio, httpx, time, aiosqlite, traceback
 from datetime import datetime
-DB_PATH = '/data/messages.sqlite'
+DB_PATH = '/app/messages.sqlite'
 
 os.makedirs('/data', exist_ok=True)
 
@@ -71,7 +71,7 @@ API_BASE        = 'https://pay.crypt.bot/api'
 VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1002756750911'))  # приватный VIP‑канал
 log.debug(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
 LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
-POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID', '-4823992857'))
+POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID', '-1002825908735'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
@@ -148,7 +148,13 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
   price INTEGER,
   text TEXT,
   from_chat_id INTEGER,
-  from_msg_id INTEGER
+  from_msg_id INTEGER,
+  media_ids TEXT
+);
+CREATE TABLE IF NOT EXISTS published_posts(
+  rowid INTEGER PRIMARY KEY,
+  chat_id INTEGER,
+  message_id TEXT
 );
 """
 
@@ -234,7 +240,8 @@ L10N={
   'menu': """Привет, {name} 😘 Я Juicy Fox 🦊
 Мои 2 ПРИВАТНЫХ канала сведут тебя с ума! 🔞💦🔥
 Хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
-И я отвечу тебе уже сегодня 💌""",
+И я отвечу тебе уже сегодня 💌
+Не забудь подписаться на мой бесплатный канал 👇🏼👇🏼👇🏼""",
   'btn_life':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
@@ -262,13 +269,15 @@ L10N={
 🤗 Я открою чат как только увижу твои цветы 💐🌷🌹""",
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
- 'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35$\n💳💵💱 — выбери, как тебе удобнее'
+ 'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35,\n💳💵💱 — выбери, как тебе удобнее',
+ 'post_deleted':'Пост удалён',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
 My 2 PRIVATE channels will drive you wild… 🔞💦🔥
 Just you and me… Ready for some late-night fun? 💋
-Open Juicy Chat 💬 — and I’ll be waiting inside 💌""",
+Open Juicy Chat 💬 — and I’ll be waiting inside 💌
+Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'btn_life':'👀 Juicy life - 0 $',
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
@@ -296,13 +305,15 @@ Just you and me... Let’s get a little closer 💋
 🤗 I open the chat once I see your flowers 💐🌷🌹""",
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
+  'post_deleted':'Post deleted',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
   'menu': """Hola, {name} 😘 Esta noche soy tu Juicy Fox 🦊
 Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
 Solo tú y yo… ¿Listo para jugar esta noche? 💋
-Haz clic en Juicy Chat 💬 — y te espero adentro 💌""",
+Haz clic en Juicy Chat 💬 — y te espero adentro 💌
+No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'btn_life': '👀 Juicy life - 0 $',
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
@@ -329,7 +340,8 @@ Solo tú y yo... Acércate un poquito más 💋
 🤗 Abro el chat en cuanto vea tus flores 💐🌷🌹""",
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
-  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida"
+  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
+  'post_deleted':'Post eliminado',
   }
 }
 
@@ -658,9 +670,15 @@ async def cmd_post(msg: Message, state: FSMContext):
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel = cq.data.split(":")[1]
-    await state.update_data(channel=channel)
+    await state.update_data(channel=channel, media_ids=[], text="")
     await state.set_state(Post.wait_content)
-    await cq.message.edit_text(f"Канал выбран: {channel}\n\nПришли текст поста или медиа.")
+    kb = InlineKeyboardBuilder()
+    kb.button(text="Готово", callback_data="post_done")
+    kb.adjust(1)
+    await cq.message.edit_text(
+        f"Канал выбран: {channel}\n\nПришли текст поста или медиа.",
+        reply_markup=kb.as_markup(),
+    )
 
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
@@ -668,14 +686,41 @@ async def post_content(msg: Message, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
     if not channel:
+        log.error("[POST_CONTENT] Channel not selected")
         await msg.reply("Ошибка: не выбран канал.")
         await state.clear()
         return
+    if msg.photo or msg.video:
+        ids = data.get("media_ids", [])
+        file_id = msg.photo[-1].file_id if msg.photo else msg.video.file_id
+        ids.append(file_id)
+        await state.update_data(media_ids=ids)
+        if msg.caption:
+            await state.update_data(text=msg.caption)
+        await msg.reply("Медиа добавлено")
+    elif msg.text:
+        await state.update_data(text=msg.text)
+        await msg.reply("Текст сохранён")
+
+@dp.callback_query(F.data == "post_done", Post.wait_content)
+async def post_done(cq: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    channel = data.get("channel")
+    media_ids = ','.join(data.get("media_ids", []))
+    text = data.get("text", "")
+    ts = int(time.time())
     await _db_exec(
-        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
-        int(time.time()), int(time.time()), channel, 0, msg.text or "<media>", msg.chat.id, msg.message_id
+        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
+        int(time.time()),
+        ts,
+        channel,
+        0,
+        text,
+        cq.message.chat.id,
+        cq.message.message_id,
+        media_ids,
     )
-    await msg.reply("✅ Пост запланирован!")
+    await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
 
@@ -685,7 +730,8 @@ async def handle_posting_plan(msg: Message):
         await msg.reply("⛔️ Только админ может планировать посты.")
         return
 
-    text = msg.text or msg.caption
+    log.info(f"[DEBUG PLAN] msg.caption={msg.caption} | msg.text={msg.text}")
+    text = msg.caption or msg.text
     if not text:
         return
 
@@ -704,6 +750,7 @@ async def handle_posting_plan(msg: Message):
     dt_str = hashtags.get("date")
 
     if target not in {"life", "luxury", "vip"}:
+        log.warning(f"[POST PLAN] Unknown channel: {target}")
         await msg.reply("❌ Неизвестный канал назначения.")
         return
 
@@ -717,10 +764,22 @@ async def handle_posting_plan(msg: Message):
     else:
         ts = int(time.time())
 
-    await _db_exec(
-        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?)",
-        int(time.time()), ts, target, price, description, msg.chat.id, msg.message_id
-    )
+    try:
+        await _db_exec(
+            "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
+            int(time.time()),
+            ts,
+            target,
+            price,
+            description,
+            msg.chat.id,
+            msg.message_id,
+            "",
+        )
+        log.info(f"[DEBUG PLAN] Пост добавлен: {target} {dt_str} {description[:30]}")
+        log.info(f"[SCHEDULED_POST] Added post: {target} text={(description or '<media>')[:40]} publish_ts={ts}")
+    except Exception as e:
+        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); return
 
     log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
@@ -738,18 +797,69 @@ async def scheduled_poster():
         log.debug(f"[DEBUG] Checking scheduled_posts, now={now}")
 
         rows = await _db_fetchall(
-            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id FROM scheduled_posts WHERE publish_ts <= ?",
-            now
+            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids FROM scheduled_posts WHERE publish_ts <= ?",
+            now,
         )
 
-        for rowid, _, channel, price, text, from_chat, from_msg in rows:
+        log.info(f"[DEBUG POSTER] найдено {len(rows)} пост(ов) к публикации")
+
+        if not rows:
+            log.debug("[SCHEDULED_POSTER] No posts scheduled for now.")
+
+        for rowid, _, channel, price, text, from_chat, from_msg, media_ids in rows:
             chat_id = CHANNELS.get(channel)
             if not chat_id:
+                log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
+                continue
+            # Block sending to CHAT_GROUP_ID from scheduler
+            if chat_id == CHAT_GROUP_ID:
+                log.warning(f"[SCHEDULED_POSTER] Posting to CHAT_GROUP_ID is forbidden, skipping rowid={rowid}")
+                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
-                await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                sent_msg = None
+                sent_ids = []
+                if media_ids:
+                    ids = media_ids.split(',')
+                    if len(ids) == 1:
+                        file_id = ids[0]
+                        if file_id.startswith("AgA"):
+                            sent_msg = await bot.send_photo(chat_id, file_id, caption=text)
+                        else:
+                            sent_msg = await bot.send_video(chat_id, file_id, caption=text)
+                        sent_ids.append(str(sent_msg.message_id))
+                    else:
+                        from aiogram.types import InputMediaPhoto, InputMediaVideo
+                        media = []
+                        for i, file_id in enumerate(ids):
+                            if file_id.startswith("AgA"):
+                                m = InputMediaPhoto(media=file_id, caption=text if i == 0 else None)
+                            else:
+                                m = InputMediaVideo(media=file_id, caption=text if i == 0 else None)
+                            media.append(m)
+                        grp = await bot.send_media_group(chat_id, media)
+                        if grp:
+                            sent_msg = grp[0]
+                            sent_ids = [str(m.message_id) for m in grp]
+                elif not media_ids and text:
+                    # Если только текст — отправить текстовое сообщение
+                    sent_msg = await bot.send_message(chat_id, text)
+                    sent_ids.append(str(sent_msg.message_id))
+                elif text == '<media>' or not text:
+                    sent_msg = await bot.copy_message(chat_id, from_chat, from_msg)
+                    sent_ids.append(str(sent_msg.message_id))
+                else:
+                    sent_msg = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                    sent_ids.append(str(sent_msg.message_id))
                 log.info(f"[POST OK] Message sent to {channel}")
+                if sent_msg:
+                    await _db_exec(
+                        "INSERT INTO published_posts VALUES(?,?,?)",
+                        rowid,
+                        chat_id,
+                        ','.join(sent_ids),
+                    )
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
@@ -759,6 +869,8 @@ async def scheduled_poster():
                 continue
             await asyncio.sleep(0.2)
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+            await bot.send_message(POST_PLAN_GROUP_ID,
+                                   f"✅ Пост опубликован! Для удаления: /delete_post {rowid}")
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
@@ -842,6 +954,33 @@ async def test_vip_post(msg: Message):
         await msg.reply("✅ Успешно отправлено в VIP-канал")
     except Exception as e:
         await msg.reply(f"❌ Ошибка при отправке в VIP: {e}")
+
+@dp.message(Command("delete_post"), F.chat.id == POST_PLAN_GROUP_ID)
+async def delete_post_cmd(msg: Message):
+    if msg.from_user.id not in ADMINS:
+        await msg.reply("⛔️ Только админ может удалять посты.")
+        return
+    parts = msg.text.strip().split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await msg.reply("❌ Используй /delete_post <id>")
+        return
+    rowid = int(parts[1])
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await db.execute_fetchone(
+            "SELECT chat_id, message_id FROM published_posts WHERE rowid=?",
+            (rowid,),
+        )
+        if not row:
+            await msg.reply("❌ Пост не найден")
+            return
+        chat_id, message_id = row
+    try:
+        for mid in str(message_id).split(','):
+            await bot.delete_message(chat_id, int(mid))
+        await _db_exec("DELETE FROM published_posts WHERE rowid=?", rowid)
+        await msg.reply(tr(msg.from_user.language_code, 'post_deleted'))
+    except Exception as e:
+        await msg.reply(f"❌ Ошибка удаления: {e}")
 
 if __name__ == '__main__':
     print("DEBUG: JuicyFox main() will run")
