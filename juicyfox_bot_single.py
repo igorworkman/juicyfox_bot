@@ -600,13 +600,6 @@ async def relay_private(msg: Message):
 
     header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
     relay[header_msg.message_id] = msg.from_user.id
-    await _db_exec(
-        'INSERT INTO messages VALUES(?,?,?,?)',
-        int(time.time()),
-        msg.from_user.id,
-        header_msg.message_id,
-        0,
-    )
 
     cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
@@ -668,13 +661,19 @@ async def history_request(msg: Message):
 
     await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
 
+    user = await bot.get_chat(uid)
+    username = user.full_name or user.username or str(uid)
+
     for ts, user_id, msg_id, is_reply in reversed(rows):
+        arrow_text = '⬅️' if is_reply else f'➡️ <b>{username}</b>'
+        arrow_msg = await bot.send_message(HISTORY_GROUP_ID, arrow_text)
         try:
-            arrow = '⬅️' if is_reply else '➡️'
-            await bot.send_message(HISTORY_GROUP_ID, f"{arrow}")
-            await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, msg_id)
+            cp = await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, msg_id)
+            if cp.text and '💰' in cp.text and '•' in cp.text:
+                await bot.delete_message(HISTORY_GROUP_ID, cp.message_id)
+                await bot.delete_message(HISTORY_GROUP_ID, arrow_msg.message_id)
         except Exception:
-            await msg.reply(f"⚠️ Не удалось переслать msg_id={msg_id}")
+            await bot.send_message(HISTORY_GROUP_ID, 'Не удалось переслать сообщение')
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
