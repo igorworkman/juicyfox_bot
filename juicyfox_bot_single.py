@@ -14,7 +14,7 @@ os.makedirs('/data', exist_ok=True)
 if not os.path.exists(DB_PATH):
     import sqlite3
     with sqlite3.connect(DB_PATH) as db:
-        db.execute('CREATE TABLE IF NOT EXISTS messages (timestamp INT, user_id INT, message_id INT, is_reply INT)')
+        db.execute('CREATE TABLE IF NOT EXISTS messages (ts INTEGER, user_id INTEGER, msg_id INTEGER, is_reply INTEGER)')
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
