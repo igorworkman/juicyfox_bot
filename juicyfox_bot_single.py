@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
   media_ids TEXT
 );
 CREATE TABLE IF NOT EXISTS published_posts(
-  rowid INTEGER PRIMARY KEY,
+  rowid INTEGER PRIMARY KEY AUTOINCREMENT,
   chat_id INTEGER,
   message_id TEXT
 );
@@ -868,8 +868,7 @@ async def scheduled_poster():
                 log.info(f"[POST OK] Message sent to {channel}")
                 if sent_msg:
                     await _db_exec(
-                        "INSERT INTO published_posts VALUES(?,?,?)",
-                        rowid,
+                        "INSERT INTO published_posts (chat_id, message_id) VALUES (?, ?)",
                         chat_id,
                         ','.join(sent_ids),
                     )
