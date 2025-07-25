@@ -1,6 +1,7 @@
 import os
 import httpx
 from dotenv import load_dotenv
+import aiofiles
 
 load_dotenv()
 
@@ -36,18 +37,10 @@ async def get_logs_clean():
 
 async def get_logs_full():
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BASE_URL}?tailLines=200", headers=HEADERS)
-            response.raise_for_status()
-            return response.json()
-    except httpx.HTTPStatusError as e:
-        return {
-            "error": f"HTTP ошибка Northflank: {e.response.status_code}",
-            "detail": e.response.text
-        }
+        async with aiofiles.open("logs/runtime.log", mode="r") as f:
+            content = await f.read()
+        lines = content.strip().splitlines()[-50:]
+        return {"lines": lines}
     except Exception as e:
-        return {
-            "error": "Ошибка при получении логов",
-            "detail": str(e)
-        }
+        return {"error": str(e)}
 
