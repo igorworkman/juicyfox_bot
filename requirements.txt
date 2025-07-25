@@ -7,3 +7,4 @@ pipdeptree
 httpx
 aiosqlite
 gunicorn
+fastapi
