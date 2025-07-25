@@ -8,5 +8,4 @@ httpx
 aiosqlite
 gunicorn
 fastapi
-fastapi
 uvicorn[standard]
