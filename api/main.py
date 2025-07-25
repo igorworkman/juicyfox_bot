@@ -1,13 +1,14 @@
 from fastapi import FastAPI
-from check_logs import get_logs_clean, get_logs_full
 import asyncio
 from juicyfox_bot_single import main as run_bot
+from check_logs import get_logs_clean, get_logs_full
 
 app = FastAPI()
 
 @app.on_event("startup")
-async def start_bot():
-    asyncio.create_task(run_bot())
+async def startup_event():
+    loop = asyncio.get_event_loop()
+    loop.create_task(run_bot())
 
 @app.get("/")
 async def root():
