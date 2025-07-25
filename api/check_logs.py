@@ -16,23 +16,37 @@ BASE_URL = (
 )
 
 async def get_logs_clean():
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{BASE_URL}?tailLines=20", headers=HEADERS)
-        if response.status_code != 200:
-            return {
-                "error": f"Ошибка Northflank: {response.status_code}",
-                "detail": response.text
-            }
-        data = response.json()
-        logs = [entry.get("log", "") for entry in data.get("logs", [])]
-        return {"logs": logs}
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{BASE_URL}?tailLines=20", headers=HEADERS)
+            response.raise_for_status()
+            data = response.json()
+            logs = [entry.get("log", "") for entry in data.get("logs", [])]
+            return {"logs": logs}
+    except httpx.HTTPStatusError as e:
+        return {
+            "error": f"HTTP ошибка Northflank: {e.response.status_code}",
+            "detail": e.response.text
+        }
+    except Exception as e:
+        return {
+            "error": "Ошибка при получении логов",
+            "detail": str(e)
+        }
 
 async def get_logs_full():
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{BASE_URL}?tailLines=200", headers=HEADERS)
-        if response.status_code != 200:
-            return {
-                "error": f"Ошибка Northflank: {response.status_code}",
-                "detail": response.text
-            }
-        return response.json()
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{BASE_URL}?tailLines=200", headers=HEADERS)
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        return {
+            "error": f"HTTP ошибка Northflank: {e.response.status_code}",
+            "detail": e.response.text
+        }
+    except Exception as e:
+        return {
+            "error": "Ошибка при получении логов",
+            "detail": str(e)
+        }
