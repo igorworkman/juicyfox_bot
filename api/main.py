@@ -8,7 +8,7 @@ app = FastAPI(default_response_class=JSONResponse)
 
 @app.get("/logs")
 async def full_logs():
-    return await get_logs_clean()
+    return await get_logs_full()
 
 @app.get("/logs/clean")
 async def clean_logs():
