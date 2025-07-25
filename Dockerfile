@@ -11,5 +11,5 @@ COPY . .
 
 # Запуск FastAPI
 EXPOSE 8080
-CMD ["gunicorn", "api.main:app", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8080"]
+CMD ["gunicorn", "api.main:app", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
 VOLUME /data
