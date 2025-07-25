@@ -5,7 +5,7 @@
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
 # • RU/EN/ES UI           → auto by language_code
 
-import os, logging, asyncio, httpx, time, aiosqlite, traceback
+import os, logging, httpx, time, aiosqlite, traceback
 import asyncio
 import aiohttp
 from os import getenv
