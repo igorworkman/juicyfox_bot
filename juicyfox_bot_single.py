@@ -1006,7 +1006,9 @@ async def setup_webhook():
     await bot.set_webhook(webhook_url)
 
 if __name__ == '__main__':
-    asyncio.run(setup_webhook())
-    print("DEBUG: JuicyFox main() will run")
-    asyncio.run(main())
+    # Avoid starting an extra aiohttp server when running under gunicorn
+    if "gunicorn" not in os.getenv("SERVER_SOFTWARE", "").lower():
+        asyncio.run(setup_webhook())
+        print("DEBUG: JuicyFox main() will run")
+        asyncio.run(main())
 
