@@ -6,10 +6,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем только нужные файлы
-COPY juicyfox_bot_single.py .
+# Копируем приложение
+COPY . .
 
-# Запуск бота
+# Запуск FastAPI
 EXPOSE 8080
-CMD ["python", "juicyfox_bot_single.py"]
+CMD ["gunicorn", "api.main:app", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8080"]
 VOLUME /data
