@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import asyncio
 from juicyfox_bot_single import main as run_bot
-from check_logs import get_logs_clean, get_logs_full
+from api.check_logs import get_logs_clean, get_logs_full
 
 app = FastAPI()
 
