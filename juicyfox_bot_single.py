@@ -6,6 +6,11 @@
 # • RU/EN/ES UI           → auto by language_code
 
 import os, logging, asyncio, httpx, time, aiosqlite, traceback
+import asyncio
+import aiohttp
+from os import getenv
+from aiogram import Bot
+from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime
 DB_PATH = '/app/messages.sqlite'
 
@@ -994,7 +999,14 @@ async def delete_post_cmd(msg: Message):
     except Exception as e:
         await msg.reply(f"❌ Ошибка удаления: {e}")
 
+async def setup_webhook():
+    session = AiohttpSession()
+    bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
+    webhook_url = getenv("WEBHOOK_URL")
+    await bot.set_webhook(webhook_url)
+
 if __name__ == '__main__':
+    asyncio.run(setup_webhook())
     print("DEBUG: JuicyFox main() will run")
     asyncio.run(main())
 
