@@ -69,13 +69,13 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
 HISTORY_GROUP_ID = -1002721298286
 ADMINS = [7893194894]
-LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID", "-1"))
+LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
-VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID', '-1002756750911'))  # приватный VIP‑канал
+VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID'))  # приватный VIP‑канал
 log.debug(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
-LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID', '-1002808420871'))
-POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID', '-1002825908735'))
+LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID'))
+POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
@@ -972,30 +972,35 @@ async def test_vip_post(msg: Message):
     except Exception as e:
         await msg.reply(f"❌ Ошибка при отправке в VIP: {e}")
 
-@dp.message(Command("delete_post"), F.chat.id == POST_PLAN_GROUP_ID)
+@dp.message(Command("delete_post"))
 async def delete_post_cmd(msg: Message):
+    lang = msg.from_user.language_code
     if msg.from_user.id not in ADMINS:
         await msg.reply("⛔️ Только админ может удалять посты.")
         return
+
+    if msg.chat.id == POST_PLAN_GROUP_ID:
+        channel_id = (
+            msg.reply_to_message.forward_from_chat.id
+            if msg.reply_to_message and msg.reply_to_message.forward_from_chat
+            else None
+        )
+    else:
+        channel_id = msg.chat.id
+
+    if channel_id not in [VIP_CHANNEL_ID, LIFE_CHANNEL_ID, LUXURY_CHANNEL_ID]:
+        await msg.reply(tr(lang, 'not_allowed_channel'))
+        return
+
     parts = msg.text.strip().split()
     if len(parts) != 2 or not parts[1].isdigit():
         await msg.reply("❌ Используй /delete_post <id>")
         return
-    rowid = int(parts[1])
-    async with aiosqlite.connect(DB_PATH) as db:
-        row = await db.execute_fetchone(
-            "SELECT chat_id, message_id FROM published_posts WHERE rowid=?",
-            (rowid,),
-        )
-        if not row:
-            await msg.reply("❌ Пост не найден")
-            return
-        chat_id, message_id = row
+
+    post_id = int(parts[1])
     try:
-        for mid in str(message_id).split(','):
-            await bot.delete_message(chat_id, int(mid))
-        await _db_exec("DELETE FROM published_posts WHERE rowid=?", rowid)
-        await msg.reply(tr(msg.from_user.language_code, 'post_deleted'))
+        await bot.delete_message(channel_id, post_id)
+        await msg.reply(tr(lang, 'post_deleted'))
     except Exception as e:
         await msg.reply(f"❌ Ошибка удаления: {e}")
 
