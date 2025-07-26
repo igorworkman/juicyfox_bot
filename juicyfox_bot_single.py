@@ -60,8 +60,14 @@ async def _init_db():
 
 
 import os
-logging.basicConfig(level=logging.DEBUG)
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(
+    filename="logs/runtime.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 log = logging.getLogger(__name__)
+logging.info("\ud83d\udd25 Bot launched successfully")
 
 # ---------------- Config ----------------
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
