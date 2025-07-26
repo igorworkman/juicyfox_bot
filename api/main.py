@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 import asyncio
 from juicyfox_bot_single import main as run_bot
-from check_logs import get_logs_clean, get_logs_full
+from .check_logs import get_logs_clean, get_logs_full
 
 app = FastAPI(default_response_class=JSONResponse)
 
