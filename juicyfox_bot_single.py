@@ -839,17 +839,17 @@ async def scheduled_poster():
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             try:
-                sent_msg = None
+                published = None
                 sent_ids = []
                 if media_ids:
                     ids = media_ids.split(',')
                     if len(ids) == 1:
                         file_id = ids[0]
                         if file_id.startswith("AgA"):
-                            sent_msg = await bot.send_photo(chat_id, file_id, caption=text)
+                            published = await bot.send_photo(chat_id, file_id, caption=text)
                         else:
-                            sent_msg = await bot.send_video(chat_id, file_id, caption=text)
-                        sent_ids.append(str(sent_msg.message_id))
+                            published = await bot.send_video(chat_id, file_id, caption=text)
+                        sent_ids.append(str(published.message_id))
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo
                         media = []
@@ -861,20 +861,20 @@ async def scheduled_poster():
                             media.append(m)
                         grp = await bot.send_media_group(chat_id, media)
                         if grp:
-                            sent_msg = grp[0]
+                            published = grp[0]
                             sent_ids = [str(m.message_id) for m in grp]
                 elif not media_ids and text:
                     # Если только текст — отправить текстовое сообщение
-                    sent_msg = await bot.send_message(chat_id, text)
-                    sent_ids.append(str(sent_msg.message_id))
+                    published = await bot.send_message(chat_id, text)
+                    sent_ids.append(str(published.message_id))
                 elif text == '<media>' or not text:
-                    sent_msg = await bot.copy_message(chat_id, from_chat, from_msg)
-                    sent_ids.append(str(sent_msg.message_id))
+                    published = await bot.copy_message(chat_id, from_chat, from_msg)
+                    sent_ids.append(str(published.message_id))
                 else:
-                    sent_msg = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
-                    sent_ids.append(str(sent_msg.message_id))
+                    published = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                    sent_ids.append(str(published.message_id))
                 log.info(f"[POST OK] Message sent to {channel}")
-                if sent_msg:
+                if published:
                     await _db_exec(
                         "INSERT INTO published_posts (chat_id, message_id) VALUES (?, ?)",
                         chat_id,
@@ -889,10 +889,10 @@ async def scheduled_poster():
                 continue
             await asyncio.sleep(0.2)
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-            if sent_msg:
+            if published:
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
-                    f"✅ Пост опубликован! Для удаления: /delete_post {sent_msg.message_id}",
+                    f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
                 )
 
 # ---------------- Mount & run -----------------------------
