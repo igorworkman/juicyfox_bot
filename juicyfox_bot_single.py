@@ -877,8 +877,8 @@ async def scheduled_poster():
                 if published:
                     await _db_exec(
                         "INSERT INTO published_posts (chat_id, message_id) VALUES (?, ?)",
-                        chat_id,
-                        ','.join(sent_ids),
+                        published.chat.id,
+                        published.message_id,
                     )
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
