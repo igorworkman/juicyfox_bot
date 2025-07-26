@@ -173,6 +173,11 @@ async def _db_fetchall(q:str,*a):
         await db.executescript(CREATE_SQL)
         return await db.execute_fetchall(q,a)
 
+async def _db_fetchone(q:str, *a):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.executescript(CREATE_SQL)
+        return await db.execute_fetchone(q, a)
+
 async def add_paid(user_id:int, days:int=30):
     expires=int(time.time())+days*24*3600
     await _db_exec('INSERT OR REPLACE INTO paid_users VALUES(?,?)',user_id,expires)
@@ -1004,8 +1009,16 @@ async def delete_post_cmd(msg: Message):
         return
 
     post_id = int(parts[1])
+    row = await _db_fetchone(
+        "SELECT chat_id FROM published_posts WHERE message_id = ?",
+        (post_id,),
+    )
+    if not row:
+        await msg.reply(tr(lang, 'not_allowed_channel'))
+        return
+    chat_id = row[0]
     try:
-        await bot.delete_message(channel_id, post_id)
+        await bot.delete_message(chat_id, post_id)
         await msg.reply(tr(lang, 'post_deleted'))
     except Exception as e:
         await msg.reply(f"❌ Ошибка удаления: {e}")
