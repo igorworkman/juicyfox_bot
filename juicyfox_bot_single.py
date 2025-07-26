@@ -162,11 +162,18 @@ CREATE TABLE IF NOT EXISTS published_posts(
 );
 """
 
-async def _db_exec(q:str,*a):
+async def _db_exec(q: str, *a, fetchone: bool = False, fetchall: bool = False):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(CREATE_SQL)  # ensure both tables
-        await db.execute(q,a)
+        cur = await db.execute(q, a)
+        result = None
+        if fetchone:
+            result = await cur.fetchone()
+        elif fetchall:
+            result = await cur.fetchall()
         await db.commit()
+        if fetchone or fetchall:
+            return result
 
 async def _db_fetchall(q:str,*a):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -280,6 +287,7 @@ L10N={
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
  'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35,\n💳💵💱 — выбери, как тебе удобнее',
  'not_allowed_channel': '🚫 Неизвестный канал назначения.',
+ 'error_post_not_found': 'Пост не найден',
  'post_deleted':'Пост удалён',
 },
  'en':{
@@ -315,8 +323,9 @@ Just you and me... Let’s get a little closer 💋
 🤗 I open the chat once I see your flowers 💐🌷🌹""",
   'back': '🔙 Back',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
- 'not_allowed_channel': '🚫 Unknown target channel.',
- 'post_deleted':'Post deleted',
+'not_allowed_channel': '🚫 Unknown target channel.',
+'error_post_not_found': 'Post not found',
+'post_deleted':'Post deleted',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -352,8 +361,9 @@ Solo tú y yo... Acércate un poquito más 💋
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
- 'not_allowed_channel': '🚫 Canal de destino desconocido.',
- 'post_deleted':'Post eliminado',
+'not_allowed_channel': '🚫 Canal de destino desconocido.',
+'error_post_not_found': 'Publicación no encontrada',
+'post_deleted':'Post eliminado',
   }
 }
 
@@ -990,35 +1000,26 @@ async def delete_post_cmd(msg: Message):
         await msg.reply("⛔️ Только админ может удалять посты.")
         return
 
-    if msg.chat.id == POST_PLAN_GROUP_ID:
-        channel_id = (
-            msg.reply_to_message.forward_from_chat.id
-            if msg.reply_to_message and msg.reply_to_message.forward_from_chat
-            else None
-        )
-    else:
-        channel_id = msg.chat.id
-
-    if channel_id not in [VIP_CHANNEL_ID, LIFE_CHANNEL_ID, LUXURY_CHANNEL_ID]:
-        await msg.reply(tr(lang, 'not_allowed_channel'))
-        return
-
     parts = msg.text.strip().split()
     if len(parts) != 2 or not parts[1].isdigit():
         await msg.reply("❌ Используй /delete_post <id>")
         return
 
-    post_id = int(parts[1])
-    row = await _db_fetchone(
+    msg_id = int(parts[1])
+    row = await _db_exec(
         "SELECT chat_id FROM published_posts WHERE message_id = ?",
-        (post_id,),
+        (msg_id,),
+        fetchone=True,
     )
     if not row:
-        await msg.reply(tr(lang, 'not_allowed_channel'))
+        await msg.reply(tr(lang, 'error_post_not_found'))
         return
     chat_id = row[0]
+    if chat_id not in [VIP_CHANNEL_ID, LIFE_CHANNEL_ID, LUXURY_CHANNEL_ID]:
+        await msg.reply(tr(lang, 'not_allowed_channel'))
+        return
     try:
-        await bot.delete_message(chat_id, post_id)
+        await bot.delete_message(chat_id, msg_id)
         await msg.reply(tr(lang, 'post_deleted'))
     except Exception as e:
         await msg.reply(f"❌ Ошибка удаления: {e}")
