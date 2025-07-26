@@ -20,3 +20,10 @@ If you plan to use packages from GitHub (e.g. `git+https://github.com/...`), mak
 ```
 
 Где `<id>` — номер поста из уведомления бота после публикации.
+
+## Setup
+
+```bash
+mkdir -p logs
+touch logs/runtime.log
+```
