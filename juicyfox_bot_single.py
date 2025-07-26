@@ -889,8 +889,11 @@ async def scheduled_poster():
                 continue
             await asyncio.sleep(0.2)
             await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-            await bot.send_message(POST_PLAN_GROUP_ID,
-                                   f"✅ Пост опубликован! Для удаления: /delete_post {rowid}")
+            if sent_msg:
+                await bot.send_message(
+                    POST_PLAN_GROUP_ID,
+                    f"✅ Пост опубликован! Для удаления: /delete_post {sent_msg.message_id}",
+                )
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
