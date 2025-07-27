@@ -611,7 +611,7 @@ async def cmd_start(m: Message):
     )
 
     await m.answer(
-        text="⬇️",
+        text="",
         reply_markup=reply_kb
     )
 
