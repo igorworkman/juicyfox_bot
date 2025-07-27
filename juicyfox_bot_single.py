@@ -36,6 +36,14 @@ def get_post_plan_kb():
 
 post_plan_kb = get_post_plan_kb()
 
+def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for key, days in [('chat_flower_1',7), ('chat_flower_2',15), ('chat_flower_3',30)]:
+        kb.button(text=tr(lang, key), callback_data=f'chatgift:{days}')
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(1)
+    return kb.as_markup()
+
 
 from aiogram.fsm.state import StatesGroup, State
 class Post(StatesGroup):
@@ -424,6 +432,17 @@ CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bn
 
 router=Router(); donate_r=Router(); main_r=Router()
 
+@dp.message(lambda m: m.text == tr(m.from_user.language_code, 'activate_chat_btn'))
+async def handle_chat_btn(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
+    await state.set_state(ChatGift.plan)
+    await msg.answer(tr(lang, 'chat_choose_plan'), reply_markup=chat_plan_kb(lang))
+
+@dp.message(lambda m: m.text == tr(m.from_user.language_code, 'subscribe_life_btn'))
+async def handle_life_btn(msg: Message):
+    lang = msg.from_user.language_code
+    await msg.answer(tr(lang, 'life_link', url=LIFE_URL))
+
 @router.callback_query(F.data.startswith('pay:'))
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
@@ -481,6 +500,7 @@ class Donate(StatesGroup):
     entering_amount = State()
 
 class ChatGift(StatesGroup):
+    plan = State()
     choose_tier = State()
 
 @router.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
