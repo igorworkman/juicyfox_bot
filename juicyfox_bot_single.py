@@ -610,11 +610,6 @@ async def cmd_start(m: Message):
         reply_markup=kb.as_markup()
     )
 
-    await m.answer(
-        text="",
-        reply_markup=reply_kb
-    )
-
 @main_r.callback_query(F.data == 'life')
 async def life_link(cq: CallbackQuery):
     kb = InlineKeyboardBuilder()
