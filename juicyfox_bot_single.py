@@ -588,15 +588,7 @@ async def cmd_start(m: Message):
     if await state.get_state():
         await state.clear()
     lang = m.from_user.language_code
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, 'btn_life'),   callback_data='life')
-    kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
-    kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
-    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
-    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
-    kb.adjust(1)
     await m.answer_photo("https://files.catbox.moe/cqckle.jpg")
-    await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=tr(lang, 'activate_chat_btn'))],
@@ -604,7 +596,10 @@ async def cmd_start(m: Message):
         ],
         resize_keyboard=True
     )
-    await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=reply_kb)
+    await m.answer(
+        tr(lang, 'menu', name=m.from_user.first_name),
+        reply_markup=reply_kb
+    )
 
 @main_r.callback_query(F.data == 'life')
 async def life_link(cq: CallbackQuery):
