@@ -78,15 +78,13 @@ ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
-VIP_CHANNEL_ID  = int(os.getenv('VIP_CHANNEL_ID'))  # приватный VIP‑канал
-log.debug(f"[DEBUG] VIP_CHANNEL_ID = {os.getenv('VIP_CHANNEL_ID')}")
-LUXURY_CHANNEL_ID = int(os.getenv('LUXURY_CHANNEL_ID'))
 POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID'))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
-    "luxury": LUXURY_CHANNEL_ID,
+    "luxury": int(os.getenv("LUXURY_CHANNEL_ID")),
     "vip": int(os.getenv("VIP_CHANNEL_ID")),
+    "chat_30": CHAT_GROUP_ID,  # Juicy Chat group
 }
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
@@ -108,21 +106,21 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 async def give_vip_channel(user_id:int):
     """Добавляем юзера в VIP канал или шлём инвайт"""
     try:
-        await bot.add_chat_member(VIP_CHANNEL_ID, user_id)
+        await bot.add_chat_member(CHANNELS["vip"], user_id)
     except TelegramForbiddenError:
         # бот не админ – пробуем разовую ссылку
         try:
-            link = await bot.create_chat_invite_link(VIP_CHANNEL_ID, member_limit=1, expire_date=int(time.time())+3600)
+            link = await bot.create_chat_invite_link(CHANNELS["vip"], member_limit=1, expire_date=int(time.time())+3600)
             await bot.send_message(user_id, f'🔑 Ваш доступ к VIP каналу: {link.invite_link}')
         except TelegramBadRequest as e:
             log.warning('Cannot give VIP link: %s', e)
 
 async def give_club_channel(user_id: int):
     try:
-        await bot.add_chat_member(LUXURY_CHANNEL_ID, user_id)
+        await bot.add_chat_member(CHANNELS["luxury"], user_id)
     except TelegramForbiddenError:
         try:
-            link = await bot.create_chat_invite_link(LUXURY_CHANNEL_ID, member_limit=1, expire_date=int(time.time())+3600)
+            link = await bot.create_chat_invite_link(CHANNELS["luxury"], member_limit=1, expire_date=int(time.time())+3600)
             await bot.send_message(user_id, f'🔑 Доступ к Luxury Room: {link.invite_link}')
         except TelegramBadRequest as e:
             log.warning('Cannot give CLUB link: %s', e)
@@ -627,10 +625,10 @@ async def relay_private(msg: Message):
     header = (f"{username} "
               f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
-    header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
+    header_msg = await bot.send_message(CHANNELS["chat_30"], header, parse_mode="HTML")
     relay[header_msg.message_id] = msg.from_user.id
 
-    cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
+    cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
     await _db_exec(
         'INSERT INTO messages VALUES(?,?,?,?)',
@@ -644,7 +642,7 @@ async def relay_private(msg: Message):
     
 
 # ---------------- Group → user relay ----------------------
-@dp.message(F.chat.id == CHAT_GROUP_ID)
+@dp.message(F.chat.id == CHANNELS["chat_30"])
 async def relay_group(msg: Message):
     if (
         msg.reply_to_message
@@ -652,7 +650,7 @@ async def relay_group(msg: Message):
         and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]
     ):
         uid = relay[msg.reply_to_message.message_id]
-        cp = await bot.copy_message(uid, CHAT_GROUP_ID, msg.message_id)
+        cp = await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
         await _db_exec(
             'INSERT INTO messages VALUES(?,?,?,?)',
             int(time.time()),
@@ -697,7 +695,7 @@ async def history_request(msg: Message):
         arrow_text = '⬅️' if is_reply else f'➡️ <b>{username}</b>'
         arrow_msg = await bot.send_message(HISTORY_GROUP_ID, arrow_text)
         try:
-            cp = await bot.copy_message(HISTORY_GROUP_ID, CHAT_GROUP_ID, msg_id)
+            cp = await bot.copy_message(HISTORY_GROUP_ID, CHANNELS["chat_30"], msg_id)
             if cp.text and '💰' in cp.text and '•' in cp.text:
                 await bot.delete_message(HISTORY_GROUP_ID, cp.message_id)
                 await bot.delete_message(HISTORY_GROUP_ID, arrow_msg.message_id)
@@ -1021,7 +1019,7 @@ async def delete_post_cmd(msg: Message):
         await msg.reply(tr(lang, 'error_post_not_found'))
         return
     chat_id = row[0]
-    if chat_id not in [VIP_CHANNEL_ID, LIFE_CHANNEL_ID, LUXURY_CHANNEL_ID]:
+    if chat_id not in [CHANNELS["vip"], LIFE_CHANNEL_ID, CHANNELS["luxury"]]:
         await msg.reply(tr(lang, 'not_allowed_channel'))
         return
     try:
