@@ -93,6 +93,9 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 # --- Startup ------------------------------------------------
 async def on_startup():
     print("DEBUG: on_startup called")
+    await _db_exec(
+        "CREATE TABLE IF NOT EXISTS relay_map (msg_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, ts INTEGER DEFAULT (strftime('%s','now')))"
+    )
     asyncio.create_task(scheduled_poster())
 
 
@@ -148,6 +151,11 @@ CREATE TABLE IF NOT EXISTS messages(
   user_id INTEGER,
   msg_id INTEGER,
   is_reply INTEGER
+);
+CREATE TABLE IF NOT EXISTS relay_map(
+  msg_id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  ts INTEGER DEFAULT (strftime('%s','now'))
 );
 CREATE TABLE IF NOT EXISTS scheduled_posts(
   created_ts INTEGER,
@@ -631,6 +639,11 @@ async def relay_private(msg: Message):
     cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
     await _db_exec(
+        "INSERT OR REPLACE INTO relay_map (msg_id, user_id) VALUES (?, ?)",
+        cp.message_id,
+        msg.from_user.id,
+    )
+    await _db_exec(
         'INSERT INTO messages VALUES(?,?,?,?)',
         int(time.time()),
         msg.from_user.id,
@@ -644,12 +657,17 @@ async def relay_private(msg: Message):
 # ---------------- Group → user relay ----------------------
 @dp.message(F.chat.id == CHANNELS["chat_30"])
 async def relay_group(msg: Message):
-    if (
-        msg.reply_to_message
-        and msg.reply_to_message.message_id in relay
-        and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]
-    ):
-        uid = relay[msg.reply_to_message.message_id]
+    if not msg.reply_to_message:
+        return
+    uid = relay.get(msg.reply_to_message.message_id)
+    if uid is None:
+        row = await _db_fetchone(
+            "SELECT user_id FROM relay_map WHERE msg_id = ?",
+            msg.reply_to_message.message_id,
+        )
+        if row:
+            uid = row[0]
+    if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
         cp = await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
         await _db_exec(
             'INSERT INTO messages VALUES(?,?,?,?)',
