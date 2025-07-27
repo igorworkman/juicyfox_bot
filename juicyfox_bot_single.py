@@ -600,7 +600,7 @@ async def cmd_start(m: Message):
         ],
         resize_keyboard=True
     )
-    await m.answer(tr(lang, 'menu'), reply_markup=reply_kb)
+    await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=reply_kb)
 
 @main_r.callback_query(F.data == 'life')
 async def life_link(cq: CallbackQuery):
