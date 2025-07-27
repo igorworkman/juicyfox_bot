@@ -579,8 +579,8 @@ async def cmd_start(m: Message):
     kb.button(text=tr(lang, 'btn_life'),   callback_data='life')
     kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
     kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
-    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
+    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.adjust(1)
     await m.answer_photo("https://files.catbox.moe/cqckle.jpg")
     await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
@@ -602,8 +602,8 @@ async def back_to_main(cq: CallbackQuery):
     kb.button(text=tr(lang, 'btn_life'),   callback_data='life')
     kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
     kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
-    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
+    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.adjust(1)
     await cq.message.edit_text(
         tr(lang, 'menu', name=cq.from_user.first_name),
