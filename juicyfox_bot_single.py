@@ -294,6 +294,7 @@ L10N={
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
   'consecutive_limit': 'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
+  'chat_choose_plan': '💬 На сколько дней активировать чат?',
   'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
   'chat_flower_1': '🌷 — 5$ / 7 дней',
   'chat_flower_2': '🌹 — 9$ / 15 дней',
@@ -332,6 +333,7 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
   'consecutive_limit':'(3 of 3) — waiting for Juicy Fox\'s reply. You can continue in 18 hours or after she answers.',
+  'chat_choose_plan': '💬 Choose chat duration',
   'chat_flower_q': 'What flowers would you like to gift Juicy Fox?',
   'chat_flower_1': '🌷 — $5 / 7 days',
   'chat_flower_2': '🌹 — $9 / 15 days',
@@ -369,6 +371,7 @@ No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
   'consecutive_limit': '(3 de 3) — esperando la respuesta de Juicy Fox. Podrás continuar la conversación en 18 horas o cuando responda.',
+  'chat_choose_plan': '💬 ¿Por cuántos días activar el chat?',
   'chat_flower_q': '¿Qué flores deseas regalar a Juicy Fox?',
   'chat_flower_1': '🌷 — $5 / 7 días',
   'chat_flower_2': '🌹 — $9 / 15 días',
@@ -490,6 +493,7 @@ class Donate(StatesGroup):
     entering_amount = State()
 
 class ChatGift(StatesGroup):
+    plan = State()
     choose_tier = State()
 
 @router.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
@@ -628,18 +632,23 @@ async def back_to_main(cq: CallbackQuery):
     )
 
 
-@dp.message()
-async def handle_reply_btns(msg: Message, state: FSMContext):
+@dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'activate_chat_btn'))
+async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = msg.from_user.language_code
-    if msg.text == tr(lang, 'activate_chat_btn'):
-        kb = InlineKeyboardBuilder()
-        for k, d in [('chat_flower_1',7), ('chat_flower_2',15), ('chat_flower_3',30)]:
-            kb.button(text=tr(lang, k), callback_data=f'chatgift:{d}')
-        kb.button(text="⬅️ Назад", callback_data="back"); kb.adjust(1)
-        await state.set_state(ChatGift.choose_tier)
-        await msg.answer(tr(lang, 'chat_flower_desc'), reply_markup=kb.as_markup())
-    elif msg.text == tr(lang, 'subscribe_life_btn'):
-        await msg.answer(tr(lang, 'life_link', url=LIFE_URL))
+    await state.set_state(ChatGift.plan)
+    await msg.answer(
+        tr(lang, 'chat_choose_plan'),
+        reply_markup=chat_plan_kb(lang)
+    )
+
+
+@dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'subscribe_life_btn'))
+async def handle_life_btn(msg: Message):
+    lang = msg.from_user.language_code
+    await msg.answer(tr(lang, 'life_link', url=LIFE_URL))
+
+
+
 
 
 # ---------------- Relay private ↔ group -------------------
