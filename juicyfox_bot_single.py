@@ -23,7 +23,7 @@ if not os.path.exists(DB_PATH):
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def get_post_plan_kb():
@@ -274,7 +274,7 @@ L10N={
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat',
-  'btn_donate':'🎁 Custom',
+  'btn_donate':'🎁 Custom', 'activate_chat_btn':'Активировать Juicy Chat 💬', 'subscribe_life_btn':'Подписаться на Juicy Life 👀', 'life_link':'👀 Мой канал: {url}',
   'choose_cur':'🧁 Готов побаловать меня? Выбери валюту 🛍️ ({amount}$)',
   'don_enter':'💸 Введи сумму в USD (5/10/25/50/100/200)',
   'don_num':'💸 Введи сумму доната в USD',
@@ -312,7 +312,7 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat',
-  'btn_donate':'🎁 Custom',
+  'btn_donate':'🎁 Custom', 'activate_chat_btn':'Activate Juicy Chat 💬', 'subscribe_life_btn':'Subscribe to Juicy Life 👀', 'life_link':'👀 My channel: {url}',
   'choose_cur':'🧁 Ready to spoil me? Pick a currency 🛍️ ({amount}$)',
   'don_enter':'💸 Enter amount in USD (5/10/25/50/100/200)',
   'don_num':'💸 Enter a donation amount in USD',
@@ -350,7 +350,7 @@ No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
   'btn_chat': '💬 Juicy Chat',
-  'btn_donate': '🎁 Custom',
+  'btn_donate': '🎁 Custom', 'activate_chat_btn':'Activar Juicy Chat 💬', 'subscribe_life_btn':'Suscribirse a Juicy Life 👀', 'life_link':'👀 Mi canal: {url}',
   'choose_cur': '🧁 ¿Listo para consentirme? Elige una moneda 🛍️ ({amount}$)',
   'don_enter': '💸 Introduce el monto en USD (5/10/25/50/100/200)',
   'don_num': '💸 Introduce una cantidad válida en USD',
@@ -584,6 +584,14 @@ async def cmd_start(m: Message):
     kb.adjust(1)
     await m.answer_photo("https://files.catbox.moe/cqckle.jpg")
     await m.answer(tr(lang, 'menu', name=m.from_user.first_name), reply_markup=kb.as_markup())
+    reply_kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=tr(lang, 'activate_chat_btn'))],
+            [KeyboardButton(text=tr(lang, 'subscribe_life_btn'))]
+        ],
+        resize_keyboard=True
+    )
+    await m.answer(tr(lang, 'menu'), reply_markup=reply_kb)
 
 @main_r.callback_query(F.data == 'life')
 async def life_link(cq: CallbackQuery):
@@ -609,6 +617,20 @@ async def back_to_main(cq: CallbackQuery):
         tr(lang, 'menu', name=cq.from_user.first_name),
         reply_markup=kb.as_markup()
     )
+
+
+@dp.message()
+async def handle_reply_btns(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
+    if msg.text == tr(lang, 'activate_chat_btn'):
+        kb = InlineKeyboardBuilder()
+        for k, d in [('chat_flower_1',7), ('chat_flower_2',15), ('chat_flower_3',30)]:
+            kb.button(text=tr(lang, k), callback_data=f'chatgift:{d}')
+        kb.button(text="⬅️ Назад", callback_data="back"); kb.adjust(1)
+        await state.set_state(ChatGift.choose_tier)
+        await msg.answer(tr(lang, 'chat_flower_desc'), reply_markup=kb.as_markup())
+    elif msg.text == tr(lang, 'subscribe_life_btn'):
+        await msg.answer(tr(lang, 'life_link', url=LIFE_URL))
 
 
 # ---------------- Relay private ↔ group -------------------
