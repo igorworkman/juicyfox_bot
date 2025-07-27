@@ -588,7 +588,6 @@ async def cmd_start(m: Message):
     if await state.get_state():
         await state.clear()
     lang = m.from_user.language_code
-    await m.answer_photo("https://files.catbox.moe/cqckle.jpg")
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=tr(lang, 'activate_chat_btn'))],
@@ -596,8 +595,9 @@ async def cmd_start(m: Message):
         ],
         resize_keyboard=True
     )
-    await m.answer(
-        tr(lang, 'menu', name=m.from_user.first_name),
+    await m.answer_photo(
+        photo="https://files.catbox.moe/cqckle.jpg",
+        caption=tr(lang, 'menu', name=m.from_user.first_name),
         reply_markup=reply_kb
     )
 
