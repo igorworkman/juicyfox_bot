@@ -595,10 +595,6 @@ async def cmd_start(m: Message):
         ],
         resize_keyboard=True
     )
-    await m.answer_photo(
-        photo="https://files.catbox.moe/cqckle.jpg",
-        caption=tr(lang, 'menu', name=m.from_user.first_name)
-    )
 
     kb = InlineKeyboardBuilder()
     kb.button(text=tr(lang, 'btn_life'), callback_data='life')
@@ -607,9 +603,17 @@ async def cmd_start(m: Message):
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
     kb.button(text=tr(lang, 'btn_chat'), callback_data='pay:chat')
     kb.adjust(1)
-    await m.answer("⬇️", reply_markup=kb.as_markup())
 
-    await m.answer("⬇️", reply_markup=reply_kb)
+    await m.answer_photo(
+        photo="https://files.catbox.moe/cqckle.jpg",
+        caption=tr(lang, 'menu', name=m.from_user.first_name),
+        reply_markup=kb.as_markup()
+    )
+
+    await m.answer(
+        text="⬇️",
+        reply_markup=reply_kb
+    )
 
 @main_r.callback_query(F.data == 'life')
 async def life_link(cq: CallbackQuery):
