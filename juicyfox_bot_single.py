@@ -610,7 +610,6 @@ async def cmd_start(m: Message):
     await m.answer_photo(
         photo="https://files.catbox.moe/cqckle.jpg",
         caption=tr(lang, 'menu', name=m.from_user.first_name),
-        reply_markup=kb.as_markup()
     )
 
     await m.answer(
