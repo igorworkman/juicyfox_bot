@@ -623,10 +623,6 @@ async def cmd_start(m: Message):
         caption=tr(lang, 'menu', name=m.from_user.first_name),
     )
 
-    await m.answer(
-        tr(lang, 'choose_action'),
-        reply_markup=kb.as_markup()
-    )
 
     await m.answer(
         text=tr(lang, 'life_link', url=LIFE_URL),
