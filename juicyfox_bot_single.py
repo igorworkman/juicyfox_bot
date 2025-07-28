@@ -44,6 +44,16 @@ def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
     kb.adjust(1)
     return kb.as_markup()
 
+def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
+    kb = InlineKeyboardBuilder()
+    kb.button(text=tr(lang, 'btn_life'), callback_data='life')
+    kb.button(text=tr(lang, 'btn_club'), callback_data='pay:club')
+    kb.button(text=tr(lang, 'btn_vip'), callback_data='pay:vip')
+    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
+    kb.button(text=tr(lang, 'btn_chat'), callback_data='pay:chat')
+    kb.adjust(1)
+    return kb
+
 
 from aiogram.fsm.state import StatesGroup, State
 class Post(StatesGroup):
@@ -606,13 +616,7 @@ async def cmd_start(m: Message):
         resize_keyboard=True
     )
 
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, 'btn_life'), callback_data='life')
-    kb.button(text=tr(lang, 'btn_club'), callback_data='pay:club')
-    kb.button(text=tr(lang, 'btn_vip'), callback_data='pay:vip')
-    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
-    kb.button(text=tr(lang, 'btn_chat'), callback_data='pay:chat')
-    kb.adjust(1)
+    kb = build_tip_menu(lang)
 
     await m.answer_photo(
         photo="https://files.catbox.moe/cqckle.jpg",
@@ -642,17 +646,17 @@ async def life_link(cq: CallbackQuery):
 @router.callback_query(F.data == 'back')
 async def back_to_main(cq: CallbackQuery):
     lang = cq.from_user.language_code
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, 'btn_life'),   callback_data='life')
-    kb.button(text=tr(lang, 'btn_club'),   callback_data='pay:club')
-    kb.button(text=tr(lang, 'btn_vip'),    callback_data='pay:vip')
-    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
-    kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
-    kb.adjust(1)
+    kb = build_tip_menu(lang)
     await cq.message.edit_text(
         tr(lang, 'choose_action'),
         reply_markup=kb.as_markup()
     )
+
+@main_r.callback_query(F.data == 'tip_menu')
+async def tip_menu(cq: CallbackQuery):
+    lang = cq.from_user.language_code
+    kb = build_tip_menu(lang)
+    await cq.message.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
 
 
 @dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'activate_chat_btn'))
@@ -669,6 +673,13 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 async def handle_life_btn(msg: Message):
     lang = msg.from_user.language_code
     await msg.answer(tr(lang, 'life_link', url=LIFE_URL))
+
+
+@dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'btn_tip'))
+async def handle_tip_menu(msg: Message):
+    lang = msg.from_user.language_code
+    kb = build_tip_menu(lang)
+    await msg.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
 
 
 
