@@ -282,7 +282,9 @@ L10N={
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat',
-  'btn_donate':'🎁 Custom', 'activate_chat_btn':'Активировать Juicy Chat 💬', 'subscribe_life_btn':'Подписаться на Juicy Life 👀', 'life_link':'👀 Мой канал: {url}',
+  'btn_donate':'🎁 Custom',
+  'btn_tip': '🛍 Tip Menu',
+  'activate_chat_btn':'Активировать Juicy Chat 💬', 'subscribe_life_btn':'Подписаться на Juicy Life 👀', 'life_link':'👀 Мой канал: {url}',
   'choose_action': 'Выбери действие ниже:',
   'choose_cur':'🧁 Готов побаловать меня? Выбери валюту 🛍️ ({amount}$)',
   'don_enter':'💸 Введи сумму в USD (5/10/25/50/100/200)',
@@ -322,7 +324,9 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'btn_club':'💎 Luxury Room - 15 $',
   'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
   'btn_chat':'💬 Juicy Chat',
-  'btn_donate':'🎁 Custom', 'activate_chat_btn':'Activate Juicy Chat 💬', 'subscribe_life_btn':'Subscribe to Juicy Life 👀', 'life_link':'👀 My channel: {url}',
+  'btn_donate':'🎁 Custom',
+  'btn_tip': '🛍 Tip Menu',
+  'activate_chat_btn':'Activate Juicy Chat 💬', 'subscribe_life_btn':'Subscribe to Juicy Life 👀', 'life_link':'👀 My channel: {url}',
   'choose_action': 'Choose an action below:',
   'choose_cur':'🧁 Ready to spoil me? Pick a currency 🛍️ ({amount}$)',
   'don_enter':'💸 Enter amount in USD (5/10/25/50/100/200)',
@@ -362,7 +366,9 @@ No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'btn_club': '💎 Luxury Room - 15 $',
   'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
   'btn_chat': '💬 Juicy Chat',
-  'btn_donate': '🎁 Custom', 'activate_chat_btn':'Activar Juicy Chat 💬', 'subscribe_life_btn':'Suscribirse a Juicy Life 👀', 'life_link':'👀 Mi canal: {url}',
+  'btn_donate': '🎁 Custom',
+  'btn_tip': '🛍 Tip Menu',
+  'activate_chat_btn':'Activar Juicy Chat 💬', 'subscribe_life_btn':'Suscribirse a Juicy Life 👀', 'life_link':'👀 Mi canal: {url}',
   'choose_action': 'Elige una acción abajo:',
   'choose_cur': '🧁 ¿Listo para consentirme? Elige una moneda 🛍️ ({amount}$)',
   'don_enter': '💸 Introduce el monto en USD (5/10/25/50/100/200)',
@@ -594,7 +600,8 @@ async def cmd_start(m: Message):
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=tr(lang, 'activate_chat_btn'))],
-            [KeyboardButton(text=tr(lang, 'subscribe_life_btn'))]
+            [KeyboardButton(text=tr(lang, 'subscribe_life_btn'))],
+            [KeyboardButton(text=tr(lang, 'btn_tip'))]
         ],
         resize_keyboard=True
     )
