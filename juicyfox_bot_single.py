@@ -609,8 +609,8 @@ async def cmd_start(m: Message):
     lang = m.from_user.language_code
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=tr(lang, 'activate_chat'))],
-            [KeyboardButton(text=tr(lang, 'tip_menu'))]
+            [KeyboardButton(text="SEE YOU MY CHAT💬")],
+            [KeyboardButton(text="TIP MENU 🔞💦🔥")]
         ],
         resize_keyboard=True
     )
@@ -654,7 +654,7 @@ async def tip_menu(cq: CallbackQuery):
     await cq.message.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
 
 
-@dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'activate_chat'))
+@dp.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
 async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = msg.from_user.language_code
     await state.set_state(ChatGift.plan)
@@ -666,7 +666,7 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 
 
 
-@dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'tip_menu'))
+@dp.message(lambda msg: msg.text == "TIP MENU 🔞💦🔥")
 async def handle_tip_menu(msg: Message):
     lang = msg.from_user.language_code
     kb = build_tip_menu(lang)
