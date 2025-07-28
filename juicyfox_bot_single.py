@@ -31,7 +31,7 @@ def get_post_plan_kb():
     kb.button(text="👀 Life", callback_data="post_to:life")
     kb.button(text="💿 Luxury", callback_data="post_to:luxury")
     kb.button(text="👑 VIP", callback_data="post_to:vip")
-    kb.adjust(2)
+    kb.adjust(1)
     return kb.as_markup()
 
 post_plan_kb = get_post_plan_kb()
@@ -643,7 +643,7 @@ async def back_to_main(cq: CallbackQuery):
     kb.button(text=tr(lang, 'btn_chat'),   callback_data='pay:chat')
     kb.adjust(1)
     await cq.message.edit_text(
-        tr(lang, 'menu', name=cq.from_user.first_name),
+        tr(lang, 'choose_action'),
         reply_markup=kb.as_markup()
     )
 
