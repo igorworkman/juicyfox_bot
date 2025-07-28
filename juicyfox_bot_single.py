@@ -294,7 +294,7 @@ L10N={
   'btn_chat':'💬 Juicy Chat',
   'btn_donate':'🎁 Custom',
   'btn_tip': '🛍 Tip Menu',
-  'activate_chat_btn':'Активировать Juicy Chat 💬', 'subscribe_life_btn':'Подписаться на Juicy Life 👀', 'life_link':'👀 Мой канал: {url}',
+  'activate_chat_btn':'Активировать Juicy Chat 💬', 'subscribe_life_btn':'Подписаться на Juicy Life 👀', 'life_link':'👀 Мой канал: {url}', 'my_channel': '👀 Мой бесплатный канал: {link}',
   'choose_action': 'Выбери действие ниже:',
   'choose_cur':'🧁 Готов побаловать меня? Выбери валюту 🛍️ ({amount}$)',
   'don_enter':'💸 Введи сумму в USD (5/10/25/50/100/200)',
@@ -302,7 +302,7 @@ L10N={
  'inv_err':'⚠️ Не удалось создать счёт. Попробуй другую валюту, милый 😉',
  'not_paid':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
   'life': """💎 Добро пожаловать в мой мир 💋
-{life_link}""",
+{my_channel}""",
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
@@ -336,7 +336,7 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'btn_chat':'💬 Juicy Chat',
   'btn_donate':'🎁 Custom',
   'btn_tip': '🛍 Tip Menu',
-  'activate_chat_btn':'Activate Juicy Chat 💬', 'subscribe_life_btn':'Subscribe to Juicy Life 👀', 'life_link':'👀 My channel: {url}',
+  'activate_chat_btn':'Activate Juicy Chat 💬', 'subscribe_life_btn':'Subscribe to Juicy Life 👀', 'life_link':'👀 My channel: {url}', 'my_channel': '👀 My free channel: {link}',
   'choose_action': 'Choose an action below:',
   'choose_cur':'🧁 Ready to spoil me? Pick a currency 🛍️ ({amount}$)',
   'don_enter':'💸 Enter amount in USD (5/10/25/50/100/200)',
@@ -344,7 +344,7 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'inv_err':'⚠️ Failed to create invoice. Try another currency, sweetheart 😉',
   'not_paid':'💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘',
   'life': """💎 Welcome to my world 💋
-{life_link}""",
+{my_channel}""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
@@ -378,14 +378,14 @@ No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'btn_chat': '💬 Juicy Chat',
   'btn_donate': '🎁 Custom',
   'btn_tip': '🛍 Tip Menu',
-  'activate_chat_btn':'Activar Juicy Chat 💬', 'subscribe_life_btn':'Suscribirse a Juicy Life 👀', 'life_link':'👀 Mi canal: {url}',
+  'activate_chat_btn':'Activar Juicy Chat 💬', 'subscribe_life_btn':'Suscribirse a Juicy Life 👀', 'life_link':'👀 Mi canal: {url}', 'my_channel': '👀 Mi canal gratuito: {link}',
   'choose_action': 'Elige una acción abajo:',
   'choose_cur': '🧁 ¿Listo para consentirme? Elige una moneda 🛍️ ({amount}$)',
   'don_enter': '💸 Introduce el monto en USD (5/10/25/50/100/200)',
   'don_num': '💸 Introduce una cantidad válida en USD',
   'inv_err': '⚠️ No se pudo crear la factura. Intenta con otra moneda, cariño 😉',
   'not_paid': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
-  'life': "💎 Bienvenido a mi mundo 💋\n{life_link}",
+  'life': "💎 Bienvenido a mi mundo 💋\n{my_channel}",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
@@ -625,7 +625,7 @@ async def cmd_start(m: Message):
 
 
     await m.answer(
-        text=tr(lang, 'life_link', url=LIFE_URL),
+        text=tr(lang, 'my_channel', link=LIFE_URL),
         reply_markup=reply_kb
     )
 
@@ -635,7 +635,7 @@ async def life_link(cq: CallbackQuery):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(1)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'life', life_link=LIFE_URL),
+        tr(cq.from_user.language_code, 'life', my_channel=LIFE_URL),
         reply_markup=kb.as_markup()
     )
 
@@ -668,7 +668,7 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 @dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'subscribe_life_btn'))
 async def handle_life_btn(msg: Message):
     lang = msg.from_user.language_code
-    await msg.answer(tr(lang, 'life_link', url=LIFE_URL))
+    await msg.answer(tr(lang, 'my_channel', link=LIFE_URL))
 
 
 @dp.message(lambda msg: msg.text == tr(msg.from_user.language_code, 'btn_tip'))
