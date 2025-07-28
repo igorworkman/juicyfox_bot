@@ -50,7 +50,7 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
     kb.button(text=tr(lang, 'btn_club'), callback_data='pay:club')
     kb.button(text=tr(lang, 'btn_vip'), callback_data='pay:vip')
     kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
-    kb.button(text=tr(lang, 'btn_chat'), callback_data='pay:chat')
+    kb.button(text="💬 Chat", callback_data='pay:chat')
     kb.adjust(1)
     return kb
 
