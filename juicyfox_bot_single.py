@@ -325,7 +325,7 @@ L10N={
     "НО… без цветов 💐 — не пущу тебя! 😜☺️"
   ),
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
- 'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
+ 'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
  'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35,\n💳💵💱 — выбери, как тебе удобнее',
  'not_allowed_channel': '🚫 Неизвестный канал назначения.',
  'error_post_not_found': 'Пост не найден',
@@ -374,7 +374,7 @@ Just you and me... Let’s get a little closer 💋
     "BUT… no flowers 💐 — no entry! 😜☺️"
   ),
   'back': '🔙 Back',
- 'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
+ 'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
 'not_allowed_channel': '🚫 Unknown target channel.',
 'error_post_not_found': 'Post not found',
 'post_deleted':'Post deleted',
@@ -422,7 +422,7 @@ Solo tú y yo... Acércate un poquito más 💋
     "PERO… ¡sin flores 💐 no entras! 😜☺️"
   ),
   'back': '🔙 Back',
-  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
+  'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
 'not_allowed_channel': '🚫 Canal de destino desconocido.',
 'error_post_not_found': 'Publicación no encontrada',
@@ -496,7 +496,7 @@ async def choose_cur(cq: CallbackQuery, state: FSMContext):
     kb.adjust(2)
     if plan == 'club':
         lang = cq.from_user.language_code
-        text = L10N.get(lang, L10N['en'])['luxury_desc']
+        text = L10N.get(lang, L10N['en'])['luxury_room_desc']
     elif plan in ('vip_secret', 'vip'):
         lang = cq.from_user.language_code
         text = L10N.get(lang, L10N['en'])['vip_secret_desc']
@@ -687,7 +687,16 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 
 
 
-@dp.message(lambda msg: msg.text in ["💎 Luxury Room - 15$", "❤️‍🔥 VIP Secret - 35$"])
+@dp.message(lambda msg: msg.text == "💎 Luxury Room - 15$")
+async def luxury_room_reply(msg: Message):
+    lang = msg.from_user.language_code
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'payc:club:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(2)
+    await msg.answer(tr(lang, 'luxury_room_desc'), reply_markup=kb.as_markup())
+@dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret - 35$")
 async def handle_tip_menu(msg: Message):
     lang = msg.from_user.language_code
     kb = build_tip_menu(lang)
