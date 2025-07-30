@@ -326,7 +326,16 @@ L10N={
   ),
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
- 'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35,\n💳💵💱 — выбери, как тебе удобнее',
+ 'vip_secret_desc': (
+    "Твой личный доступ в VIP Secret от Juicy Fox 😈\n"
+    "🔥Тут всё, о чём ты фантазировал:\n"
+    "📸 больше HD фото нюдс крупным планом 🙈\n"
+    "🎥 Видео, где я играю со своей киской 💦\n"
+    "💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n"
+    "📅 Период: 30 дней\n"
+    "💵 Стоимость: 35,\n"
+    "💳💸 — выбери, как тебе удобнее"
+ ),
  'not_allowed_channel': '🚫 Неизвестный канал назначения.',
  'error_post_not_found': 'Пост не найден',
  'post_deleted':'Пост удалён',
@@ -479,13 +488,40 @@ router=Router(); donate_r=Router(); main_r=Router()
 @router.callback_query(F.data.startswith('pay:'))
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
+    lang = cq.from_user.language_code
     if plan == 'chat':
-        lang = cq.from_user.language_code
         await cq.message.edit_text(
             tr(lang, 'chat_access'),
             reply_markup=chat_plan_kb(lang)
         )
         await state.set_state(ChatGift.choose_tier)
+        return
+
+    if plan in ('vip_secret', 'vip'):
+        kb = InlineKeyboardBuilder()
+        kb.row(
+            InlineKeyboardButton(text="TON", callback_data="vipay:ton"),
+            InlineKeyboardButton(text="BTC", callback_data="vipay:btc")
+        )
+        kb.row(
+            InlineKeyboardButton(text="USDT", callback_data="vipay:usdt"),
+            InlineKeyboardButton(text="ETH", callback_data="vipay:eth")
+        )
+        kb.row(
+            InlineKeyboardButton(text="BNB", callback_data="vipay:bnb"),
+            InlineKeyboardButton(text="TRX", callback_data="vipay:trx")
+        )
+        kb.row(
+            InlineKeyboardButton(text="DAI", callback_data="vipay:dai"),
+            InlineKeyboardButton(text="USDC", callback_data="vipay:usdc")
+        )
+        kb.row(
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="back")
+        )
+        await cq.message.edit_text(
+            tr(lang, 'vip_secret_desc'),
+            reply_markup=kb.as_markup()
+        )
         return
 
     amt = TARIFFS[plan]
@@ -495,13 +531,9 @@ async def choose_cur(cq: CallbackQuery, state: FSMContext):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
     if plan == 'club':
-        lang = cq.from_user.language_code
         text = L10N.get(lang, L10N['en'])['luxury_room_desc']
-    elif plan in ('vip_secret', 'vip'):
-        lang = cq.from_user.language_code
-        text = L10N.get(lang, L10N['en'])['vip_secret_desc']
     else:
-        text = tr(cq.from_user.language_code, 'choose_cur', amount=amt)
+        text = tr(lang, 'choose_cur', amount=amt)
     await cq.message.edit_text(text, reply_markup=kb.as_markup())
 
 
@@ -697,10 +729,32 @@ async def luxury_room_reply(msg: Message):
     kb.adjust(2)
     await msg.answer(tr(lang, 'luxury_room_desc'), reply_markup=kb.as_markup())
 @dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret - 35$")
-async def handle_tip_menu(msg: Message):
+async def vip_secret_reply(msg: Message):
     lang = msg.from_user.language_code
-    kb = build_tip_menu(lang)
-    await msg.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
+    kb = InlineKeyboardBuilder()
+    kb.row(
+        InlineKeyboardButton(text="TON", callback_data="vipay:ton"),
+        InlineKeyboardButton(text="BTC", callback_data="vipay:btc")
+    )
+    kb.row(
+        InlineKeyboardButton(text="USDT", callback_data="vipay:usdt"),
+        InlineKeyboardButton(text="ETH", callback_data="vipay:eth")
+    )
+    kb.row(
+        InlineKeyboardButton(text="BNB", callback_data="vipay:bnb"),
+        InlineKeyboardButton(text="TRX", callback_data="vipay:trx")
+    )
+    kb.row(
+        InlineKeyboardButton(text="DAI", callback_data="vipay:dai"),
+        InlineKeyboardButton(text="USDC", callback_data="vipay:usdc")
+    )
+    kb.row(
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="back")
+    )
+    await msg.answer(
+        tr(lang, 'vip_secret_desc'),
+        reply_markup=kb.as_markup()
+    )
 
 
 
