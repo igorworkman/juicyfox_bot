@@ -628,7 +628,10 @@ async def cmd_start(m: Message):
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="SEE YOU MY CHAT💬")],
-            [KeyboardButton(text="TIP MENU 🔞💦🔥")]
+            [
+                KeyboardButton(text="💎 Luxury Room - 15$"),
+                KeyboardButton(text="❤️‍🔥 VIP Secret - 35$")
+            ]
         ],
         resize_keyboard=True
     )
@@ -684,7 +687,7 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 
 
 
-@dp.message(lambda msg: msg.text == "TIP MENU 🔞💦🔥")
+@dp.message(lambda msg: msg.text in ["💎 Luxury Room - 15$", "❤️‍🔥 VIP Secret - 35$"])
 async def handle_tip_menu(msg: Message):
     lang = msg.from_user.language_code
     kb = build_tip_menu(lang)
