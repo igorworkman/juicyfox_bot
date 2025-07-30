@@ -317,6 +317,13 @@ L10N={
 💌 Я отвечаю видео-кружками и голосовыми
 📸 Иногда присылаю эксклюзивные селфи 😉
 🤗 Я открою чат как только увижу твои цветы 💐🌷🌹""",
+  'chat_access': (
+    "Доступ в Chat 💬 — это твоя личная связь с Juicy Fox 😘\n"
+    "Здесь начинается настоящий Private 💋\n"
+    "Часто отвечаю видео-кружками и голосовыми 💌\n"
+    "Иногда присылаю эксклюзивные селфи 📸😉\n"
+    "НО… без цветов 💐 — не пущу тебя! 😜☺️"
+  ),
 'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
  'vip_secret_desc': 'Твой личный доступ в VIP Secret от Juicy Fox 😈\n🔥Тут всё, о чём ты фантазировал:\n📸 больше HD фото нюдс крупным планом 🙈\n🎥 Видео, где я играю со своей киской 💦\n💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n📆 Период: 30 дней\n💸 Стоимость: 35,\n💳💵💱 — выбери, как тебе удобнее',
@@ -359,6 +366,13 @@ Just you and me... Let’s get a little closer 💋
 💌 I love sending video rolls and voice replies
 📸 I like sending private selfies... when you’ve been sweet 😉
 🤗 I open the chat once I see your flowers 💐🌷🌹""",
+  'chat_access': (
+    "Access to Chat 💬 is your personal connection with Juicy Fox 😘\n"
+    "This is where the real Private 💋 begins\n"
+    "I often reply with video messages and voice notes 💌\n"
+    "Sometimes I send you exclusive selfies 📸😉\n"
+    "BUT… no flowers 💐 — no entry! 😜☺️"
+  ),
   'back': '🔙 Back',
  'luxury_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
 'not_allowed_channel': '🚫 Unknown target channel.',
@@ -400,6 +414,13 @@ Solo tú y yo... Acércate un poquito más 💋
 💌 Me encanta enviarte videomensajes y notas de voz
 📸 Me gusta mandarte selfies privados... si te portas bien 😉
 🤗 Abro el chat en cuanto vea tus flores 💐🌷🌹""",
+  'chat_access': (
+    "El acceso al Chat 💬 es tu conexión personal con Juicy Fox 😘\n"
+    "Aquí empieza lo verdaderamente Privado 💋\n"
+    "A menudo respondo con videomensajes y audios 💌\n"
+    "A veces te mando selfies exclusivos 📸😉\n"
+    "PERO… ¡sin flores 💐 no entras! 😜☺️"
+  ),
   'back': '🔙 Back',
   'luxury_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
@@ -459,14 +480,11 @@ router=Router(); donate_r=Router(); main_r=Router()
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
     if plan == 'chat':
-        desc = tr(cq.from_user.language_code, 'chat_flower_desc')
-        kb = InlineKeyboardBuilder()
-        kb.button(text=tr(cq.from_user.language_code, 'chat_flower_1'), callback_data='chatgift:7')
-        kb.button(text=tr(cq.from_user.language_code, 'chat_flower_2'), callback_data='chatgift:15')
-        kb.button(text=tr(cq.from_user.language_code, 'chat_flower_3'), callback_data='chatgift:30')
-        kb.button(text="⬅️ Назад", callback_data="back")
-        kb.adjust(1)
-        await cq.message.edit_text(desc, reply_markup=kb.as_markup())
+        lang = cq.from_user.language_code
+        await cq.message.edit_text(
+            tr(lang, 'chat_access'),
+            reply_markup=chat_plan_kb(lang)
+        )
         await state.set_state(ChatGift.choose_tier)
         return
 
@@ -659,7 +677,7 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = msg.from_user.language_code
     await state.set_state(ChatGift.plan)
     await msg.answer(
-        tr(lang, 'chat_choose_plan'),
+        tr(lang, 'chat_access'),
         reply_markup=chat_plan_kb(lang)
     )
 
