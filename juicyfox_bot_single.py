@@ -1146,8 +1146,8 @@ async def main():
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 8080)
-    await site.start()
-    log.info('Webhook server started on 0.0.0.0:8080 /cryptobot/webhook')
+    # отключён запуск aiohttp-сервера во избежание конфликта портов
+    pass
 
     # aiogram polling
     log.info('JuicyFox Bot started')
