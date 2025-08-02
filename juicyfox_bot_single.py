@@ -97,6 +97,7 @@ LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID'))
+VIP_URL = os.getenv("VIP_URL")
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
