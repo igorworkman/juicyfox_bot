@@ -481,6 +481,14 @@ TARIFFS={'club':15.00,'vip':35.00}
 CHAT_TIERS={7:5.0,15:9.0,30:15.0}
 CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bnb'),('TRX','trx'),('DAI','dai'),('USDC','usdc')]
 
+def vip_currency_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'vipay:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(2)
+    return kb.as_markup()
+
 
 router=Router(); donate_r=Router(); main_r=Router()
 
@@ -498,29 +506,9 @@ async def choose_cur(cq: CallbackQuery, state: FSMContext):
         return
 
     if plan in ('vip_secret', 'vip'):
-        kb = InlineKeyboardBuilder()
-        kb.row(
-            InlineKeyboardButton(text="TON", callback_data="vipay:ton"),
-            InlineKeyboardButton(text="BTC", callback_data="vipay:btc")
-        )
-        kb.row(
-            InlineKeyboardButton(text="USDT", callback_data="vipay:usdt"),
-            InlineKeyboardButton(text="ETH", callback_data="vipay:eth")
-        )
-        kb.row(
-            InlineKeyboardButton(text="BNB", callback_data="vipay:bnb"),
-            InlineKeyboardButton(text="TRX", callback_data="vipay:trx")
-        )
-        kb.row(
-            InlineKeyboardButton(text="DAI", callback_data="vipay:dai"),
-            InlineKeyboardButton(text="USDC", callback_data="vipay:usdc")
-        )
-        kb.row(
-            InlineKeyboardButton(text="⬅️ Назад", callback_data="back")
-        )
         await cq.message.edit_text(
             tr(lang, 'vip_secret_desc'),
-            reply_markup=kb.as_markup()
+            reply_markup=vip_currency_kb()
         )
         return
 
@@ -555,6 +543,16 @@ async def pay_make(cq: CallbackQuery):
         
     else:
         await cq.answer(tr(cq.from_user.language_code,'inv_err'),show_alert=True)
+
+@router.callback_query(F.data.startswith('vipay:'))
+async def handle_vip_currency(cq: CallbackQuery):
+    cur = cq.data.split(':')[1]
+    amt = TARIFFS['vip']
+    url = await create_invoice(cq.from_user.id, amt, cur, 'JuicyFox Subscription', pl='vip')
+    if url:
+        await cq.message.edit_text(f"Счёт на оплату (VIP): {url}")
+    else:
+        await cq.answer(tr(cq.from_user.language_code,'inv_err'), show_alert=True)
 
 # ---- Donate FSM ----
 class Donate(StatesGroup):
@@ -731,29 +729,9 @@ async def luxury_room_reply(msg: Message):
 @dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret - 35$")
 async def vip_secret_reply(msg: Message):
     lang = msg.from_user.language_code
-    kb = InlineKeyboardBuilder()
-    kb.row(
-        InlineKeyboardButton(text="TON", callback_data="vipay:ton"),
-        InlineKeyboardButton(text="BTC", callback_data="vipay:btc")
-    )
-    kb.row(
-        InlineKeyboardButton(text="USDT", callback_data="vipay:usdt"),
-        InlineKeyboardButton(text="ETH", callback_data="vipay:eth")
-    )
-    kb.row(
-        InlineKeyboardButton(text="BNB", callback_data="vipay:bnb"),
-        InlineKeyboardButton(text="TRX", callback_data="vipay:trx")
-    )
-    kb.row(
-        InlineKeyboardButton(text="DAI", callback_data="vipay:dai"),
-        InlineKeyboardButton(text="USDC", callback_data="vipay:usdc")
-    )
-    kb.row(
-        InlineKeyboardButton(text="⬅️ Назад", callback_data="back")
-    )
     await msg.answer(
         tr(lang, 'vip_secret_desc'),
-        reply_markup=kb.as_markup()
+        reply_markup=vip_currency_kb()
     )
 
 
