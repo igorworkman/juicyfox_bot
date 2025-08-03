@@ -12,9 +12,8 @@ from os import getenv
 from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime
-DB_PATH = '/app/messages.sqlite'
-
-os.makedirs('/data', exist_ok=True)
+DB_PATH = '/app/data/messages.sqlite'
+os.makedirs('/app/data', exist_ok=True)
 
 if not os.path.exists(DB_PATH):
     import sqlite3
