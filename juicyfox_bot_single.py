@@ -86,6 +86,18 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 logging.info("\ud83d\udd25 Bot launched successfully")
 
+
+def relay_error_handler(func):
+    async def wrapper(msg: Message, *a, **kw):
+        try:
+            return await func(msg, *a, **kw)
+        except Exception as e:
+            log.error("%s error: %s", func.__name__, e)
+            tb = traceback.format_exc()
+            for admin in ADMINS:
+                await bot.send_message(admin, f"{func.__name__} error: {e}\n{tb}")
+    return wrapper
+
 # ---------------- Config ----------------
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
@@ -104,6 +116,14 @@ CHANNELS = {
     "vip": int(os.getenv("VIP_CHANNEL_ID")),
     "chat_30": CHAT_GROUP_ID,  # Juicy Chat group
 }
+
+log.info(
+    "Env CHAT_GROUP_ID=%s HISTORY_GROUP_ID=%s LIFE_CHANNEL_ID=%s POST_PLAN_GROUP_ID=%s",
+    CHAT_GROUP_ID,
+    HISTORY_GROUP_ID,
+    LIFE_CHANNEL_ID,
+    POST_PLAN_GROUP_ID,
+)
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -740,6 +760,7 @@ async def vip_secret_reply(msg: Message):
 
 # ---------------- Relay private ↔ group -------------------
 @dp.message((F.chat.type == 'private') & (~F.text.startswith('/')))
+@relay_error_handler
 async def relay_private(msg: Message):
     if not await is_paid(msg.from_user.id):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
@@ -783,6 +804,7 @@ async def relay_private(msg: Message):
 
 # ---------------- Group → user relay ----------------------
 @dp.message(F.chat.id == CHANNELS["chat_30"])
+@relay_error_handler
 async def relay_group(msg: Message):
     if not msg.reply_to_message:
         return
