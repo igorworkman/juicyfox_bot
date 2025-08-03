@@ -761,7 +761,7 @@ async def vip_secret_reply(msg: Message):
 # ---------------- Relay private ↔ group -------------------
 @dp.message((F.chat.type == 'private') & (~F.text.startswith('/')))
 @relay_error_handler
-async def relay_private(msg: Message):
+async def relay_private(msg: Message, state: FSMContext, **kwargs):
     if not await is_paid(msg.from_user.id):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
@@ -805,7 +805,7 @@ async def relay_private(msg: Message):
 # ---------------- Group → user relay ----------------------
 @dp.message(F.chat.id == CHANNELS["chat_30"])
 @relay_error_handler
-async def relay_group(msg: Message):
+async def relay_group(msg: Message, state: FSMContext, **kwargs):
     if not msg.reply_to_message:
         return
     uid = relay.get(msg.reply_to_message.message_id)
