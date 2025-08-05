@@ -103,8 +103,7 @@ def relay_error_handler(func):
         except Exception as e:
             log.error("%s error: %s", func.__name__, e)
             tb = traceback.format_exc()
-            for admin in ADMINS:
-                await bot.send_message(admin, f"{func.__name__} error: {e}\n{tb}")
+            print(f"{func.__name__} error: {e}\n{tb}")
     return wrapper
 
 # ---------------- Config ----------------
@@ -855,7 +854,7 @@ async def history_request(msg: Message):
         uid = int(args[1])
         limit = int(args[2]) if len(args) > 2 else 10
     except ValueError:
-        await msg.reply("❌ Неверный формат запроса.")
+        print("❌ Неверный формат запроса.")
         return
 
     async with aiosqlite.connect(DB_PATH) as db:
@@ -882,7 +881,7 @@ async def history_request(msg: Message):
                 await bot.delete_message(HISTORY_GROUP_ID, cp.message_id)
                 await bot.delete_message(HISTORY_GROUP_ID, arrow_msg.message_id)
         except Exception:
-            await bot.send_message(HISTORY_GROUP_ID, 'Не удалось переслать сообщение')
+            print('Не удалось переслать сообщение')
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
@@ -986,7 +985,7 @@ async def handle_posting_plan(msg: Message):
             ts = int(datetime.strptime(dt_str, "%Y-%m-%d %H:%M").timestamp())
         except Exception:
             log.warning("[POST PLAN] Bad date format: %s", dt_str)
-            await msg.reply("❌ Неверный формат даты.")
+            print("❌ Неверный формат даты.")
             return
     else:
         ts = int(time.time())
@@ -1006,7 +1005,7 @@ async def handle_posting_plan(msg: Message):
         log.info(f"[DEBUG PLAN] Пост добавлен: {target} {dt_str} {description[:30]}")
         log.info(f"[SCHEDULED_POST] Added post: {target} text={(description or '<media>')[:40]} publish_ts={ts}")
     except Exception as e:
-        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); await msg.reply("❌ Ошибка при добавлении поста."); return
+        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); print("❌ Ошибка при добавлении поста."); return
 
     log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
@@ -1177,7 +1176,7 @@ async def test_vip_post(msg: Message):
         await bot.send_message(CHANNELS["vip"], "✅ Проверка: бот может писать в VIP")
         await msg.reply("✅ Успешно отправлено в VIP-канал")
     except Exception as e:
-        await msg.reply(f"❌ Ошибка при отправке в VIP: {e}")
+        print(f"❌ Ошибка при отправке в VIP: {e}")
 
 @dp.message(Command("delete_post"))
 async def delete_post_cmd(msg: Message):
@@ -1208,7 +1207,7 @@ async def delete_post_cmd(msg: Message):
         await bot.delete_message(chat_id, msg_id)
         await msg.reply(tr(lang, 'post_deleted'))
     except Exception as e:
-        await msg.reply(f"❌ Ошибка удаления: {e}")
+        print(f"❌ Ошибка удаления: {e}")
 
 async def setup_webhook():
     session = AiohttpSession()
