@@ -843,6 +843,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 @dp.message(Command('history'))
 async def history_request(msg: Message):
     if msg.chat.id != HISTORY_GROUP_ID:
+        await msg.reply("Команда доступна только в чате истории")
         return
 
     args = msg.text.split()
