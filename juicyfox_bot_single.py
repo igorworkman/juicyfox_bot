@@ -5,7 +5,7 @@
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
 # • RU/EN/ES UI           → auto by language_code
 
-import os, logging, httpx, time, aiosqlite, traceback
+import os, logging, httpx, time, aiosqlite, traceback, sqlite3
 import asyncio
 import aiohttp
 from os import getenv
@@ -16,9 +16,18 @@ DB_PATH = '/app/data/messages.sqlite'
 os.makedirs('/app/data', exist_ok=True)
 
 if not os.path.exists(DB_PATH):
-    import sqlite3
     with sqlite3.connect(DB_PATH) as db:
         db.execute('CREATE TABLE IF NOT EXISTS messages (ts INTEGER, user_id INTEGER, msg_id INTEGER, is_reply INTEGER)')
+
+def migrate_add_ts_column():
+    with sqlite3.connect(DB_PATH) as db:
+        columns = [row[1] for row in db.execute("PRAGMA table_info(messages)").fetchall()]
+        if "ts" not in columns:
+            db.execute("ALTER TABLE messages ADD COLUMN ts INTEGER DEFAULT 0")
+            db.commit()
+
+migrate_add_ts_column()
+
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
