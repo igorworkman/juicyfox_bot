@@ -842,6 +842,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 
 @dp.message(Command('history'))
 async def history_request(msg: Message):
+    print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
     print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
     if msg.chat.id != HISTORY_GROUP_ID:
         print(f"[ERROR] /history used outside history group: chat_id={msg.chat.id}")
