@@ -842,19 +842,19 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 
 @dp.message(Command('history'))
 async def history_request(msg: Message):
-    if msg.chat.id != HISTORY_GROUP_ID or msg.from_user.id not in ADMINS:
+    if msg.chat.id != HISTORY_GROUP_ID:
         return
 
     args = msg.text.split()
-    if len(args) < 2:
-        await msg.reply("❌ Укажи user_id (и необязательно кол-во сообщений)")
+    if len(args) != 3:
+        await msg.reply("неверный синтаксис")
         return
 
     try:
         uid = int(args[1])
-        limit = int(args[2]) if len(args) > 2 else 10
+        limit = int(args[2])
     except ValueError:
-        print("❌ Неверный формат запроса.")
+        await msg.reply("неверный синтаксис")
         return
 
     async with aiosqlite.connect(DB_PATH) as db:
@@ -864,7 +864,7 @@ async def history_request(msg: Message):
         )
 
     if not rows:
-        await msg.reply("История пуста.")
+        await msg.reply("Нет сообщений")
         return
 
     await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
