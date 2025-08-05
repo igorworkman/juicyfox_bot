@@ -842,12 +842,15 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 
 @dp.message(Command('history'))
 async def history_request(msg: Message):
+    print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
     if msg.chat.id != HISTORY_GROUP_ID:
+        print(f"[ERROR] /history used outside history group: chat_id={msg.chat.id}")
         await msg.reply("Команда доступна только в чате истории")
         return
 
     args = msg.text.split()
     if len(args) != 3:
+        print(f"[ERROR] /history invalid args count: {msg.text}")
         await msg.reply("неверный синтаксис")
         return
 
@@ -855,6 +858,7 @@ async def history_request(msg: Message):
         uid = int(args[1])
         limit = int(args[2])
     except ValueError:
+        print(f"[ERROR] /history invalid uid/limit: {msg.text}")
         await msg.reply("неверный синтаксис")
         return
 
@@ -881,8 +885,8 @@ async def history_request(msg: Message):
             if cp.text and '💰' in cp.text and '•' in cp.text:
                 await bot.delete_message(HISTORY_GROUP_ID, cp.message_id)
                 await bot.delete_message(HISTORY_GROUP_ID, arrow_msg.message_id)
-        except Exception:
-            print('Не удалось переслать сообщение')
+        except Exception as e:
+            print(f"[ERROR] Не удалось переслать сообщение: {e}")
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
