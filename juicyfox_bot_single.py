@@ -915,25 +915,30 @@ async def history_request(msg: Message):
         return
 
     async with aiosqlite.connect(DB_PATH) as db:
-        rows = await db.execute_fetchall("SELECT sender, text, file_id, media_type FROM messages WHERE uid = ? ORDER BY timestamp DESC LIMIT ?", (uid, limit))
+        rows = await db.execute_fetchall(
+            'SELECT ts, user_id, msg_id, is_reply FROM messages WHERE user_id=? ORDER BY ts DESC LIMIT ?',
+            (uid, limit)
+        )
 
     if not rows:
         await msg.reply("Нет сообщений")
         return
+
     await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
-    for sender, text, file_id, media_type in rows:
-        caption = text if text else ("📩 Ответ от оператора" if sender == 'admin' else "📨")
+
+    user = await bot.get_chat(uid)
+    username = user.full_name or user.username or str(uid)
+
+    for ts, user_id, msg_id, is_reply in reversed(rows):
+        arrow_text = '⬅️' if is_reply else f'➡️ <b>{username}</b>'
+        arrow_msg = await bot.send_message(HISTORY_GROUP_ID, arrow_text)
         try:
-            if media_type in ('photo', 'voice', 'video'):
-                await {'photo': bot.send_photo, 'voice': bot.send_voice, 'video': bot.send_video}[media_type](msg.chat.id, file_id, caption=caption)
-            elif media_type == 'round':
-                await bot.send_video_note(msg.chat.id, file_id)
-            elif text:
-                await msg.answer(f"{'👤' if sender == 'user' else '👮‍♂️'}: {text}")
-            else:
-                await msg.answer("📩 (пустое сообщение)")
+            cp = await bot.copy_message(HISTORY_GROUP_ID, CHANNELS["chat_30"], msg_id)
+            if cp.text and '💰' in cp.text and '•' in cp.text:
+                await bot.delete_message(HISTORY_GROUP_ID, cp.message_id)
+                await bot.delete_message(HISTORY_GROUP_ID, arrow_msg.message_id)
         except Exception as e:
-            print(f"[HISTORY ERROR] {e}")
+            print(f"[ERROR] Не удалось переслать сообщение: {e}")
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
