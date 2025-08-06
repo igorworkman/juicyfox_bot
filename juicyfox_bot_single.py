@@ -107,6 +107,32 @@ def relay_error_handler(func):
             print(f"{func.__name__} error: {e}\n{tb}")
     return wrapper
 
+
+async def send_to_history(bot, chat_id, msg):
+    text = msg.caption or msg.text or ""
+    caption = text if text else "📩 Ответ от оператора"
+    file_id = None
+
+    try:
+        if msg.photo:
+            file_id = msg.photo[-1].file_id
+            await bot.send_photo(chat_id, photo=file_id, caption=caption)
+        elif msg.voice:
+            file_id = msg.voice.file_id
+            await bot.send_voice(chat_id, voice=file_id, caption=caption)
+        elif msg.video:
+            file_id = msg.video.file_id
+            await bot.send_video(chat_id, video=file_id, caption=caption)
+        elif msg.video_note:
+            file_id = msg.video_note.file_id
+            await bot.send_video_note(chat_id, video_note=file_id)
+        elif text:
+            await bot.send_message(chat_id, caption)
+        else:
+            await bot.send_message(chat_id, "📩 Ответ от оператора (без текста)")
+    except Exception as e:
+        print(f"[ERROR] Не удалось отправить в историю: {e}")
+
 # ---------------- Config ----------------
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
@@ -835,6 +861,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
                 uid = row[0]
     if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
         await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
+        await send_to_history(bot, HISTORY_GROUP_ID, msg)
 
         file_id = None
         media_type = None
