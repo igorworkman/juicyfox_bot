@@ -290,7 +290,7 @@ async def expire_date_str(user_id:int)->str:
 
 # ----------- User message tracking -----------------
 CONSECUTIVE_LIMIT = 3
-COOLDOWN_SECS = 18 * 3600
+COOLDOWN_SECS = 600
 
 async def inc_msg(uid: int) -> int:
     """Return how many messages in a row the user has sent including the current one."""
@@ -340,7 +340,7 @@ L10N={
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
   'cancel':'❌ Тогда в другой раз…😔',
   'nothing_cancel':'Нечего отменять.',
-  'consecutive_limit': 'Вы не можете отправлять больше 3-х сообщений подряд, для продолжения переписки дождитесь ответа от Juicy Fox',
+  'consecutive_limit': 'Вы не можете отправлять больше 3-х сообщений подряд, подождите 10 минут или дождитесь ответа от Juicy Fox',
   'chat_choose_plan': '💬 На сколько дней активировать чат?',
   'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
   'chat_flower_1': '🌷 — 5$ / 7 дней',
@@ -398,7 +398,7 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
   'cancel':'❌ Maybe next time…😔',
   'nothing_cancel':'Nothing to cancel.',
-  'consecutive_limit':'(3 of 3) — waiting for Juicy Fox\'s reply. You can continue in 18 hours or after she answers.',
+  'consecutive_limit':'(3 of 3) — waiting for Juicy Fox\'s reply. You can continue in 10 minutes or after she answers.',
   'chat_choose_plan': '💬 Choose chat duration',
   'chat_flower_q': 'What flowers would you like to gift Juicy Fox?',
   'chat_flower_1': '🌷 — $5 / 7 days',
@@ -446,7 +446,7 @@ No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
   'nothing_cancel': 'No hay nada que cancelar.',
-  'consecutive_limit': '(3 de 3) — esperando la respuesta de Juicy Fox. Podrás continuar la conversación en 18 horas o cuando responda.',
+  'consecutive_limit': '(3 de 3) — esperando la respuesta de Juicy Fox. Podrás continuar la conversación en 10 minutos o cuando responda.',
   'chat_choose_plan': '💬 ¿Por cuántos días activar el chat?',
   'chat_flower_q': '¿Qué flores deseas regalar a Juicy Fox?',
   'chat_flower_1': '🌷 — $5 / 7 días',
