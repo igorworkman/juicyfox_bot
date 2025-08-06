@@ -829,6 +829,10 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
+            (header_msg.message_id, msg.from_user.id),
+        )
+        await db.execute(
+            "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
             (cp.message_id, msg.from_user.id),
         )
         await db.commit()
