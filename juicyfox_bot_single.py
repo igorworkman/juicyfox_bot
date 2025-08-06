@@ -861,7 +861,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
                 uid = row[0]
     if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
         await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
-        await send_to_history(bot, HISTORY_GROUP_ID, msg)
+        # await send_to_history(bot, HISTORY_GROUP_ID, msg)
 
         file_id = None
         media_type = None
