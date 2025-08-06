@@ -832,14 +832,31 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
         if row:
             uid = row[0]
     if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
-        cp = await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
-        await _db_exec(
-            'INSERT INTO messages VALUES(?,?,?,?)',
-            int(time.time()),
-            uid,
-            cp.message_id,
-            1,
-        )
+        await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
+
+        file_id = None
+        media_type = None
+        text = msg.text or msg.caption
+
+        if msg.photo:
+            file_id = msg.photo[-1].file_id
+            media_type = 'photo'
+        elif msg.voice:
+            file_id = msg.voice.file_id
+            media_type = 'voice'
+        elif msg.video_note:
+            file_id = msg.video_note.file_id
+            media_type = 'round'
+        elif msg.video:
+            file_id = msg.video.file_id
+            media_type = 'video'
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (uid, 'admin', text, file_id, media_type, int(time.time())),
+            )
+            await db.commit()
 
 @dp.message(Command('history'))
 async def history_request(msg: Message):
