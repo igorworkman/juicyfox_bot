@@ -147,7 +147,7 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 async def on_startup():
     print("DEBUG: on_startup called")
     await _db_exec(
-        "CREATE TABLE IF NOT EXISTS relay_map (msg_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, ts INTEGER DEFAULT (strftime('%s','now')))"
+        "CREATE TABLE IF NOT EXISTS reply_links (reply_msg_id INTEGER PRIMARY KEY, user_id INTEGER)"
     )
     asyncio.create_task(scheduled_poster())
 
@@ -205,10 +205,9 @@ CREATE TABLE IF NOT EXISTS messages(
   msg_id INTEGER,
   is_reply INTEGER
 );
-CREATE TABLE IF NOT EXISTS relay_map(
-  msg_id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL,
-  ts INTEGER DEFAULT (strftime('%s','now'))
+CREATE TABLE IF NOT EXISTS reply_links(
+  reply_msg_id INTEGER PRIMARY KEY,
+  user_id INTEGER
 );
 CREATE TABLE IF NOT EXISTS scheduled_posts(
   created_ts INTEGER,
@@ -801,11 +800,12 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
 
     cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
-    await _db_exec(
-        "INSERT OR REPLACE INTO relay_map (msg_id, user_id) VALUES (?, ?)",
-        cp.message_id,
-        msg.from_user.id,
-    )
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
+            (cp.message_id, msg.from_user.id),
+        )
+        await db.commit()
     await _db_exec(
         'INSERT INTO messages VALUES(?,?,?,?)',
         int(time.time()),
@@ -825,12 +825,14 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
         return
     uid = relay.get(msg.reply_to_message.message_id)
     if uid is None:
-        row = await _db_fetchone(
-            "SELECT user_id FROM relay_map WHERE msg_id = ?",
-            msg.reply_to_message.message_id,
-        )
-        if row:
-            uid = row[0]
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute(
+                "SELECT user_id FROM reply_links WHERE reply_msg_id = ?",
+                (msg.reply_to_message.message_id,),
+            )
+            row = await cursor.fetchone()
+            if row:
+                uid = row[0]
     if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
         await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
 
