@@ -836,7 +836,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 
         file_id = None
         media_type = None
-        text = msg.text or msg.caption
+        text = msg.text or msg.caption or ''
 
         if msg.photo:
             file_id = msg.photo[-1].file_id
