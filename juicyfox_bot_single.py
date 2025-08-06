@@ -6,14 +6,15 @@
 # • RU/EN/ES UI           → auto by language_code
 
 import os, logging, httpx, time, aiosqlite, traceback, sqlite3
+from pathlib import Path
 import asyncio
 import aiohttp
 from os import getenv
 from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime
-DB_PATH = os.path.abspath(os.getenv('DB_PATH', '/app/data/messages.sqlite'))
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+os.makedirs("data", exist_ok=True)
+DB_PATH = Path(__file__).parent / "data" / "messages.db"
 
 if not os.path.exists(DB_PATH):
     with sqlite3.connect(DB_PATH) as db:
