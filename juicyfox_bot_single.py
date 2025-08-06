@@ -16,18 +16,25 @@ from datetime import datetime
 os.makedirs("data", exist_ok=True)
 DB_PATH = Path(__file__).parent / "data" / "messages.db"
 
-if not os.path.exists(DB_PATH):
-    with sqlite3.connect(DB_PATH) as db:
-        db.execute('CREATE TABLE IF NOT EXISTS messages (ts INTEGER, user_id INTEGER, msg_id INTEGER, is_reply INTEGER)')
-
-def migrate_add_ts_column():
-    with sqlite3.connect(DB_PATH) as db:
-        columns = [row[1] for row in db.execute("PRAGMA table_info(messages)").fetchall()]
-        if "ts" not in columns:
-            db.execute("ALTER TABLE messages ADD COLUMN ts INTEGER DEFAULT 0")
-            db.commit()
-
-migrate_add_ts_column()
+with sqlite3.connect(DB_PATH) as db:
+    cols = [row[1] for row in db.execute("PRAGMA table_info(messages)").fetchall()]
+    expected = {"id", "uid", "sender", "text", "file_id", "media_type", "timestamp"}
+    if set(cols) != expected:
+        db.execute("DROP TABLE IF EXISTS messages")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid INTEGER,
+                sender TEXT,
+                text TEXT,
+                file_id TEXT,
+                media_type TEXT,
+                timestamp INTEGER
+            )
+            """
+        )
+        db.commit()
 
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
@@ -75,14 +82,19 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 async def _init_db():
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS messages(
-              ts INTEGER,
-              user_id INTEGER,
-              msg_id INTEGER,
-              is_reply INTEGER
+        await db.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid INTEGER,
+                sender TEXT,
+                text TEXT,
+                file_id TEXT,
+                media_type TEXT,
+                timestamp INTEGER
             );
-        ''')
+            '''
+        )
         await db.commit()
 
 
@@ -200,10 +212,13 @@ CREATE TABLE IF NOT EXISTS msg_count(
   cnt INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS messages(
-  ts INTEGER,
-  user_id INTEGER,
-  msg_id INTEGER,
-  is_reply INTEGER
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  uid INTEGER,
+  sender TEXT,
+  text TEXT,
+  file_id TEXT,
+  media_type TEXT,
+  timestamp INTEGER
 );
 CREATE TABLE IF NOT EXISTS relay_map(
   msg_id INTEGER PRIMARY KEY,
@@ -299,13 +314,13 @@ async def inc_msg(uid: int) -> int:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(CREATE_SQL)
         rows = await db.execute_fetchall(
-            'SELECT ts, is_reply FROM messages WHERE user_id=? ORDER BY ts DESC LIMIT 10',
+            'SELECT timestamp, sender FROM messages WHERE uid=? ORDER BY timestamp DESC LIMIT 10',
             (uid,)
         )
 
     cnt = 0
-    for ts, is_reply in rows:
-        if is_reply == 1 or now - ts > COOLDOWN_SECS:
+    for ts, sender in rows:
+        if sender == 'admin' or now - ts > COOLDOWN_SECS:
             break
         cnt += 1
 
@@ -806,12 +821,29 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
         cp.message_id,
         msg.from_user.id,
     )
+    file_id = None
+    media_type = None
+    if msg.photo:
+        file_id = msg.photo[-1].file_id
+        media_type = 'photo'
+    elif msg.voice:
+        file_id = msg.voice.file_id
+        media_type = 'voice'
+    elif msg.video_note:
+        file_id = msg.video_note.file_id
+        media_type = 'round'
+    elif msg.video:
+        file_id = msg.video.file_id
+        media_type = 'video'
+    text = msg.text or msg.caption
     await _db_exec(
-        'INSERT INTO messages VALUES(?,?,?,?)',
-        int(time.time()),
+        "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
         msg.from_user.id,
-        cp.message_id,
-        0,
+        'user',
+        text,
+        file_id,
+        media_type,
+        int(time.time()),
     )
 
 
@@ -833,12 +865,29 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             uid = row[0]
     if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
         cp = await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
+        file_id = None
+        media_type = None
+        if msg.photo:
+            file_id = msg.photo[-1].file_id
+            media_type = 'photo'
+        elif msg.voice:
+            file_id = msg.voice.file_id
+            media_type = 'voice'
+        elif msg.video_note:
+            file_id = msg.video_note.file_id
+            media_type = 'round'
+        elif msg.video:
+            file_id = msg.video.file_id
+            media_type = 'video'
+        text = msg.text or msg.caption
         await _db_exec(
-            'INSERT INTO messages VALUES(?,?,?,?)',
-            int(time.time()),
+            "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
             uid,
-            cp.message_id,
-            1,
+            'admin',
+            text,
+            file_id,
+            media_type,
+            int(time.time()),
         )
 
 @dp.message(Command('history'))
@@ -865,10 +914,11 @@ async def history_request(msg: Message):
         return
 
     async with aiosqlite.connect(DB_PATH) as db:
-        rows = await db.execute_fetchall(
-            'SELECT ts, user_id, msg_id, is_reply FROM messages WHERE user_id=? ORDER BY ts DESC LIMIT ?',
-            (uid, limit)
+        cursor = await db.execute(
+            "SELECT sender, text, file_id, media_type FROM messages WHERE uid = ? ORDER BY timestamp DESC LIMIT ?",
+            (uid, limit),
         )
+        rows = await cursor.fetchall()
 
     if not rows:
         await msg.reply("Нет сообщений")
@@ -876,19 +926,18 @@ async def history_request(msg: Message):
 
     await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
 
-    user = await bot.get_chat(uid)
-    username = user.full_name or user.username or str(uid)
-
-    for ts, user_id, msg_id, is_reply in reversed(rows):
-        arrow_text = '⬅️' if is_reply else f'➡️ <b>{username}</b>'
-        arrow_msg = await bot.send_message(HISTORY_GROUP_ID, arrow_text)
-        try:
-            cp = await bot.copy_message(HISTORY_GROUP_ID, CHANNELS["chat_30"], msg_id)
-            if cp.text and '💰' in cp.text and '•' in cp.text:
-                await bot.delete_message(HISTORY_GROUP_ID, cp.message_id)
-                await bot.delete_message(HISTORY_GROUP_ID, arrow_msg.message_id)
-        except Exception as e:
-            print(f"[ERROR] Не удалось переслать сообщение: {e}")
+    for sender, text, file_id, media_type in reversed(rows):
+        if file_id:
+            if media_type == 'photo':
+                await bot.send_photo(chat_id=msg.chat.id, photo=file_id, caption=text or None)
+            elif media_type == 'voice':
+                await bot.send_voice(chat_id=msg.chat.id, voice=file_id, caption=text or None)
+            elif media_type == 'video':
+                await bot.send_video(chat_id=msg.chat.id, video=file_id, caption=text or None)
+            elif media_type == 'round':
+                await bot.send_video_note(chat_id=msg.chat.id, video_note=file_id)
+        else:
+            await msg.answer(f"{sender}: {text}")
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
