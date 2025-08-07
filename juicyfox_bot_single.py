@@ -13,6 +13,7 @@ from os import getenv
 from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime
+from types import SimpleNamespace
 os.makedirs("data", exist_ok=True)
 DB_PATH = Path(__file__).parent / "data" / "messages.db"
 
@@ -119,29 +120,55 @@ def extract_media(msg: Message):
 
 
 async def send_to_history(bot, chat_id, msg):
-    text = msg.caption or msg.text or ""
-    caption = text if text else "📩 Ответ от оператора"
-    file_id = None
+    sender = getattr(msg, "sender", "user")
+    text = (msg.caption or msg.text or "").strip()
+    if sender == "admin":
+        caption = f"📩 Ответ от оператора\n{text}" if text else "📩 Ответ от оператора"
+    else:
+        caption = text
 
     try:
-        if msg.photo:
-            file_id = msg.photo[-1].file_id
-            await bot.send_photo(chat_id, photo=file_id, caption=caption)
-        elif msg.voice:
-            file_id = msg.voice.file_id
-            await bot.send_voice(chat_id, voice=file_id, caption=caption)
-        elif msg.video:
-            file_id = msg.video.file_id
-            await bot.send_video(chat_id, video=file_id, caption=caption)
-        elif msg.video_note:
-            file_id = msg.video_note.file_id
-            await bot.send_video_note(chat_id, video_note=file_id)
-        elif text:
+        if getattr(msg, "photo", None):
+            await bot.send_photo(chat_id, msg.photo[-1].file_id, caption=caption)
+        elif getattr(msg, "voice", None):
+            await bot.send_voice(chat_id, msg.voice.file_id, caption=caption)
+        elif getattr(msg, "video", None):
+            await bot.send_video(chat_id, msg.video.file_id, caption=caption)
+        elif getattr(msg, "video_note", None):
+            await bot.send_video_note(chat_id, msg.video_note.file_id)
+        elif caption:
             await bot.send_message(chat_id, caption)
         else:
             await bot.send_message(chat_id, "📩 Ответ от оператора (без текста)")
     except Exception as e:
         print(f"[ERROR] Не удалось отправить в историю: {e}")
+
+
+async def get_last_messages(uid: int, limit: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        rows = await db.execute_fetchall(
+            "SELECT sender, text, file_id, media_type FROM messages WHERE uid = ? ORDER BY timestamp DESC LIMIT ?",
+            (uid, limit),
+        )
+
+    messages = []
+    for sender, text, fid, mtype in reversed(rows):
+        msg = SimpleNamespace(sender=sender, text=None, caption=None, photo=None, voice=None, video=None, video_note=None)
+        if mtype == "photo":
+            msg.caption = text
+            msg.photo = [SimpleNamespace(file_id=fid)]
+        elif mtype == "voice":
+            msg.caption = text
+            msg.voice = SimpleNamespace(file_id=fid)
+        elif mtype == "video":
+            msg.caption = text
+            msg.video = SimpleNamespace(file_id=fid)
+        elif mtype == "video_note":
+            msg.video_note = SimpleNamespace(file_id=fid)
+        else:
+            msg.text = text
+        messages.append(msg)
+    return messages
 
 # ---------------- Config ----------------
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
@@ -876,15 +903,36 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 
         text, file_id, media_type = extract_media(msg)
 
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-                (uid, 'admin', text, file_id, media_type, int(time.time())),
-            )
-            await db.commit()
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+            (uid, 'admin', text, file_id, media_type, int(time.time())),
+        )
+        await db.commit()
+
 
 @dp.message(Command("history"))
 async def cmd_history(msg: Message):
+    if msg.chat.id != HISTORY_GROUP_ID:
+        return
+    args = msg.text.split()
+    if len(args) < 2:
+        await msg.answer("❌ Неверный синтаксис. Пример: /history <UID> <limit>")
+        return
+
+    try:
+        uid = int(args[1])
+        limit = int(args[2]) if len(args) == 3 else 5
+    except ValueError:
+        await msg.answer("❌ UID и лимит должны быть числами.")
+        return
+
+    msgs = await get_last_messages(uid, limit)
+    for m in msgs:
+        await send_to_history(bot, msg.chat.id, m)
+
+# @dp.message(Command("history"))
+async def _unused_cmd_history_2(msg: Message):
     print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
     print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
     if msg.chat.id != HISTORY_GROUP_ID:
@@ -931,8 +979,8 @@ async def cmd_history(msg: Message):
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
 """
-@dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
-async def cmd_history(msg: Message):
+# @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
+async def _unused_cmd_history_3(msg: Message):
     parts = msg.text.strip().split()
     if len(parts) != 3:
         return await msg.answer("⚠️ Формат: /history user_id limit")
