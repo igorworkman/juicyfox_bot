@@ -201,6 +201,7 @@ log.info(
     LIFE_CHANNEL_ID,
     POST_PLAN_GROUP_ID,
 )
+log.info("Type check: HISTORY_GROUP_ID is %s", type(HISTORY_GROUP_ID).__name__)
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -1275,7 +1276,8 @@ async def cryptobot_hook(request: web.Request):
 # ---------------- History command -------------------------
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
-    print("cmd_history ok")  # debug
+    print(f"[DEBUG] Incoming /history: chat.id={msg.chat.id}, text={msg.text}")
+    log.info("HISTORY_GROUP_ID=%s, msg.chat.id=%s", HISTORY_GROUP_ID, msg.chat.id)
     parts = msg.text.strip().split()
     if len(parts) < 2:
         await msg.reply("ℹ️ Используй команду так: /history <user_id> [limit]")
