@@ -883,7 +883,8 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             )
             await db.commit()
 
-async def old_history_request(msg: Message):
+@dp.message(Command("history"))
+async def cmd_history(msg: Message):
     print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
     print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
     if msg.chat.id != HISTORY_GROUP_ID:
@@ -929,7 +930,7 @@ async def old_history_request(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
-
+"""
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
     parts = msg.text.strip().split()
@@ -956,6 +957,7 @@ async def cmd_history(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
+"""
 """
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
