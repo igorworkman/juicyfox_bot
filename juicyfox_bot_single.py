@@ -1287,8 +1287,15 @@ async def delete_post_cmd(msg: Message):
         print(f"❌ Ошибка удаления: {e}")
 
 
+async def setup_webhook():
+    session = AiohttpSession()
+    bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
+    webhook_url = getenv("WEBHOOK_URL")
+    await bot.set_webhook(webhook_url)
+
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
-async def postgroup_media_handler(msg: Message):
+async def add_post_plan_button(msg: Message):
     if msg.from_user.id not in ADMINS:
         return
     if not (msg.photo or msg.video):
@@ -1297,13 +1304,10 @@ async def postgroup_media_handler(msg: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")
     ]])
-    await msg.edit_reply_markup(reply_markup=kb)
-
-async def setup_webhook():
-    session = AiohttpSession()
-    bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
-    webhook_url = getenv("WEBHOOK_URL")
-    await bot.set_webhook(webhook_url)
+    try:
+        await msg.edit_reply_markup(reply_markup=kb)
+    except Exception as e:
+        print(f"[POST_PLAN] Не удалось вставить кнопку: {e}")
 
 
 
