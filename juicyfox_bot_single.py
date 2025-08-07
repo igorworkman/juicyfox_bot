@@ -911,25 +911,6 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
         await db.commit()
 
 
-@dp.message(Command("history"))
-async def cmd_history(msg: Message):
-    if msg.chat.id != HISTORY_GROUP_ID:
-        return
-    args = msg.text.split()
-    if len(args) < 2:
-        await msg.answer("❌ Неверный синтаксис. Пример: /history <UID> <limit>")
-        return
-
-    try:
-        uid = int(args[1])
-        limit = int(args[2]) if len(args) == 3 else 5
-    except ValueError:
-        await msg.answer("❌ UID и лимит должны быть числами.")
-        return
-
-    msgs = await get_last_messages(uid, limit)
-    for m in msgs:
-        await send_to_history(bot, msg.chat.id, m)
 
 # @dp.message(Command("history"))
 async def _unused_cmd_history_2(msg: Message):
@@ -1287,6 +1268,39 @@ async def cryptobot_hook(request: web.Request):
 
     log.info('[WEBHOOK] Access granted user_id=%s plan=%s', user_id, plan)
     return web.json_response({'ok': True})
+
+# ---------------- History command -------------------------
+@dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
+async def cmd_history(msg: Message):
+    parts = msg.text.strip().split()
+    if len(parts) < 2:
+        await msg.reply("ℹ️ Используй команду так: /history <user_id> [limit]")
+        return
+
+    uid = parts[1]
+    try:
+        limit = int(parts[2]) if len(parts) > 2 else 5
+    except:
+        limit = 5
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT sender, text, file_id, media_type FROM messages WHERE uid = ? ORDER BY timestamp DESC LIMIT ?",
+            (uid, limit),
+        )
+        rows = await cursor.fetchall()
+
+    for sender, text, file_id, media_type in reversed(rows):
+        caption = text if sender == 'user' else f"📩 Ответ от оператора\n{text or ''}"
+        try:
+            if media_type in ('photo', 'voice', 'video'):
+                await getattr(bot, f'send_{media_type}')(HISTORY_GROUP_ID, file_id, caption=caption)
+            elif media_type == 'video_note':
+                await bot.send_video_note(HISTORY_GROUP_ID, file_id)
+            elif text:
+                await bot.send_message(HISTORY_GROUP_ID, caption)
+        except Exception as e:
+            print(f"Ошибка при отправке истории: {e}")
 
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
