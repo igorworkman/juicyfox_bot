@@ -1124,13 +1124,20 @@ async def handle_posting_plan(msg: Message):
 async def add_post_plan_button(msg: Message):
     if msg.from_user.id not in ADMINS:
         return
-    if not (msg.photo or msg.video):
+    if msg.media_group_id:
+        if not (msg.photo or msg.video):
+            return
+    elif not (msg.photo or msg.video):
         return
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")
-    ]])
-    await msg.answer("📍", reply_markup=kb)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+        text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")]])
+    await bot.send_message(
+        msg.chat.id,
+        "\u200b",
+        reply_markup=kb,
+        reply_to_message_id=msg.message_id,
+    )
 
 async def scheduled_poster():
     print("DEBUG: scheduled_poster called!")
