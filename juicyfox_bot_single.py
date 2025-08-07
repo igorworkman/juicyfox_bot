@@ -180,7 +180,7 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 # --- END Codex-hack ---
 
 CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
-HISTORY_GROUP_ID = int(os.getenv("HISTORY_GROUP_ID", "-1002721298286"))
+HISTORY_GROUP_ID = int(getenv("HISTORY_GROUP_ID", "-1002721298286"))
 ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
@@ -1282,25 +1282,30 @@ async def cryptobot_hook(request: web.Request):
 # ---------------- History command -------------------------
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
-    print(f"[DEBUG] Incoming /history: chat.id={msg.chat.id}, text={msg.text}")
-    log.info("HISTORY_GROUP_ID=%s, msg.chat.id=%s", HISTORY_GROUP_ID, msg.chat.id)
+    print("cmd_history ok")  # debug
     parts = msg.text.strip().split()
     if len(parts) < 2:
         await msg.reply("ℹ️ Используй команду так: /history <user_id> [limit]")
         return
 
-    uid = parts[1]
     try:
+        uid = int(parts[1])
         limit = int(parts[2]) if len(parts) > 2 else 5
-    except:
-        limit = 5
+    except ValueError:
+        await msg.reply("❌ Неверный формат. Пример: /history 123456 5")
+        return
 
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "SELECT sender, text, file_id, media_type FROM messages WHERE uid = ? ORDER BY timestamp DESC LIMIT ?",
+            "SELECT sender, text, file_id, media_type FROM messages "
+            "WHERE uid = ? ORDER BY timestamp DESC LIMIT ?",
             (uid, limit),
         )
         rows = await cursor.fetchall()
+
+    if not rows:
+        await msg.reply("📭 Нет сообщений")
+        return
 
     for sender, text, file_id, media_type in reversed(rows):
         caption = text if sender == 'user' else f"📩 Ответ от оператора\n{text or ''}"
