@@ -883,8 +883,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             )
             await db.commit()
 
-@dp.message(Command('history'))
-async def history_request(msg: Message):
+async def old_history_request(msg: Message):
     print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
     print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
     if msg.chat.id != HISTORY_GROUP_ID:
@@ -924,6 +923,33 @@ async def history_request(msg: Message):
                 await getattr(bot, f'send_{media_type}')(
                     HISTORY_GROUP_ID, file_id, caption=caption
                 )
+            elif media_type == 'video_note':
+                await bot.send_video_note(HISTORY_GROUP_ID, file_id)
+            elif text:
+                await bot.send_message(HISTORY_GROUP_ID, caption)
+        except Exception as e:
+            print(f"Ошибка при отправке истории: {e}")
+
+@dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
+async def cmd_history(msg: Message):
+    parts = msg.text.strip().split()
+    if len(parts) != 3:
+        return await msg.answer("⚠️ Формат: /history user_id limit")
+
+    user_id, limit = parts[1], int(parts[2])
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT sender, text, file_id, media_type FROM history WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+            (user_id, limit)
+        )
+        rows = await cursor.fetchall()
+
+    await msg.answer(f"📂 История с user_id {user_id} (последние {limit} сообщений)")
+    for sender, text, file_id, media_type in reversed(rows):
+        caption = text if sender == 'user' else f"📬 Ответ от оператора\n{text or ''}"
+        try:
+            if media_type in ('photo', 'voice', 'video'):
+                await getattr(bot, f'send_{media_type}')(HISTORY_GROUP_ID, file_id, caption=caption)
             elif media_type == 'video_note':
                 await bot.send_video_note(HISTORY_GROUP_ID, file_id)
             elif text:
