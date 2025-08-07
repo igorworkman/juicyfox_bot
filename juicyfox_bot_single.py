@@ -136,12 +136,14 @@ async def send_to_history(bot, chat_id, msg):
             await bot.send_video(chat_id, msg.video.file_id, caption=caption)
         elif getattr(msg, "video_note", None):
             await bot.send_video_note(chat_id, msg.video_note.file_id)
+            if caption:
+                await bot.send_message(chat_id, caption)
         elif caption:
             await bot.send_message(chat_id, caption)
         else:
             await bot.send_message(chat_id, "📩 Ответ от оператора (без текста)")
     except Exception as e:
-        print(f"[ERROR] Не удалось отправить в историю: {e}")
+        log.error("[ERROR] Не удалось отправить в историю: %s", e)
 
 
 async def get_last_messages(uid: int, limit: int):
@@ -180,7 +182,7 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 # --- END Codex-hack ---
 
 CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
-HISTORY_GROUP_ID = int(getenv("HISTORY_GROUP_ID", "-1002721298286"))
+HISTORY_GROUP_ID = int(getenv("HISTORY_GROUP_ID"))
 ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
@@ -1209,42 +1211,24 @@ async def cryptobot_hook(request: web.Request):
 # ---------------- History command -------------------------
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
-    print("cmd_history ok")  # debug
     parts = msg.text.strip().split()
-    if len(parts) < 2:
-        await msg.reply("ℹ️ Используй команду так: /history <user_id> [limit]")
+    if len(parts) not in (2, 3):
+        await msg.reply("⚠️ Используй /history <user_id> [limit]")
         return
-
     try:
         uid = int(parts[1])
-        limit = int(parts[2]) if len(parts) > 2 else 5
+        limit = int(parts[2]) if len(parts) == 3 else 5
     except ValueError:
-        await msg.reply("❌ Неверный формат. Пример: /history 123456 5")
+        await msg.reply("⚠️ Используй /history <user_id> [limit]")
         return
 
-    async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute(
-            "SELECT sender, text, file_id, media_type FROM messages "
-            "WHERE uid = ? ORDER BY timestamp DESC LIMIT ?",
-            (uid, limit),
-        )
-        rows = await cursor.fetchall()
-
-    if not rows:
+    messages = await get_last_messages(uid, limit)
+    if not messages:
         await msg.reply("📭 Нет сообщений")
         return
 
-    for sender, text, file_id, media_type in reversed(rows):
-        caption = text if sender == 'user' else f"📩 Ответ от оператора\n{text or ''}"
-        try:
-            if media_type in ('photo', 'voice', 'video'):
-                await getattr(bot, f'send_{media_type}')(HISTORY_GROUP_ID, file_id, caption=caption)
-            elif media_type == 'video_note':
-                await bot.send_video_note(HISTORY_GROUP_ID, file_id)
-            elif text:
-                await bot.send_message(HISTORY_GROUP_ID, caption)
-        except Exception as e:
-            print(f"Ошибка при отправке истории: {e}")
+    for item in messages:
+        await send_to_history(bot, HISTORY_GROUP_ID, item)
 
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
