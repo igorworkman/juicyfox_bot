@@ -18,16 +18,10 @@ DB_PATH = Path(__file__).parent / "data" / "messages.db"
 
 if not os.path.exists(DB_PATH):
     with sqlite3.connect(DB_PATH) as db:
-        db.execute('CREATE TABLE IF NOT EXISTS messages (ts INTEGER, user_id INTEGER, msg_id INTEGER, is_reply INTEGER)')
+        db.execute('CREATE TABLE IF NOT EXISTS messages (uid INTEGER, sender TEXT, text TEXT, file_id TEXT, media_type TEXT, timestamp INTEGER)')
 
 def migrate_add_ts_column():
-    with sqlite3.connect(DB_PATH) as db:
-        columns = [row[1] for row in db.execute("PRAGMA table_info(messages)").fetchall()]
-        if "ts" not in columns:
-            db.execute("ALTER TABLE messages ADD COLUMN ts INTEGER DEFAULT 0")
-            db.commit()
-
-migrate_add_ts_column()
+    pass
 
 from typing import Dict, Any, Optional, Tuple
 from aiogram import Bot, Dispatcher, Router, F
@@ -106,6 +100,20 @@ def relay_error_handler(func):
             tb = traceback.format_exc()
             print(f"{func.__name__} error: {e}\n{tb}")
     return wrapper
+
+
+def extract_media(msg: Message):
+    text = msg.text or msg.caption or ''
+    fid = mtype = None
+    if msg.photo:
+        fid, mtype = msg.photo[-1].file_id, 'photo'
+    elif msg.voice:
+        fid, mtype = msg.voice.file_id, 'voice'
+    elif msg.video:
+        fid, mtype = msg.video.file_id, 'video'
+    elif msg.video_note:
+        fid, mtype = msg.video_note.file_id, 'video_note'
+    return text, fid, mtype
 
 
 async def send_to_history(bot, chat_id, msg):
@@ -835,14 +843,12 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
             "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
             (cp.message_id, msg.from_user.id),
         )
+        text, fid, mtype = extract_media(msg)
+        await db.execute(
+            "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
+            (msg.from_user.id, 'user', text, fid, mtype, int(time.time())),
+        )
         await db.commit()
-    await _db_exec(
-        'INSERT INTO messages VALUES(?,?,?,?)',
-        int(time.time()),
-        msg.from_user.id,
-        cp.message_id,
-        0,
-    )
 
 
     
@@ -867,22 +873,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
         await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
         # await send_to_history(bot, HISTORY_GROUP_ID, msg)
 
-        file_id = None
-        media_type = None
-        text = msg.text or msg.caption or ''
-
-        if msg.photo:
-            file_id = msg.photo[-1].file_id
-            media_type = 'photo'
-        elif msg.voice:
-            file_id = msg.voice.file_id
-            media_type = 'voice'
-        elif msg.video_note:
-            file_id = msg.video_note.file_id
-            media_type = 'round'
-        elif msg.video:
-            file_id = msg.video.file_id
-            media_type = 'video'
+        text, file_id, media_type = extract_media(msg)
 
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
@@ -913,7 +904,6 @@ async def history_request(msg: Message):
         print(f"[ERROR] /history invalid uid/limit: {msg.text}")
         await msg.reply("неверный синтаксис")
         return
-    await msg.reply(f"📂 История с user_id {uid} (последние {limit} сообщений)")
 
     async with aiosqlite.connect(DB_PATH) as db:
         rows = await db.execute_fetchall(
@@ -926,21 +916,21 @@ async def history_request(msg: Message):
         return
 
     for sender, text, file_id, media_type in rows:
-        caption = text if sender == 'user' else f"📩 Ответ от оператора\n{text or ''}"
-
-        if media_type in ['photo', 'voice', 'video']:
-            await {
-                'photo': bot.send_photo,
-                'voice': bot.send_voice,
-                'video': bot.send_video
-            }[media_type](HISTORY_GROUP_ID, file_id, caption=caption)
-
-        elif media_type == 'round':
-            await bot.send_video_note(HISTORY_GROUP_ID, file_id)
-
-        elif text:
-            emoji = "👤" if sender == 'user' else "👨‍💼"
-            await bot.send_message(HISTORY_GROUP_ID, f"{emoji} {text}")
+        caption = text if sender == 'user' else "📬 Ответ от оператора"
+        try:
+            if media_type in ('photo', 'voice', 'video'):
+                await getattr(bot, f'send_{media_type}')(
+                    HISTORY_GROUP_ID, file_id, caption=caption
+                )
+            elif media_type == 'video_note':
+                await bot.send_video_note(HISTORY_GROUP_ID, file_id)
+            elif text:
+                await bot.send_message(
+                    HISTORY_GROUP_ID,
+                    f"{'👤' if sender == 'user' else '🧑‍💼'} {caption}"
+                )
+        except Exception as e:
+            print(f"[HISTORY ERROR] {e}")
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
