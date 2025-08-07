@@ -1149,10 +1149,7 @@ async def add_post_plan_button(msg: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")
     ]])
-    try:
-        await msg.edit_reply_markup(reply_markup=kb)
-    except Exception as e:
-        print(f"[POST_PLAN] Не удалось вставить кнопку: {e}")
+    await msg.answer("📍", reply_markup=kb)
 
 async def scheduled_poster():
     print("DEBUG: scheduled_poster called!")
