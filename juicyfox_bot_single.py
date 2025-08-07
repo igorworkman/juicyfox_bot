@@ -910,7 +910,7 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             (uid, 'admin', text, file_id, media_type, int(time.time())),
         )
         await db.commit()
-"""
+
 # legacy history handler
 async def _unused_cmd_history_2(msg: Message):
     print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
@@ -984,16 +984,15 @@ async def _unused_cmd_history_3(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
-"""
-@dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
-async def cmd_post(msg: Message, state: FSMContext):
-    if msg.from_user.id not in ADMINS:
-        await msg.reply("⛔️ Только админ может запускать постинг.")
+@dp.callback_query(F.data.startswith("start_post_plan:"))
+async def start_post_plan(cq: CallbackQuery, state: FSMContext):
+    if cq.from_user.id not in ADMINS:
+        await cq.answer("⛔ Только админы могут планировать посты", show_alert=True)
         return
     await state.clear()
     await state.set_state(Post.wait_channel)
-    await msg.answer("Куда постить?", reply_markup=post_plan_kb)
-"""
+    await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
+
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
@@ -1051,96 +1050,24 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
-
-@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
-async def handle_posting_plan(msg: Message):
-    if msg.from_user.id not in ADMINS:
-        await msg.reply("⛔️ Только админ может планировать посты.")
-        return
-
-    log.info(f"[DEBUG PLAN] msg.caption={msg.caption} | msg.text={msg.text}")
-    text = msg.caption or msg.text
-    if not text:
-        return
-
-    log.info(
-        "[POSTING PLAN] Анализируем сообщение: %s от %s",
-        msg.message_id,
-        msg.chat.id,
-    )
-
-    lines = text.strip().split('\n')
-    hashtags = {l.split('=')[0][1:]: l.split('=')[1] for l in lines if l.startswith('#') and '=' in l}
-    description = '\n'.join(l for l in lines if not l.startswith('#'))
-
-    target = hashtags.get("send_to")
-    price = int(hashtags.get("price", 0))
-    dt_str = hashtags.get("date")
-
-    if target not in {"life", "luxury", "vip"}:
-        log.warning(f"[POST PLAN] Unknown channel: {target}")
-        await msg.reply("❌ Неизвестный канал назначения.")
-        return
-
-    if dt_str:
-        try:
-            ts = int(datetime.strptime(dt_str, "%Y-%m-%d %H:%M").timestamp())
-        except Exception:
-            log.warning("[POST PLAN] Bad date format: %s", dt_str)
-            print("❌ Неверный формат даты.")
-            return
-    else:
-        ts = int(time.time())
-
-    try:
-        await _db_exec(
-            "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
-            int(time.time()),
-            ts,
-            target,
-            price,
-            description,
-            msg.chat.id,
-            msg.message_id,
-            "",
-        )
-        log.info(f"[DEBUG PLAN] Пост добавлен: {target} {dt_str} {description[:30]}")
-        log.info(f"[SCHEDULED_POST] Added post: {target} text={(description or '<media>')[:40]} publish_ts={ts}")
-    except Exception as e:
-        log.error(f"[SCHEDULED_POST][FAIL] Could not add post: {e}"); print("❌ Ошибка при добавлении поста."); return
-
-    log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
-    await msg.reply("✅ Пост запланирован!")
-"""
-
 # @dp.channel_post()
 # async def debug_all_channel_posts(msg: Message):
 #     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
-    print(f"[DEBUG] Попал в post plan: {msg.from_user.id=}, {msg.chat.id=}")
     if msg.from_user.id not in ADMINS:
-        print(f"[DEBUG] Не админ: {msg.from_user.id}")
         return
-    if msg.media_group_id:
-        if not (msg.photo or msg.video):
-            return
-    elif not (msg.photo or msg.video):
-        print(f"[DEBUG] Не медиа: {msg.message_id}")
+    if not (msg.photo or msg.video):
         return
-
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")]])
-    try:
-        await bot.send_message(
-            msg.chat.id,
-            "⠀",  # символ U+2800
-            reply_markup=kb,
-            reply_to_message_id=msg.message_id,
-        )
-    except Exception as e:
-        print(f"[DEBUG][ERROR] {e}")
+        text="📆 Post Plan", callback_data=f"start_post_plan:{msg.message_id}")]])
+    await bot.send_message(
+        msg.chat.id,
+        "⠀",  # пустой символ
+        reply_markup=kb,
+        reply_to_message_id=msg.message_id,
+    )
 
 async def scheduled_poster():
     print("DEBUG: scheduled_poster called!")
