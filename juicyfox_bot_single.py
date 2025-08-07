@@ -182,6 +182,7 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 # --- END Codex-hack ---
 
 CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
+# Cast HISTORY_GROUP_ID to int so numeric chat IDs match correctly
 HISTORY_GROUP_ID = int(getenv("HISTORY_GROUP_ID"))
 ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
@@ -207,7 +208,6 @@ log.info(
     LIFE_CHANNEL_ID,
     POST_PLAN_GROUP_ID,
 )
-log.info("Type check: HISTORY_GROUP_ID is %s", type(HISTORY_GROUP_ID).__name__)
 
 if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -1242,6 +1242,7 @@ async def cryptobot_hook(request: web.Request):
     return web.json_response({'ok': True})
 
 # ---------------- History command -------------------------
+# Only respond to /history inside the configured history group
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
     parts = msg.text.strip().split()
