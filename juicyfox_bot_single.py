@@ -1365,17 +1365,4 @@ async def setup_webhook():
 # --- END Codex-hack ---
 
 
-@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
-async def add_post_plan_button(msg: Message):
-    if msg.from_user.id not in ADMINS:
-        return
-    if not (msg.photo or msg.video):
-        return
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")
-    ]])
-    try:
-        await msg.edit_reply_markup(reply_markup=kb)
-    except Exception as e:
-        print(f"[POST_PLAN] Не удалось вставить кнопку: {e}")
