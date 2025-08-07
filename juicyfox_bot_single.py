@@ -909,10 +909,8 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             (uid, 'admin', text, file_id, media_type, int(time.time())),
         )
         await db.commit()
-
-
-
-# @dp.message(Command("history"))
+"""
+# legacy history handler
 async def _unused_cmd_history_2(msg: Message):
     print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
     print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
@@ -959,8 +957,7 @@ async def _unused_cmd_history_2(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
-"""
-# @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
+# legacy history handler for group
 async def _unused_cmd_history_3(msg: Message):
     parts = msg.text.strip().split()
     if len(parts) != 3:
@@ -986,7 +983,6 @@ async def _unused_cmd_history_3(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
-"""
 """
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
@@ -1279,6 +1275,7 @@ async def cryptobot_hook(request: web.Request):
 # ---------------- History command -------------------------
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
+    print("cmd_history ok")  # debug
     parts = msg.text.strip().split()
     if len(parts) < 2:
         await msg.reply("ℹ️ Используй команду так: /history <user_id> [limit]")
