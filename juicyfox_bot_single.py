@@ -180,7 +180,7 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 # --- END Codex-hack ---
 
 CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
-HISTORY_GROUP_ID = -1002721298286
+HISTORY_GROUP_ID = int(os.getenv("HISTORY_GROUP_ID", "-1002721298286"))
 ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
