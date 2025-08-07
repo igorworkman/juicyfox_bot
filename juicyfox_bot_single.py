@@ -1258,6 +1258,19 @@ async def delete_post_cmd(msg: Message):
     except Exception as e:
         print(f"❌ Ошибка удаления: {e}")
 
+
+@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
+async def postgroup_media_handler(msg: Message):
+    if msg.from_user.id not in ADMINS:
+        return
+    if not (msg.photo or msg.video):
+        return
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")
+    ]])
+    await msg.edit_reply_markup(reply_markup=kb)
+
 async def setup_webhook():
     session = AiohttpSession()
     bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
