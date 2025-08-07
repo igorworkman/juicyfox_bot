@@ -39,6 +39,7 @@ def get_post_plan_kb():
 
 post_plan_kb = get_post_plan_kb()
 
+# Group for planned posts
 POST_PLAN_GROUP_ID = -1002825908735
 
 def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
