@@ -1050,7 +1050,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
-"""
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def handle_posting_plan(msg: Message):
     if msg.from_user.id not in ADMINS:
