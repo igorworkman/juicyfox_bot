@@ -917,7 +917,8 @@ async def history_request(msg: Message):
         return
 
     for sender, text, file_id, media_type in rows:
-        caption = text if sender == 'user' else f"✉️ Ответ от оператора\n{text or ''}"
+        caption = text if sender == 'user' else f"📬 Ответ от оператора\n{text or ''}"
+
         try:
             if media_type in ('photo', 'voice', 'video'):
                 await getattr(bot, f'send_{media_type}')(
