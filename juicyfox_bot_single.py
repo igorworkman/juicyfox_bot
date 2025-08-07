@@ -913,6 +913,7 @@ async def history_request(msg: Message):
         print(f"[ERROR] /history invalid uid/limit: {msg.text}")
         await msg.reply("неверный синтаксис")
         return
+    await msg.reply(f"📂 История с user_id {uid} (последние {limit} сообщений)")
 
     async with aiosqlite.connect(DB_PATH) as db:
         rows = await db.execute_fetchall(
@@ -923,8 +924,6 @@ async def history_request(msg: Message):
     if not rows:
         await msg.reply("Нет сообщений")
         return
-
-    await msg.reply(f"📂 История с user_id {uid} (последние {len(rows)} сообщений)")
 
     for sender, text, file_id, media_type in rows:
         caption = text if sender == 'user' else f"📩 Ответ от оператора\n{text or ''}"
