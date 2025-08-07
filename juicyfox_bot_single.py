@@ -39,6 +39,8 @@ def get_post_plan_kb():
 
 post_plan_kb = get_post_plan_kb()
 
+POST_PLAN_GROUP_ID = -1002825908735
+
 def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     for key, days in [('chat_flower_1',7), ('chat_flower_2',15), ('chat_flower_3',30)]:
@@ -156,7 +158,6 @@ ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
-POST_PLAN_GROUP_ID = int(os.getenv('POST_PLAN_GROUP_ID'))
 VIP_URL = os.getenv("VIP_URL")
 
 CHANNELS = {
@@ -928,7 +929,7 @@ async def history_request(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
-
+"""
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
     if msg.from_user.id not in ADMINS:
@@ -937,7 +938,7 @@ async def cmd_post(msg: Message, state: FSMContext):
     await state.clear()
     await state.set_state(Post.wait_channel)
     await msg.answer("Куда постить?", reply_markup=post_plan_kb)
-
+"""
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
@@ -995,7 +996,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
-
+"""
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def handle_posting_plan(msg: Message):
     if msg.from_user.id not in ADMINS:
@@ -1055,6 +1056,7 @@ async def handle_posting_plan(msg: Message):
 
     log.info("[POST PLAN] Scheduled post: #%s at %s (price=%s)", target, dt_str, price)
     await msg.reply("✅ Пост запланирован!")
+"""
 
 # @dp.channel_post()
 # async def debug_all_channel_posts(msg: Message):
