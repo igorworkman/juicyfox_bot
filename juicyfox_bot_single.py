@@ -916,21 +916,18 @@ async def history_request(msg: Message):
         return
 
     for sender, text, file_id, media_type in rows:
-        caption = text if sender == 'user' else "📬 Ответ от оператора"
+        caption = text if sender == 'user' else f"✉️ Ответ от оператора\n{text or ''}"
         try:
-            if media_type == 'photo':
-                await bot.send_photo(HISTORY_GROUP_ID, file_id, caption=caption)
-            elif media_type == 'video':
-                await bot.send_video(HISTORY_GROUP_ID, file_id, caption=caption)
-            elif media_type == 'voice':
-                await bot.send_voice(HISTORY_GROUP_ID, file_id, caption=caption)
+            if media_type in ('photo', 'voice', 'video'):
+                await getattr(bot, f'send_{media_type}')(
+                    HISTORY_GROUP_ID, file_id, caption=caption
+                )
             elif media_type == 'video_note':
                 await bot.send_video_note(HISTORY_GROUP_ID, file_id)
             elif text:
-                sender_icon = '👤' if sender == 'user' else '🧑‍💼'
-                await bot.send_message(HISTORY_GROUP_ID, f"{sender_icon} {text}")
+                await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
-            print(f"[HISTORY ERROR] {e}")
+            print(f"Ошибка при отправке истории: {e}")
 
 @dp.message(Command("post"), F.chat.id == POST_PLAN_GROUP_ID)
 async def cmd_post(msg: Message, state: FSMContext):
