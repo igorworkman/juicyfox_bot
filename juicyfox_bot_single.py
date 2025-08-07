@@ -24,7 +24,7 @@ if not os.path.exists(DB_PATH):
 def migrate_add_ts_column():
     pass
 
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
@@ -193,6 +193,10 @@ CHANNELS = {
     "vip": int(os.getenv("VIP_CHANNEL_ID")),
     "chat_30": CHAT_GROUP_ID,  # Juicy Chat group
 }
+
+# Temporary storage for media groups to ensure buttons are
+# attached to every item in an album.
+MEDIA_GROUPS: Dict[str, List[Message]] = {}
 
 log.info(
     "Env CHAT_GROUP_ID=%s HISTORY_GROUP_ID=%s LIFE_CHANNEL_ID=%s POST_PLAN_GROUP_ID=%s",
@@ -1008,7 +1012,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     )
 
 
-@dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
+@dp.message(Post.wait_content, F.chat.id == int(POST_PLAN_GROUP_ID))
 async def post_content(msg: Message, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
@@ -1054,20 +1058,49 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
 # async def debug_all_channel_posts(msg: Message):
 #     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
-@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
+@dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
 async def add_post_plan_button(msg: Message):
-    if msg.from_user.id not in ADMINS:
+    user_id = msg.from_user.id
+    if user_id not in ADMINS:
         return
     if not (msg.photo or msg.video):
         return
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text="📆 Post Plan", callback_data=f"start_post_plan:{msg.message_id}")]])
-    await bot.send_message(
-        msg.chat.id,
-        "⠀",  # пустой символ
-        reply_markup=kb,
-        reply_to_message_id=msg.message_id,
-    )
+
+    async def _send_button(target: Message) -> None:
+        """Send inline planning button under a specific message."""
+        kb = InlineKeyboardBuilder()
+        kb.button(
+            text="📆 Post Plan",
+            callback_data=f"start_post_plan:{target.message_id}",
+        )
+        kb.adjust(1)
+        await bot.send_message(
+            target.chat.id,
+            "⠀",  # пустой символ
+            reply_markup=kb.as_markup(),
+            reply_to_message_id=target.message_id,
+        )
+        media_type = "photo" if target.photo else "video"
+        log.info(
+            "[POST_PLAN_BTN] user=%s chat=%s media_group=%s type=%s",
+            user_id,
+            target.chat.id,
+            target.media_group_id,
+            media_type,
+        )
+
+    if msg.media_group_id:
+        MEDIA_GROUPS.setdefault(msg.media_group_id, []).append(msg)
+
+        async def process_group(group_id: str) -> None:
+            await asyncio.sleep(0.5)
+            messages = MEDIA_GROUPS.pop(group_id, [])
+            for m in messages:
+                await _send_button(m)
+
+        asyncio.create_task(process_group(msg.media_group_id))
+    else:
+        await _send_button(msg)
 
 async def scheduled_poster():
     print("DEBUG: scheduled_poster called!")
