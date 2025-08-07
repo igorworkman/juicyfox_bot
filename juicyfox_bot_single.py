@@ -214,7 +214,7 @@ async def on_startup():
     asyncio.create_task(scheduled_poster())
 
 
-bot = Bot(TELEGRAM_TOKEN, parse_mode='HTML')
+bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
 dp  = Dispatcher(storage=MemoryStorage())
 dp.startup.register(on_startup)
 
@@ -1118,22 +1118,28 @@ async def handle_posting_plan(msg: Message):
 
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
+    print(f"[DEBUG] Попал в post plan: {msg.from_user.id=}, {msg.chat.id=}")
     if msg.from_user.id not in ADMINS:
+        print(f"[DEBUG] Не админ: {msg.from_user.id}")
         return
     if msg.media_group_id:
         if not (msg.photo or msg.video):
             return
     elif not (msg.photo or msg.video):
+        print(f"[DEBUG] Не медиа: {msg.message_id}")
         return
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
         text="📆 Post Plan", callback_data=f"plan:{msg.message_id}")]])
-    await bot.send_message(
-        msg.chat.id,
-        "\u200b",
-        reply_markup=kb,
-        reply_to_message_id=msg.message_id,
-    )
+    try:
+        await bot.send_message(
+            msg.chat.id,
+            "⠀",  # символ U+2800
+            reply_markup=kb,
+            reply_to_message_id=msg.message_id,
+        )
+    except Exception as e:
+        print(f"[DEBUG][ERROR] {e}")
 
 async def scheduled_poster():
     print("DEBUG: scheduled_poster called!")
