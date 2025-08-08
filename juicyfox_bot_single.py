@@ -40,7 +40,9 @@ def get_post_plan_kb():
 
 post_plan_kb = get_post_plan_kb()
 
-POST_PLAN_GROUP_ID = -1002825908735
+# Read group ID from env/config and ensure it's numeric
+POST_PLAN_GROUP_ID = getenv("POST_PLAN_GROUP_ID", "-1002825908735")
+POST_PLAN_GROUP_ID = int(POST_PLAN_GROUP_ID)
 
 def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
@@ -997,7 +999,7 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
         cq.from_user.id,
         cq.message.chat.id,
     )
-    if str(cq.message.chat.id) != str(POST_PLAN_GROUP_ID):
+    if cq.message.chat.id != POST_PLAN_GROUP_ID:
         await cq.answer("⛔ Планирование доступно только в группе", show_alert=True)
         return
     if cq.from_user.id not in ADMINS:
@@ -1040,7 +1042,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     )
 
 
-@dp.message(Post.wait_content, F.chat.id == int(POST_PLAN_GROUP_ID))
+@dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
@@ -1139,7 +1141,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
 # async def debug_all_channel_posts(msg: Message):
 #     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
-@dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
+@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
     user_id = msg.from_user.id
     if user_id not in ADMINS:
