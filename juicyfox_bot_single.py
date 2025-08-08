@@ -1000,38 +1000,27 @@ async def _unused_cmd_history_3(msg: Message):
             print(f"Ошибка при отправке истории: {e}")
 
 # ==============================
-#  POSTING GROUP — обновлённая версия
-# ==============================
-
-# DEBUG: вывести в лог ID постинг-группы при старте
-log.info(f"[DEBUG] POST_PLAN_GROUP_ID={POST_PLAN_GROUP_ID} (type={type(POST_PLAN_GROUP_ID)})")
-
-# ==============================
-# DEBUG: универсальный хендлер для любых сообщений в группе
-# ==============================
-@dp.message()
-async def debug_all_msgs(msg: Message):
-    if msg.chat.id == POST_PLAN_GROUP_ID:
-        log.info(f"[DEBUG GROUP MSG] chat={msg.chat.id}, user={msg.from_user.id}, type={msg.content_type}, media_group_id={msg.media_group_id}")
-    # не мешаем другим хендлерам
-
-
-# 1. Хендлер для добавления кнопки Post Plan
+# POSTING GROUP — новая версия
 # ==============================
 
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
     """Добавляет кнопку 📆 Post Plan под каждым одиночным медиа в постинг-группе"""
-    log.info(f"[POST_PLAN] Получено сообщение {msg.message_id} от {msg.from_user.id} в {msg.chat.id} ({msg.content_type})")
+    log.info(f"[POST_PLAN] Получено сообщение {msg.message_id} от {msg.from_user.id} в {msg.chat.id}")
 
     # Проверка: только админы
     if msg.from_user.id not in ADMINS:
         log.info(f"[POST_PLAN] Игнор: не админ ({msg.from_user.id})")
         return
 
-    # Разрешаем фото, видео, анимацию, а также первый элемент альбома — для теста
+    # Пропускаем альбомы
+    if msg.media_group_id:
+        log.info(f"[POST_PLAN] Игнор: альбом media_group_id={msg.media_group_id}")
+        return
+
+    # Только одиночные медиа (фото, видео, gif-анимация)
     if not (msg.photo or msg.video or msg.animation):
-        log.info(f"[POST_PLAN] Игнор: не медиа ({msg.message_id}, {msg.content_type})")
+        log.info(f"[POST_PLAN] Игнор: не медиа ({msg.message_id})")
         return
 
     kb = InlineKeyboardMarkup(
