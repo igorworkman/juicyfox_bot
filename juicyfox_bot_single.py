@@ -1147,6 +1147,13 @@ async def post_content(msg: Message, state: FSMContext):
     elif msg.text:
         await state.update_data(text=msg.text)
         await msg.reply("Текст сохранён")
+    else:
+        log.warning(
+            "[POST_PLAN] post_content unsupported message user=%s chat=%s",
+            msg.from_user.id,
+            msg.chat.id,
+        )
+        await msg.reply("Сообщение должно содержать текст или поддерживаемое медиа.")
 
 @dp.callback_query(F.data == "post_done", Post.wait_content)
 async def post_done(cq: CallbackQuery, state: FSMContext):
