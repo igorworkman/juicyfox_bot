@@ -1076,7 +1076,8 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel = cq.data.split(":")[1]
-    await state.update_data(channel=channel, media_ids=[], text="")
+    # Только обновляем выбранный канал, не сбрасывая другие данные
+    await state.update_data(channel=channel)
     await state.set_state(Post.wait_content)
     kb = InlineKeyboardBuilder()
     kb.button(text="Готово", callback_data="post_done")
@@ -1095,7 +1096,6 @@ async def post_content(msg: Message, state: FSMContext):
     if not channel:
         log.error("[POST_PLAN] Ошибка: канал не выбран")
         await msg.reply("Ошибка: не выбран канал.")
-        await state.clear()
         return
 
     if msg.photo or msg.video or msg.animation:
