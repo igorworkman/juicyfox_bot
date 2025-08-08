@@ -40,7 +40,8 @@ def get_post_plan_kb():
 
 post_plan_kb = get_post_plan_kb()
 
-POST_PLAN_GROUP_ID = -1002825908735
+# Cast POST_PLAN_GROUP_ID to int once where it is defined
+POST_PLAN_GROUP_ID = int(os.getenv("POST_PLAN_GROUP_ID", "-1002825908735"))
 
 def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
@@ -996,7 +997,7 @@ async def _unused_cmd_history_3(msg: Message):
 
 post_plan_albums: set[str] = set()
 
-@dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
+@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def post_plan_button(msg: Message):
     """Attach a planning button to media posts in the post-plan group."""
     user_id = msg.from_user.id
@@ -1108,7 +1109,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     )
 
 
-@dp.message(Post.wait_content, F.chat.id == int(POST_PLAN_GROUP_ID))
+@dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
