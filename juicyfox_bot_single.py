@@ -1239,10 +1239,19 @@ async def scheduled_poster():
                 continue
             await asyncio.sleep(0.2)
             if published:
-                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
-                log.info(
-                    f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди"
+                await _db_exec("DELETE FROM scheduled_posts WHERE rowid = ?", rowid)
+                # Query again to ensure the post won't be processed twice
+                remaining = await _db_fetchone(
+                    "SELECT 1 FROM scheduled_posts WHERE rowid = ?", rowid
                 )
+                if remaining:
+                    log.warning(
+                        f"[POST_PLAN] rowid={rowid} not removed from scheduled_posts"
+                    )
+                else:
+                    log.info(
+                        f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди"
+                    )
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
                     f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
