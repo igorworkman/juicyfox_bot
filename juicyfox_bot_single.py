@@ -1135,10 +1135,6 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
-# @dp.channel_post()
-# async def debug_all_channel_posts(msg: Message):
-#     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
-
 @dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
 async def add_post_plan_button(msg: Message):
     user_id = msg.from_user.id
