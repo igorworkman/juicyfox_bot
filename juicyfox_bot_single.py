@@ -1069,6 +1069,7 @@ async def post_content(msg: Message, state: FSMContext):
             media_type = "video"
         ids.append((media_type, file_id))
         await state.update_data(media_ids=ids)
+        log.info("[POST_PLAN] Добавлено медиа: %s", file_id)
         if msg.caption:
             await state.update_data(text=msg.caption)
         await msg.reply("Медиа добавлено")
@@ -1127,6 +1128,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         await cq.message.edit_text("Ошибка: не удалось запланировать пост.")
         await state.clear()
         return
+    log.info("[POST_PLAN] Пост запланирован в %s", channel)
     log.info(
         "[POST_PLAN] post_done scheduled post user=%s chat=%s -> state cleared",
         cq.from_user.id,
