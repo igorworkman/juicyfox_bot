@@ -992,6 +992,11 @@ async def _unused_cmd_history_3(msg: Message):
             print(f"Ошибка при отправке истории: {e}")
 @dp.callback_query(F.data.startswith("start_post_plan:"))
 async def start_post_plan(cq: CallbackQuery, state: FSMContext):
+    log.info(
+        "[POST_PLAN] start_post_plan entry user=%s chat=%s",
+        cq.from_user.id,
+        cq.message.chat.id,
+    )
     if str(cq.message.chat.id) != str(POST_PLAN_GROUP_ID):
         await cq.answer("⛔ Планирование доступно только в группе", show_alert=True)
         return
@@ -1002,14 +1007,30 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
     msg_id = cq.data.split(":")[1]
     await state.update_data(message_id=int(msg_id))
     await state.set_state(Post.wait_channel)
+    log.info(
+        "[POST_PLAN] start_post_plan transition -> Post.wait_channel user=%s chat=%s",
+        cq.from_user.id,
+        cq.message.chat.id,
+    )
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel = cq.data.split(":")[1]
+    log.info(
+        "[POST_PLAN] post_choose_channel user=%s chat=%s channel=%s",
+        cq.from_user.id,
+        cq.message.chat.id,
+        channel,
+    )
     await state.update_data(channel=channel, media_ids=[], text="")
     await state.set_state(Post.wait_content)
+    log.info(
+        "[POST_PLAN] post_choose_channel transition -> Post.wait_content user=%s chat=%s",
+        cq.from_user.id,
+        cq.message.chat.id,
+    )
     kb = InlineKeyboardBuilder()
     kb.button(text="Готово", callback_data="post_done")
     kb.adjust(1)
@@ -1023,8 +1044,18 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 async def post_content(msg: Message, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
+    log.info(
+        "[POST_PLAN] post_content entry user=%s chat=%s channel=%s",
+        msg.from_user.id,
+        msg.chat.id,
+        channel,
+    )
     if not channel:
-        log.error("[POST_CONTENT] Channel not selected")
+        log.error(
+            "[POST_PLAN] post_content validation failed: channel not selected user=%s chat=%s",
+            msg.from_user.id,
+            msg.chat.id,
+        )
         await msg.reply("Ошибка: не выбран канал.")
         await state.clear()
         return
@@ -1044,6 +1075,21 @@ async def post_content(msg: Message, state: FSMContext):
 async def post_done(cq: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
+    log.info(
+        "[POST_PLAN] post_done entry user=%s chat=%s channel=%s",
+        cq.from_user.id,
+        cq.message.chat.id,
+        channel,
+    )
+    if not channel:
+        log.error(
+            "[POST_PLAN] post_done validation failed: channel not selected user=%s chat=%s",
+            cq.from_user.id,
+            cq.message.chat.id,
+        )
+        await cq.message.edit_text("Ошибка: не выбран канал.")
+        await state.clear()
+        return
     media_ids_list = data.get("media_ids", [])
     media_ids = ','.join(media_ids_list)
     text = data.get("text", "")
@@ -1054,16 +1100,32 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         if stored_id:
             from_msg = int(stored_id)
         text = "<media>"
-    await _db_exec(
-        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
-        int(time.time()),
-        ts,
-        channel,
-        0,
-        text,
+    try:
+        await _db_exec(
+            "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
+            int(time.time()),
+            ts,
+            channel,
+            0,
+            text,
+            cq.message.chat.id,
+            from_msg,
+            media_ids,
+        )
+    except Exception as e:
+        log.error(
+            "[POST_PLAN] post_done DB error user=%s chat=%s error=%s",
+            cq.from_user.id,
+            cq.message.chat.id,
+            e,
+        )
+        await cq.message.edit_text("Ошибка: не удалось запланировать пост.")
+        await state.clear()
+        return
+    log.info(
+        "[POST_PLAN] post_done scheduled post user=%s chat=%s -> state cleared",
+        cq.from_user.id,
         cq.message.chat.id,
-        from_msg,
-        media_ids,
     )
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
