@@ -75,6 +75,7 @@ class Post(StatesGroup):
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.base import StorageKey
 
 async def _init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -1145,9 +1146,17 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         "scheduled",
         return_rowid=True,
     )
-    log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
+    check = await _db_fetchone(
+        "SELECT COUNT(*) FROM scheduled_posts WHERE rowid=?",
+        rowid,
+    )
+    count = check[0] if check else 0
+    log.info(
+        f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}, count={count}"
+    )
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
+    log.info(f"[POST_PLAN] state after clear: {await state.get_state()}")
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
 
 
@@ -1240,8 +1249,18 @@ async def scheduled_poster():
             await asyncio.sleep(0.2)
             if published:
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+                remaining = await _db_fetchone(
+                    "SELECT COUNT(*) FROM scheduled_posts WHERE rowid=?",
+                    rowid,
+                )
                 log.info(
-                    f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди"
+                    f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди, remaining={remaining[0] if remaining else 0}"
+                )
+                state_key = StorageKey(bot.id, from_chat, from_chat)
+                state = FSMContext(dp.storage, state_key)
+                await state.clear()
+                log.info(
+                    f"[POST_PLAN] FSM state cleared after posting rowid={rowid}: {await state.get_state()}"
                 )
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
