@@ -1061,8 +1061,13 @@ async def post_content(msg: Message, state: FSMContext):
         return
     if msg.photo or msg.video:
         ids = data.get("media_ids", [])
-        file_id = msg.photo[-1].file_id if msg.photo else msg.video.file_id
-        ids.append(file_id)
+        if msg.photo:
+            file_id = msg.photo[-1].file_id
+            media_type = "photo"
+        else:
+            file_id = msg.video.file_id
+            media_type = "video"
+        ids.append((media_type, file_id))
         await state.update_data(media_ids=ids)
         if msg.caption:
             await state.update_data(text=msg.caption)
@@ -1091,7 +1096,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         await state.clear()
         return
     media_ids_list = data.get("media_ids", [])
-    media_ids = ','.join(media_ids_list)
+    media_ids = ','.join(f"{t}:{fid}" for t, fid in media_ids_list)
     text = data.get("text", "")
     ts = int(time.time())
     from_msg = cq.message.message_id
@@ -1223,10 +1228,10 @@ async def scheduled_poster():
                 published = None
                 sent_ids = []
                 if media_ids:
-                    ids = media_ids.split(',')
+                    ids = [tuple(item.split(':', 1)) for item in media_ids.split(',')]
                     if len(ids) == 1:
-                        file_id = ids[0]
-                        if file_id.startswith("AgA"):
+                        media_type, file_id = ids[0]
+                        if media_type == "photo":
                             published = await bot.send_photo(chat_id, file_id, caption=text)
                         else:
                             published = await bot.send_video(chat_id, file_id, caption=text)
@@ -1234,8 +1239,8 @@ async def scheduled_poster():
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo
                         media = []
-                        for i, file_id in enumerate(ids):
-                            if file_id.startswith("AgA"):
+                        for i, (media_type, file_id) in enumerate(ids):
+                            if media_type == "photo":
                                 m = InputMediaPhoto(media=file_id, caption=text if i == 0 else None)
                             else:
                                 m = InputMediaVideo(media=file_id, caption=text if i == 0 else None)
