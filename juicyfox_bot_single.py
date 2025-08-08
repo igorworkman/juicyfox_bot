@@ -305,7 +305,7 @@ CREATE TABLE IF NOT EXISTS published_posts(
 );
 """
 
-async def _db_exec(q: str, *a, fetchone: bool = False, fetchall: bool = False):
+async def _db_exec(q: str, *a, fetchone: bool = False, fetchall: bool = False, return_rowid: bool = False):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(CREATE_SQL)  # ensure both tables
         cur = await db.execute(q, a)
@@ -314,8 +314,10 @@ async def _db_exec(q: str, *a, fetchone: bool = False, fetchall: bool = False):
             result = await cur.fetchone()
         elif fetchall:
             result = await cur.fetchall()
+        elif return_rowid:
+            result = cur.lastrowid
         await db.commit()
-        if fetchone or fetchall:
+        if fetchone or fetchall or return_rowid:
             return result
 
 async def _db_fetchall(q:str,*a):
@@ -1120,13 +1122,17 @@ async def post_content(msg: Message, state: FSMContext):
 
 @dp.callback_query(F.data == "post_done", Post.wait_content)
 async def post_done(cq: CallbackQuery, state: FSMContext):
+    state_name = await state.get_state()
     data = await state.get_data()
+    log.info(
+        f"[POST_PLAN] post_done: user_id={cq.from_user.id} chat_id={cq.message.chat.id} state={state_name} data={data}"
+    )
     channel = data.get("channel")
     media_ids = ','.join(data.get("media_ids", []))
     text = data.get("text", "")
     source_msg_id = data.get("source_message_id", cq.message.message_id)
     ts = int(time.time())
-    await _db_exec(
+    rowid = await _db_exec(
         "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status) VALUES(?,?,?,?,?,?,?,?,?)",
         int(time.time()),
         ts,
@@ -1137,7 +1143,9 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         int(source_msg_id),
         media_ids,
         "scheduled",
+        return_rowid=True,
     )
+    log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
@@ -1163,6 +1171,12 @@ async def scheduled_poster():
 
         for rowid, _, channel, price, text, from_chat, from_msg, media_ids, status in rows:
             if status != 'scheduled':
+                continue
+            exists = await _db_fetchone(
+                "SELECT 1 FROM scheduled_posts WHERE rowid=? AND status='scheduled'", rowid
+            )
+            if not exists:
+                log.info(f"[SCHEDULED_POSTER] rowid={rowid} already processed, skipping")
                 continue
             chat_id = CHANNELS.get(channel)
             if not chat_id:
@@ -1225,7 +1239,10 @@ async def scheduled_poster():
                 continue
             await asyncio.sleep(0.2)
             if published:
-                await _db_exec("UPDATE scheduled_posts SET status='done' WHERE rowid=?", rowid)
+                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+                log.info(
+                    f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди"
+                )
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
                     f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
