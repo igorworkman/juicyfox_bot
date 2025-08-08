@@ -992,10 +992,15 @@ async def _unused_cmd_history_3(msg: Message):
             print(f"Ошибка при отправке истории: {e}")
 @dp.callback_query(F.data.startswith("start_post_plan:"))
 async def start_post_plan(cq: CallbackQuery, state: FSMContext):
+    if str(cq.message.chat.id) != str(POST_PLAN_GROUP_ID):
+        await cq.answer("⛔ Планирование доступно только в группе", show_alert=True)
+        return
     if cq.from_user.id not in ADMINS:
         await cq.answer("⛔ Только админы могут планировать посты", show_alert=True)
         return
     await state.clear()
+    msg_id = cq.data.split(":")[1]
+    await state.update_data(message_id=int(msg_id))
     await state.set_state(Post.wait_channel)
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
@@ -1039,9 +1044,16 @@ async def post_content(msg: Message, state: FSMContext):
 async def post_done(cq: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
-    media_ids = ','.join(data.get("media_ids", []))
+    media_ids_list = data.get("media_ids", [])
+    media_ids = ','.join(media_ids_list)
     text = data.get("text", "")
     ts = int(time.time())
+    from_msg = cq.message.message_id
+    if not media_ids_list and not text:
+        stored_id = data.get("message_id")
+        if stored_id:
+            from_msg = int(stored_id)
+        text = "<media>"
     await _db_exec(
         "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
         int(time.time()),
@@ -1050,7 +1062,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         0,
         text,
         cq.message.chat.id,
-        cq.message.message_id,
+        from_msg,
         media_ids,
     )
     await cq.message.edit_text("✅ Пост запланирован!")
