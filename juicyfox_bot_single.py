@@ -197,10 +197,6 @@ CHANNELS = {
     "chat_30": CHAT_GROUP_ID,  # Juicy Chat group
 }
 
-# Temporary storage for media groups to ensure buttons are
-# attached to every item in an album.
-MEDIA_GROUPS: Dict[str, List[Message]] = {}
-
 log.info(
     "Env CHAT_GROUP_ID=%s HISTORY_GROUP_ID=%s LIFE_CHANNEL_ID=%s POST_PLAN_GROUP_ID=%s",
     CHAT_GROUP_ID,
@@ -990,6 +986,40 @@ async def _unused_cmd_history_3(msg: Message):
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
+
+@dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
+async def post_plan_button(msg: Message):
+    """Attach a planning button to media posts in the post-plan group."""
+    user_id = msg.from_user.id
+    if user_id not in ADMINS:
+        log.info("[POST_PLAN_BTN] Non-admin message user=%s chat=%s", user_id, msg.chat.id)
+        return
+
+    if not (msg.photo or msg.video or msg.animation):
+        log.error(
+            "[POST_PLAN_BTN] Unsupported content user=%s chat=%s type=%s",
+            user_id,
+            msg.chat.id,
+            msg.content_type,
+        )
+        return
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📆 Post Plan", callback_data=f"start_post_plan:{msg.message_id}")]
+        ]
+    )
+    try:
+        await msg.reply("⠀", reply_markup=kb)
+        log.info("[POST_PLAN_BTN] Button sent user=%s chat=%s msg=%s", user_id, msg.chat.id, msg.message_id)
+    except Exception as e:
+        log.error(
+            "[POST_PLAN_BTN] Failed to send button user=%s chat=%s error=%s",
+            user_id,
+            msg.chat.id,
+            e,
+        )
+
 @dp.callback_query(F.data.startswith("start_post_plan:"))
 async def start_post_plan(cq: CallbackQuery, state: FSMContext):
     log.info(
@@ -1139,66 +1169,6 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
 # async def debug_all_channel_posts(msg: Message):
 #     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
 
-@dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
-async def add_post_plan_button(msg: Message):
-    user_id = msg.from_user.id
-    if user_id not in ADMINS:
-        return
-
-    has_media = bool(
-        msg.photo
-        or msg.video
-        or msg.animation
-        or msg.document
-    )
-    if not has_media:
-        return
-
-    async def _send_button(target: Message) -> None:
-        """Send inline planning button under a specific message."""
-        kb = InlineKeyboardBuilder()
-        kb.button(
-            text="📆 Post Plan",
-            callback_data=f"start_post_plan:{target.message_id}",
-        )
-        kb.adjust(1)
-        await bot.send_message(
-            target.chat.id,
-            "⠀",  # пустой символ
-            reply_markup=kb.as_markup(),
-            reply_to_message_id=target.message_id,
-        )
-        if target.photo:
-            media_type = "photo"
-        elif target.video:
-            media_type = "video"
-        elif target.animation:
-            media_type = "animation"
-        elif target.document:
-            media_type = "document"
-        else:
-            media_type = "unknown"
-
-        log.info(
-            "[POST_PLAN_BTN] user=%s chat=%s media_group=%s media_type=%s",
-            user_id,
-            target.chat.id,
-            target.media_group_id,
-            media_type,
-        )
-
-    if msg.media_group_id:
-        MEDIA_GROUPS.setdefault(msg.media_group_id, []).append(msg)
-
-        async def process_group(group_id: str) -> None:
-            await asyncio.sleep(0.5)
-            messages = MEDIA_GROUPS.pop(group_id, [])
-            for m in messages:
-                await _send_button(m)
-
-        asyncio.create_task(process_group(msg.media_group_id))
-    else:
-        await _send_button(msg)
 
 async def scheduled_poster():
     print("DEBUG: scheduled_poster called!")
