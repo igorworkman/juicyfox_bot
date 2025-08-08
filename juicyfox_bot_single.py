@@ -1171,13 +1171,8 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
 
-# @dp.channel_post()
-# async def debug_all_channel_posts(msg: Message):
-#     log.info("[DEBUG] Got channel post in %s: %s", msg.chat.id, msg.text or "<media>")
-
-
 async def scheduled_poster():
-    print("DEBUG: scheduled_poster called!")
+    log.debug("scheduled_poster called!")
     log.info("[POSTING PLAN] Стартовал планировщик scheduled_poster")
     while True:
         await asyncio.sleep(10)
