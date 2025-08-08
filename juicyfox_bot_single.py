@@ -295,7 +295,8 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
   text TEXT,
   from_chat_id INTEGER,
   from_msg_id INTEGER,
-  media_ids TEXT
+  media_ids TEXT,
+  status TEXT DEFAULT 'scheduled'
 );
 CREATE TABLE IF NOT EXISTS published_posts(
   rowid INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1126,7 +1127,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     source_msg_id = data.get("source_message_id", cq.message.message_id)
     ts = int(time.time())
     await _db_exec(
-        "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
+        "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status) VALUES(?,?,?,?,?,?,?,?,?)",
         int(time.time()),
         ts,
         channel,
@@ -1135,6 +1136,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         cq.message.chat.id,
         int(source_msg_id),
         media_ids,
+        "scheduled",
     )
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
@@ -1150,7 +1152,7 @@ async def scheduled_poster():
         log.debug(f"[DEBUG] Checking scheduled_posts, now={now}")
 
         rows = await _db_fetchall(
-            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids FROM scheduled_posts WHERE publish_ts <= ?",
+            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status FROM scheduled_posts WHERE publish_ts <= ? AND status='scheduled'",
             now,
         )
 
@@ -1159,7 +1161,9 @@ async def scheduled_poster():
         if not rows:
             log.debug("[SCHEDULED_POSTER] No posts scheduled for now.")
 
-        for rowid, _, channel, price, text, from_chat, from_msg, media_ids in rows:
+        for rowid, _, channel, price, text, from_chat, from_msg, media_ids, status in rows:
+            if status != 'scheduled':
+                continue
             chat_id = CHANNELS.get(channel)
             if not chat_id:
                 log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
@@ -1213,14 +1217,15 @@ async def scheduled_poster():
                     )
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
-                await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
+                await _db_exec("UPDATE scheduled_posts SET status='failed' WHERE rowid=?", rowid)
                 continue
             except Exception as e:
                 log.error(f"[FATAL POST FAIL] {e}\n{traceback.format_exc()}")
+                await _db_exec("UPDATE scheduled_posts SET status='failed' WHERE rowid=?", rowid)
                 continue
             await asyncio.sleep(0.2)
-            await _db_exec("DELETE FROM scheduled_posts WHERE rowid=?", rowid)
             if published:
+                await _db_exec("UPDATE scheduled_posts SET status='done' WHERE rowid=?", rowid)
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
                     f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
