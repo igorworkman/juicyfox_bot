@@ -1003,6 +1003,21 @@ async def _unused_cmd_history_3(msg: Message):
 # POSTING GROUP — новая версия
 # ==============================
 
+# TODO: remove debug handler after testing
+@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
+async def debug_group_handler(msg: Message):
+    log.info(
+        "[DEBUG_GROUP] chat.id=%s, user.id=%s, message_id=%s, content_type=%s, media_group_id=%s",
+        msg.chat.id,
+        msg.from_user.id,
+        msg.message_id,
+        msg.content_type,
+        msg.media_group_id,
+    )
+    await msg.reply(
+        f"DEBUG: chat.id={msg.chat.id}, user.id={msg.from_user.id}"
+    )
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
     """Добавляет кнопку 📆 Post Plan под каждым одиночным медиа в постинг-группе"""
