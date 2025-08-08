@@ -994,8 +994,6 @@ async def _unused_cmd_history_3(msg: Message):
         except Exception as e:
             print(f"Ошибка при отправке истории: {e}")
 
-post_plan_albums: set[str] = set()
-
 @dp.message(F.chat.id == int(POST_PLAN_GROUP_ID))
 async def post_plan_button(msg: Message):
     """Attach a planning button to media posts in the post-plan group."""
@@ -1013,30 +1011,21 @@ async def post_plan_button(msg: Message):
         )
         return
 
-    album_id = msg.media_group_id
-    if album_id:
-        if album_id in post_plan_albums:
-            log.info(
-                "[POST_PLAN_BTN] Album already handled user=%s chat=%s album=%s",
-                user_id,
-                msg.chat.id,
-                album_id,
-            )
-            return
-        post_plan_albums.add(album_id)
+    if msg.media_group_id is not None:
         log.info(
-            "[POST_PLAN_BTN] Handling new album user=%s chat=%s album=%s",
+            "[POST_PLAN_BTN] Skipping album message user=%s chat=%s album=%s",
             user_id,
             msg.chat.id,
-            album_id,
+            msg.media_group_id,
         )
-    else:
-        log.info(
-            "[POST_PLAN_BTN] Handling single media message user=%s chat=%s msg=%s",
-            user_id,
-            msg.chat.id,
-            msg.message_id,
-        )
+        return
+
+    log.info(
+        "[POST_PLAN_BTN] Handling single media message user=%s chat=%s msg=%s",
+        user_id,
+        msg.chat.id,
+        msg.message_id,
+    )
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
