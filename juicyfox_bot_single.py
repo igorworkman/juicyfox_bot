@@ -1000,7 +1000,7 @@ async def _unused_cmd_history_3(msg: Message):
             print(f"Ошибка при отправке истории: {e}")
 
 # ==============================
-# 1. Хендлер для добавления кнопки Post Plan
+# POSTING GROUP — новая версия
 # ==============================
 
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
@@ -1013,7 +1013,10 @@ async def add_post_plan_button(msg: Message):
         log.info(f"[POST_PLAN] Игнор: не админ ({msg.from_user.id})")
         return
 
-    # Только одиночные медиа (фото, видео, gif-анимация)
+    # Только одиночные медиа (фото, видео, gif-анимация), без альбомов
+    if msg.media_group_id is not None:
+        log.info(f"[POST_PLAN] Игнор альбом: {msg.media_group_id}")
+        return
     if not (msg.photo or msg.video or msg.animation):
         log.info(f"[POST_PLAN] Игнор: не медиа ({msg.message_id})")
         return
@@ -1033,10 +1036,6 @@ async def add_post_plan_button(msg: Message):
     except Exception as e:
         log.error(f"[POST_PLAN] Ошибка при добавлении кнопки: {e}")
 
-
-# ==============================
-# 2. Хендлер для старта планирования
-# ==============================
 
 @dp.callback_query(F.data.startswith("start_post_plan:"))
 async def start_post_plan(cq: CallbackQuery, state: FSMContext):
@@ -1060,14 +1059,9 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
         log.error(f"[POST_PLAN] Ошибка парсинга message_id: {e}")
         return
 
-    await state.clear()
     await state.set_state(Post.wait_channel)
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
-
-# ==============================
-# 3. FSM — выбор канала
-# ==============================
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
@@ -1083,10 +1077,6 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     )
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
-
-# ==============================
-# 4. FSM — приём контента
-# ==============================
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
@@ -1120,15 +1110,12 @@ async def post_content(msg: Message, state: FSMContext):
         log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
 
 
-# ==============================
-# 5. FSM — завершение и сохранение
-# ==============================
-
 @dp.callback_query(F.data == "post_done", Post.wait_content)
 async def post_done(cq: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
     media_ids = ','.join(data.get("media_ids", []))
+    source_message_id = data.get("source_message_id", cq.message.message_id)
     text = data.get("text", "")
     ts = int(time.time())
     await _db_exec(
@@ -1139,12 +1126,12 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         0,
         text,
         cq.message.chat.id,
-        cq.message.message_id,
+        source_message_id,
         media_ids,
     )
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
-    log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}")
+    log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, msg_id={source_message_id}")
 
 
 async def scheduled_poster():
