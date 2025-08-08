@@ -996,8 +996,8 @@ async def post_plan_button(msg: Message):
         return
 
     if not (msg.photo or msg.video or msg.animation):
-        log.error(
-            "[POST_PLAN_BTN] Unsupported content user=%s chat=%s type=%s",
+        log.info(
+            "[POST_PLAN_BTN] Ignoring unsupported content user=%s chat=%s type=%s",
             user_id,
             msg.chat.id,
             msg.content_type,
