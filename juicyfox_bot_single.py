@@ -1013,10 +1013,12 @@ async def add_post_plan_button(msg: Message):
         log.info(f"[POST_PLAN] Игнор: не админ ({msg.from_user.id})")
         return
 
-    # Только одиночные медиа (фото, видео, gif-анимация), без альбомов
-    if msg.media_group_id is not None:
-        log.info(f"[POST_PLAN] Игнор альбом: {msg.media_group_id}")
+    # Пропускаем альбомы
+    if msg.media_group_id:
+        log.info(f"[POST_PLAN] Игнор: альбом media_group_id={msg.media_group_id}")
         return
+
+    # Только одиночные медиа (фото, видео, gif-анимация)
     if not (msg.photo or msg.video or msg.animation):
         log.info(f"[POST_PLAN] Игнор: не медиа ({msg.message_id})")
         return
@@ -1059,6 +1061,7 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
         log.error(f"[POST_PLAN] Ошибка парсинга message_id: {e}")
         return
 
+    # Не очищаем state здесь, чтобы не потерять source_message_id
     await state.set_state(Post.wait_channel)
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
@@ -1115,8 +1118,8 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     channel = data.get("channel")
     media_ids = ','.join(data.get("media_ids", []))
-    source_message_id = data.get("source_message_id", cq.message.message_id)
     text = data.get("text", "")
+    source_msg_id = data.get("source_message_id", cq.message.message_id)
     ts = int(time.time())
     await _db_exec(
         "INSERT INTO scheduled_posts VALUES(?,?,?,?,?,?,?,?)",
@@ -1126,12 +1129,12 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         0,
         text,
         cq.message.chat.id,
-        source_message_id,
+        int(source_msg_id),
         media_ids,
     )
     await cq.message.edit_text("✅ Пост запланирован!")
     await state.clear()
-    log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, msg_id={source_message_id}")
+    log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
 
 
 async def scheduled_poster():
