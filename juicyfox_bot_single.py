@@ -1014,13 +1014,13 @@ async def add_post_plan_button(msg: Message):
         return
 
     # Пропускаем альбомы
-    if msg.media_group_id:
-        log.info(f"[POST_PLAN] Игнор: альбом media_group_id={msg.media_group_id}")
+    if msg.media_group_id is not None:
+        log.info(f"[POST_PLAN] Игнор: альбом (media_group_id={msg.media_group_id})")
         return
 
     # Только одиночные медиа (фото, видео, gif-анимация)
     if not (msg.photo or msg.video or msg.animation):
-        log.info(f"[POST_PLAN] Игнор: не медиа ({msg.message_id})")
+        log.info(f"[POST_PLAN] Игнор: не медиа ({msg.content_type})")
         return
 
     kb = InlineKeyboardMarkup(
