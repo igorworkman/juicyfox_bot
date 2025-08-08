@@ -114,6 +114,8 @@ def extract_media(msg: Message):
         fid, mtype = msg.voice.file_id, 'voice'
     elif msg.video:
         fid, mtype = msg.video.file_id, 'video'
+    elif msg.animation:
+        fid, mtype = msg.animation.file_id, 'animation'
     elif msg.video_note:
         fid, mtype = msg.video_note.file_id, 'video_note'
     return text, fid, mtype
@@ -134,6 +136,8 @@ async def send_to_history(bot, chat_id, msg):
             await bot.send_voice(chat_id, msg.voice.file_id, caption=caption)
         elif getattr(msg, "video", None):
             await bot.send_video(chat_id, msg.video.file_id, caption=caption)
+        elif getattr(msg, "animation", None):
+            await bot.send_animation(chat_id, msg.animation.file_id, caption=caption)
         elif getattr(msg, "video_note", None):
             await bot.send_video_note(chat_id, msg.video_note.file_id)
             if caption:
@@ -155,7 +159,7 @@ async def get_last_messages(uid: int, limit: int):
 
     messages = []
     for sender, text, fid, mtype in reversed(rows):
-        msg = SimpleNamespace(sender=sender, text=None, caption=None, photo=None, voice=None, video=None, video_note=None)
+        msg = SimpleNamespace(sender=sender, text=None, caption=None, photo=None, voice=None, video=None, animation=None, video_note=None)
         if mtype == "photo":
             msg.caption = text
             msg.photo = [SimpleNamespace(file_id=fid)]
@@ -165,6 +169,9 @@ async def get_last_messages(uid: int, limit: int):
         elif mtype == "video":
             msg.caption = text
             msg.video = SimpleNamespace(file_id=fid)
+        elif mtype == "animation":
+            msg.caption = text
+            msg.animation = SimpleNamespace(file_id=fid)
         elif mtype == "video_note":
             msg.video_note = SimpleNamespace(file_id=fid)
         else:
@@ -950,7 +957,7 @@ async def _unused_cmd_history_2(msg: Message):
         caption = text if sender == 'user' else f"📬 Ответ от оператора\n{text or ''}"
 
         try:
-            if media_type in ('photo', 'voice', 'video'):
+            if media_type in ('photo', 'voice', 'video', 'animation'):
                 await getattr(bot, f'send_{media_type}')(
                     HISTORY_GROUP_ID, file_id, caption=caption
                 )
@@ -978,7 +985,7 @@ async def _unused_cmd_history_3(msg: Message):
     for sender, text, file_id, media_type in reversed(rows):
         caption = text if sender == 'user' else f"📬 Ответ от оператора\n{text or ''}"
         try:
-            if media_type in ('photo', 'voice', 'video'):
+            if media_type in ('photo', 'voice', 'video', 'animation'):
                 await getattr(bot, f'send_{media_type}')(HISTORY_GROUP_ID, file_id, caption=caption)
             elif media_type == 'video_note':
                 await bot.send_video_note(HISTORY_GROUP_ID, file_id)
@@ -1093,14 +1100,17 @@ async def post_content(msg: Message, state: FSMContext):
         await msg.reply("Ошибка: не выбран канал.")
         await state.clear()
         return
-    if msg.photo or msg.video:
+    if msg.photo or msg.video or msg.animation:
         ids = data.get("media_ids", [])
         if msg.photo:
             file_id = msg.photo[-1].file_id
             media_type = "photo"
-        else:
+        elif msg.video:
             file_id = msg.video.file_id
             media_type = "video"
+        else:
+            file_id = msg.animation.file_id
+            media_type = "animation"
         ids.append((media_type, file_id))
         await state.update_data(media_ids=ids)
         log.info("[POST_PLAN] Добавлено медиа: %s", file_id)
@@ -1209,17 +1219,21 @@ async def scheduled_poster():
                         media_type, file_id = ids[0]
                         if media_type == "photo":
                             published = await bot.send_photo(chat_id, file_id, caption=text)
-                        else:
+                        elif media_type == "video":
                             published = await bot.send_video(chat_id, file_id, caption=text)
+                        else:
+                            published = await bot.send_animation(chat_id, file_id, caption=text)
                         sent_ids.append(str(published.message_id))
                     else:
-                        from aiogram.types import InputMediaPhoto, InputMediaVideo
+                        from aiogram.types import InputMediaPhoto, InputMediaVideo, InputMediaAnimation
                         media = []
                         for i, (media_type, file_id) in enumerate(ids):
                             if media_type == "photo":
                                 m = InputMediaPhoto(media=file_id, caption=text if i == 0 else None)
-                            else:
+                            elif media_type == "video":
                                 m = InputMediaVideo(media=file_id, caption=text if i == 0 else None)
+                            else:
+                                m = InputMediaAnimation(media=file_id, caption=text if i == 0 else None)
                             media.append(m)
                         grp = await bot.send_media_group(chat_id, media)
                         if grp:
