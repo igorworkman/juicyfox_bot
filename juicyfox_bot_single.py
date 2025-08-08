@@ -1027,15 +1027,19 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
         cq.from_user.id,
         cq.message.chat.id,
     )
-    if str(cq.message.chat.id) != str(POST_PLAN_GROUP_ID):
+    if cq.message.chat.id != POST_PLAN_GROUP_ID:
         await cq.answer("⛔ Планирование доступно только в группе", show_alert=True)
         return
     if cq.from_user.id not in ADMINS:
         await cq.answer("⛔ Только админы могут планировать посты", show_alert=True)
         return
+    try:
+        msg_id = int(cq.data.split(":")[1])
+    except (IndexError, ValueError):
+        log.error("[POST_PLAN] Ошибка парсинга message_id из callback")
+        return
     await state.clear()
-    msg_id = cq.data.split(":")[1]
-    await state.update_data(message_id=int(msg_id))
+    await state.update_data(source_message_id=msg_id)
     await state.set_state(Post.wait_channel)
     log.info(
         "[POST_PLAN] start_post_plan transition -> Post.wait_channel user=%s chat=%s",
@@ -1131,7 +1135,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     ts = int(time.time())
     from_msg = cq.message.message_id
     if not media_ids_list and not text:
-        stored_id = data.get("message_id")
+        stored_id = data.get("source_message_id")
         if stored_id:
             from_msg = int(stored_id)
         text = "<media>"
