@@ -99,9 +99,7 @@ def relay_error_handler(func):
         try:
             return await func(msg, *a, **kw)
         except Exception as e:
-            log.error("%s error: %s", func.__name__, e)
-            tb = traceback.format_exc()
-            print(f"{func.__name__} error: {e}\n{tb}")
+            log.exception("%s error: %s", func.__name__, e)
     return wrapper
 
 
@@ -217,7 +215,7 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 
 # --- Startup ------------------------------------------------
 async def on_startup():
-    print("DEBUG: on_startup called")
+    log.debug("on_startup called")
     await _db_exec(
         "CREATE TABLE IF NOT EXISTS reply_links (reply_msg_id INTEGER PRIMARY KEY, user_id INTEGER)"
     )
@@ -922,16 +920,15 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 
 # legacy history handler
 async def _unused_cmd_history_2(msg: Message):
-    print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
-    print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
+    log.debug("Received /history in chat=%s text=%s", msg.chat.id, msg.text)
     if msg.chat.id != HISTORY_GROUP_ID:
-        print(f"[ERROR] /history used outside history group: chat_id={msg.chat.id}")
+        log.error("/history used outside history group: chat_id=%s", msg.chat.id)
         await msg.reply("Команда доступна только в чате истории")
         return
 
     args = msg.text.split()
     if len(args) != 3:
-        print(f"[ERROR] /history invalid args count: {msg.text}")
+        log.error("/history invalid args count: %s", msg.text)
         await msg.reply("неверный синтаксис")
         return
 
@@ -939,7 +936,7 @@ async def _unused_cmd_history_2(msg: Message):
         uid = int(args[1])
         limit = int(args[2])
     except ValueError:
-        print(f"[ERROR] /history invalid uid/limit: {msg.text}")
+        log.error("/history invalid uid/limit: %s", msg.text)
         await msg.reply("неверный синтаксис")
         return
 
@@ -966,7 +963,7 @@ async def _unused_cmd_history_2(msg: Message):
             elif text:
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
-            print(f"Ошибка при отправке истории: {e}")
+            log.error("Ошибка при отправке истории: %s", e)
 # legacy history handler for group
 async def _unused_cmd_history_3(msg: Message):
     parts = msg.text.strip().split()
@@ -992,7 +989,7 @@ async def _unused_cmd_history_3(msg: Message):
             elif text:
                 await bot.send_message(HISTORY_GROUP_ID, caption)
         except Exception as e:
-            print(f"Ошибка при отправке истории: {e}")
+            log.error("Ошибка при отправке истории: %s", e)
 
 post_plan_albums: set[str] = set()
 
@@ -1353,7 +1350,7 @@ async def cryptobot_hook(request: web.Request):
 # Only respond to /history inside the configured history group
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
-    print(f"[DEBUG] Получена команда history из чата {msg.chat.id}, ожидается {HISTORY_GROUP_ID}")
+    log.debug("Получена команда history из чата %s, ожидается %s", msg.chat.id, HISTORY_GROUP_ID)
     parts = msg.text.strip().split()
     if len(parts) not in (2, 3):
         await msg.reply("⚠️ Используй /history <user_id> [limit]")
@@ -1375,7 +1372,7 @@ async def cmd_history(msg: Message):
 
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
-    print("DEBUG: Inside main()")
+    log.debug("Inside main()")
     # aiohttp web‑server
     app = web.Application()
     app.router.add_post('/cryptobot/webhook', cryptobot_hook)
@@ -1398,7 +1395,7 @@ async def test_vip_post(msg: Message):
         await bot.send_message(CHANNELS["vip"], "✅ Проверка: бот может писать в VIP")
         await msg.reply("✅ Успешно отправлено в VIP-канал")
     except Exception as e:
-        print(f"❌ Ошибка при отправке в VIP: {e}")
+        log.error("Ошибка при отправке в VIP: %s", e)
 
 @dp.message(Command("delete_post"))
 async def delete_post_cmd(msg: Message):
@@ -1429,7 +1426,7 @@ async def delete_post_cmd(msg: Message):
         await bot.delete_message(chat_id, msg_id)
         await msg.reply(tr(lang, 'post_deleted'))
     except Exception as e:
-        print(f"❌ Ошибка удаления: {e}")
+        log.error("Ошибка удаления: %s", e)
 
 
 async def setup_webhook():
