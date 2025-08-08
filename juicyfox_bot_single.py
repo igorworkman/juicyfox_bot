@@ -75,6 +75,7 @@ class Post(StatesGroup):
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.base import StorageKey
 
 async def _init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -1242,15 +1243,18 @@ async def scheduled_poster():
                 await _db_exec("DELETE FROM scheduled_posts WHERE rowid = ?", rowid)
                 # Query again to ensure the post won't be processed twice
                 remaining = await _db_fetchone(
-                    "SELECT 1 FROM scheduled_posts WHERE rowid = ?", rowid
+                    "SELECT COUNT(*) FROM scheduled_posts WHERE rowid=?",
+                    rowid,
                 )
-                if remaining:
-                    log.warning(
-                        f"[POST_PLAN] rowid={rowid} not removed from scheduled_posts"
-                    )
-                else:
+                log.info(
+                    f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди, remaining={remaining[0]}",
+                )
+                if remaining[0] == 0:
+                    state_key = StorageKey(bot.id, from_chat, from_chat)
+                    state = FSMContext(dp.storage, state_key)
+                    await state.clear()
                     log.info(
-                        f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди"
+                        f"[POST_PLAN] FSM state cleared after posting rowid={rowid}",
                     )
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
