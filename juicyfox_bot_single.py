@@ -1077,7 +1077,14 @@ async def add_post_plan_button(msg: Message):
     user_id = msg.from_user.id
     if user_id not in ADMINS:
         return
-    if not (msg.photo or msg.video):
+
+    has_media = bool(
+        msg.photo
+        or msg.video
+        or msg.animation
+        or msg.document
+    )
+    if not has_media:
         return
 
     async def _send_button(target: Message) -> None:
@@ -1094,9 +1101,19 @@ async def add_post_plan_button(msg: Message):
             reply_markup=kb.as_markup(),
             reply_to_message_id=target.message_id,
         )
-        media_type = "photo" if target.photo else "video"
+        if target.photo:
+            media_type = "photo"
+        elif target.video:
+            media_type = "video"
+        elif target.animation:
+            media_type = "animation"
+        elif target.document:
+            media_type = "document"
+        else:
+            media_type = "unknown"
+
         log.info(
-            "[POST_PLAN_BTN] user=%s chat=%s media_group=%s type=%s",
+            "[POST_PLAN_BTN] user=%s chat=%s media_group=%s media_type=%s",
             user_id,
             target.chat.id,
             target.media_group_id,
