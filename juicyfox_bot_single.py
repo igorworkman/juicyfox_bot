@@ -297,7 +297,8 @@ CREATE TABLE IF NOT EXISTS scheduled_posts(
   from_chat_id INTEGER,
   from_msg_id INTEGER,
   media_ids TEXT,
-  status TEXT DEFAULT 'scheduled'
+  status TEXT DEFAULT 'scheduled',
+  is_sent INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS published_posts(
   rowid INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -306,7 +307,14 @@ CREATE TABLE IF NOT EXISTS published_posts(
 );
 """
 
-async def _db_exec(q: str, *a, fetchone: bool = False, fetchall: bool = False, return_rowid: bool = False):
+async def _db_exec(
+    q: str,
+    *a,
+    fetchone: bool = False,
+    fetchall: bool = False,
+    return_rowid: bool = False,
+    return_rowcount: bool = False,
+):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(CREATE_SQL)  # ensure both tables
         cur = await db.execute(q, a)
@@ -317,8 +325,10 @@ async def _db_exec(q: str, *a, fetchone: bool = False, fetchall: bool = False, r
             result = await cur.fetchall()
         elif return_rowid:
             result = cur.lastrowid
+        elif return_rowcount:
+            result = cur.rowcount
         await db.commit()
-        if fetchone or fetchall or return_rowid:
+        if fetchone or fetchall or return_rowid or return_rowcount:
             return result
 
 async def _db_fetchall(q:str,*a):
@@ -1134,7 +1144,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     source_msg_id = data.get("source_message_id", cq.message.message_id)
     ts = int(time.time())
     rowid = await _db_exec(
-        "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status) VALUES(?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status, is_sent) VALUES(?,?,?,?,?,?,?,?,?,?)",
         int(time.time()),
         ts,
         channel,
@@ -1144,6 +1154,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         int(source_msg_id),
         media_ids,
         "scheduled",
+        0,
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
@@ -1161,7 +1172,7 @@ async def scheduled_poster():
         log.debug(f"[DEBUG] Checking scheduled_posts, now={now}")
 
         rows = await _db_fetchall(
-            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status FROM scheduled_posts WHERE publish_ts <= ? AND status='scheduled'",
+            "SELECT rowid, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status FROM scheduled_posts WHERE publish_ts <= ? AND status='scheduled' AND is_sent=0",
             now,
         )
 
@@ -1170,14 +1181,14 @@ async def scheduled_poster():
         if not rows:
             log.debug("[SCHEDULED_POSTER] No posts scheduled for now.")
 
-        for rowid, _, channel, price, text, from_chat, from_msg, media_ids, status in rows:
-            if status != 'scheduled':
-                continue
-            exists = await _db_fetchone(
-                "SELECT 1 FROM scheduled_posts WHERE rowid=? AND status='scheduled'", rowid
+        for rowid, _, channel, price, text, from_chat, from_msg, media_ids, _status in rows:
+            claimed = await _db_exec(
+                "UPDATE scheduled_posts SET is_sent=1, status='sending' WHERE rowid=? AND is_sent=0 AND status='scheduled'",
+                rowid,
+                return_rowcount=True,
             )
-            if not exists:
-                log.info(f"[SCHEDULED_POSTER] rowid={rowid} already processed, skipping")
+            if not claimed:
+                log.info(f"[SCHEDULED_POSTER] rowid={rowid} already claimed, skipping")
                 continue
             chat_id = CHANNELS.get(channel)
             if not chat_id:
@@ -1232,11 +1243,17 @@ async def scheduled_poster():
                     )
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
-                await _db_exec("UPDATE scheduled_posts SET status='failed' WHERE rowid=?", rowid)
+                await _db_exec(
+                    "UPDATE scheduled_posts SET status='failed', is_sent=0 WHERE rowid=?",
+                    rowid,
+                )
                 continue
             except Exception as e:
                 log.error(f"[FATAL POST FAIL] {e}\n{traceback.format_exc()}")
-                await _db_exec("UPDATE scheduled_posts SET status='failed' WHERE rowid=?", rowid)
+                await _db_exec(
+                    "UPDATE scheduled_posts SET status='failed', is_sent=0 WHERE rowid=?",
+                    rowid,
+                )
                 continue
             await asyncio.sleep(0.2)
             if published:
