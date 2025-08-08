@@ -46,6 +46,7 @@ post_plan_kb = get_post_plan_kb()
 
 POST_PLAN_GROUP_ID = -1002825908735
 POST_PLAN_GROUP_ID = int(POST_PLAN_GROUP_ID)
+post_counter = 1  # TODO: remove after testing
 
 def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
@@ -1042,14 +1043,17 @@ async def add_post_plan_button(msg: Message):
         inline_keyboard=[[InlineKeyboardButton(text="📆 Post Plan", callback_data=f"start_post_plan:{msg.message_id}")]]
     )
 
+    global post_counter
+    cnt = post_counter
     try:
         await bot.send_message(
             msg.chat.id,
-            "⠀",  # пустой символ U+2800
+            f"Пост №{cnt:03d}",
             reply_markup=kb,
             reply_to_message_id=msg.message_id,
         )
-        log.info(f"[POST_PLAN] Кнопка добавлена к сообщению {msg.message_id}")
+        log.info(f"[POST_PLAN] Кнопка добавлена (пост №{cnt:03d}) к сообщению {msg.message_id}")
+        post_counter += 1
     except Exception as e:
         log.error(f"[POST_PLAN] Ошибка при добавлении кнопки: {e}")
 
