@@ -1245,6 +1245,7 @@ async def cryptobot_hook(request: web.Request):
 # Only respond to /history inside the configured history group
 @dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
+    print(f"[DEBUG] Получена команда history из чата {msg.chat.id}, ожидается {HISTORY_GROUP_ID}")
     parts = msg.text.strip().split()
     if len(parts) not in (2, 3):
         await msg.reply("⚠️ Используй /history <user_id> [limit]")
