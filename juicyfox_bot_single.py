@@ -1091,7 +1091,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     await state.update_data(channel=channel)
     await state.set_state(Post.wait_content)
     kb = InlineKeyboardBuilder()
-    kb.button(text="Готово", callback_data="post_done")
+    kb.button(text="✅ Готово", callback_data="post_done")
     kb.adjust(1)
     await cq.message.edit_text(
         f"Канал выбран: {channel}\n\nПришли текст поста или медиа.",
@@ -1133,6 +1133,7 @@ async def post_content(msg: Message, state: FSMContext):
 
 @dp.callback_query(F.data == "post_done", Post.wait_content)
 async def post_done(cq: CallbackQuery, state: FSMContext):
+    log.info(f"[POST_PLAN] post_done triggered: user_id={cq.from_user.id}")
     state_name = await state.get_state()
     data = await state.get_data()
     log.info(
