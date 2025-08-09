@@ -1087,8 +1087,8 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel = cq.data.split(":")[1]
-    # Сохраняем выбранный канал и ID исходного сообщения
-    await state.update_data(channel=channel, source_message_id=cq.message.message_id)
+    # Сохраняем выбранный канал (ID исходного сообщения уже сохранён)
+    await state.update_data(channel=channel)
     await state.set_state(Post.wait_content)
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="✅ Готово", callback_data="post_done")]]
