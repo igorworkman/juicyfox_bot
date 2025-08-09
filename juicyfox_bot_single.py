@@ -203,6 +203,7 @@ LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
 LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_URL = os.getenv("VIP_URL")
+LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "0"))
 
 CHANNELS = {
     "life": LIFE_CHANNEL_ID,
@@ -1208,12 +1209,22 @@ async def scheduled_poster():
                     ids = [tuple(item.split(':', 1)) for item in media_ids.split(',')]
                     if len(ids) == 1:
                         media_type, file_id = ids[0]
-                        if media_type == "photo":
-                            published = await bot.send_photo(chat_id, file_id, caption=text)
-                        elif media_type == "video":
-                            published = await bot.send_video(chat_id, file_id, caption=text)
-                        else:
-                            published = await bot.send_animation(chat_id, file_id, caption=text)
+                        if not chat_id or not (file_id or text):
+                            log.warning(
+                                f"Post skipped: chat_id={chat_id}, file_id={file_id}, text={text}"
+                            )
+                            return
+                        try:
+                            if media_type == "photo":
+                                published = await bot.send_photo(chat_id, file_id, caption=text)
+                            elif media_type == "video":
+                                published = await bot.send_video(chat_id, file_id, caption=text)
+                            else:
+                                published = await bot.send_animation(chat_id, file_id, caption=text)
+                        except Exception as e:
+                            log.error(f"Post failed: {e}")
+                            await bot.send_message(LOG_CHANNEL_ID, f"Post error: {e}")
+                            return
                         sent_ids.append(str(published.message_id))
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo, InputMediaAnimation
@@ -1231,14 +1242,27 @@ async def scheduled_poster():
                             published = grp[0]
                             sent_ids = [str(m.message_id) for m in grp]
                 elif not media_ids and text:
-                    # Если только текст — отправить текстовое сообщение
-                    published = await bot.send_message(chat_id, text)
+                    if not chat_id or not text:
+                        log.warning(
+                            f"Post skipped: chat_id={chat_id}, file_id=None, text={text}"
+                        )
+                        return
+                    try:
+                        published = await bot.send_message(
+                            chat_id, text, disable_notification=True
+                        )
+                    except Exception as e:
+                        log.error(f"Post failed: {e}")
+                        await bot.send_message(LOG_CHANNEL_ID, f"Post error: {e}")
+                        return
                     sent_ids.append(str(published.message_id))
                 elif text == '<media>' or not text:
                     published = await bot.copy_message(chat_id, from_chat, from_msg)
                     sent_ids.append(str(published.message_id))
                 else:
-                    published = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                    published = await bot.copy_message(
+                        chat_id, from_chat, from_msg, caption=text
+                    )
                     sent_ids.append(str(published.message_id))
                 log.info(f"[POST OK] Message sent to {channel}")
                 if published:
@@ -1247,6 +1271,9 @@ async def scheduled_poster():
                         published.chat.id,
                         published.message_id,
                     )
+                    state_key = StorageKey(bot.id, from_chat, from_chat)
+                    state = FSMContext(dp.storage, state_key)
+                    await state.clear()
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
                 await _db_exec(
