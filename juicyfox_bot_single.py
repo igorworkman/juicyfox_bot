@@ -1219,7 +1219,7 @@ async def scheduled_poster():
                             else:
                                 published = await bot.send_animation(chat_id, file_id, caption=text)
                         except Exception as e:
-                            log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                            log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                         sent_ids.append(str(published.message_id))
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo, InputMediaAnimation
@@ -1242,7 +1242,7 @@ async def scheduled_poster():
                     try:
                         published = await bot.send_message(chat_id, text, disable_notification=True)
                     except Exception as e:
-                        log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                        log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 elif text == '<media>' or not text:
                     if not chat_id or (not from_msg and not text):
@@ -1250,7 +1250,7 @@ async def scheduled_poster():
                     try:
                         published = await bot.copy_message(chat_id, from_chat, from_msg)
                     except Exception as e:
-                        log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                        log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 else:
                     if not chat_id or (not from_msg and not text):
@@ -1258,7 +1258,7 @@ async def scheduled_poster():
                     try:
                         published = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
                     except Exception as e:
-                        log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                        log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 log.info(f"[POST OK] Message sent to {channel}")
                 if published:
@@ -1295,13 +1295,6 @@ async def scheduled_poster():
                 log.info(
                     f"[SCHEDULED_POSTER] sent message_ids for rowid={rowid}: {sent_ids}"
                 )
-                if remaining[0] == 0:
-                    state_key = StorageKey(bot.id, from_chat, from_chat)
-                    state = FSMContext(dp.storage, state_key)
-                    await state.clear()
-                    log.info(
-                        f"[POST_PLAN] FSM state cleared after posting rowid={rowid}",
-                    )
                 await bot.send_message(
                     POST_PLAN_GROUP_ID,
                     f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
