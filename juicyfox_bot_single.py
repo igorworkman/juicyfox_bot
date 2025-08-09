@@ -1190,7 +1190,7 @@ async def scheduled_poster():
                 continue
             chat_id = CHANNELS.get(channel)
             if not chat_id:
-                log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
+                log.warning(f"[SCHEDULED_POSTER] channel={channel} rowid={rowid} not found in CHANNELS")
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
             post_data = {
@@ -1210,10 +1210,7 @@ async def scheduled_poster():
                     if len(ids) == 1:
                         media_type, file_id = ids[0]
                         if not chat_id or not (file_id or text):
-                            log.warning(
-                                f"Post skipped: chat_id={chat_id}, file_id={file_id}, text={text}"
-                            )
-                            return
+                            log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id={file_id}, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
                         try:
                             if media_type == "photo":
                                 published = await bot.send_photo(chat_id, file_id, caption=text)
@@ -1222,9 +1219,7 @@ async def scheduled_poster():
                             else:
                                 published = await bot.send_animation(chat_id, file_id, caption=text)
                         except Exception as e:
-                            log.error(f"Post failed: {e}")
-                            await bot.send_message(LOG_CHANNEL_ID, f"Post error: {e}")
-                            return
+                            log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                         sent_ids.append(str(published.message_id))
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo, InputMediaAnimation
@@ -1243,26 +1238,27 @@ async def scheduled_poster():
                             sent_ids = [str(m.message_id) for m in grp]
                 elif not media_ids and text:
                     if not chat_id or not text:
-                        log.warning(
-                            f"Post skipped: chat_id={chat_id}, file_id=None, text={text}"
-                        )
-                        return
+                        log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id=None, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
                     try:
-                        published = await bot.send_message(
-                            chat_id, text, disable_notification=True
-                        )
+                        published = await bot.send_message(chat_id, text, disable_notification=True)
                     except Exception as e:
-                        log.error(f"Post failed: {e}")
-                        await bot.send_message(LOG_CHANNEL_ID, f"Post error: {e}")
-                        return
+                        log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 elif text == '<media>' or not text:
-                    published = await bot.copy_message(chat_id, from_chat, from_msg)
+                    if not chat_id or (not from_msg and not text):
+                        log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id={from_msg}, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
+                    try:
+                        published = await bot.copy_message(chat_id, from_chat, from_msg)
+                    except Exception as e:
+                        log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 else:
-                    published = await bot.copy_message(
-                        chat_id, from_chat, from_msg, caption=text
-                    )
+                    if not chat_id or (not from_msg and not text):
+                        log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id={from_msg}, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
+                    try:
+                        published = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
+                    except Exception as e:
+                        log.error(f"Post failed: {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 log.info(f"[POST OK] Message sent to {channel}")
                 if published:
@@ -1271,9 +1267,6 @@ async def scheduled_poster():
                         published.chat.id,
                         published.message_id,
                     )
-                    state_key = StorageKey(bot.id, from_chat, from_chat)
-                    state = FSMContext(dp.storage, state_key)
-                    await state.clear()
             except TelegramBadRequest as e:
                 log.warning(f"[POST FAIL] {e}")
                 await _db_exec(
