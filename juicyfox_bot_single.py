@@ -1094,6 +1094,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
         inline_keyboard=[[InlineKeyboardButton(text="✅ Готово", callback_data="post_done")]]
     )
     await cq.message.edit_text("Пришли текст поста или медиа.", reply_markup=kb)
+    log.info(f"[POST_PLAN] Кнопка 'Готово' создана для message_id={cq.message.message_id}")
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
