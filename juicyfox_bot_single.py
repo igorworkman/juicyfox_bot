@@ -6,7 +6,6 @@
 # • RU/EN/ES UI           → auto by language_code
 
 import os, logging, httpx, time, aiosqlite, traceback, sqlite3
-from pathlib import Path
 import asyncio
 import aiohttp
 from os import getenv
@@ -14,8 +13,8 @@ from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime
 from types import SimpleNamespace
-os.makedirs("data", exist_ok=True)
-DB_PATH = Path(__file__).parent / "data" / "messages.db"
+os.makedirs("/app/data", exist_ok=True)
+DB_PATH = "/app/data/juicyfox.db"
 
 if not os.path.exists(DB_PATH):
     with sqlite3.connect(DB_PATH) as db:
