@@ -1131,7 +1131,7 @@ async def post_content(msg: Message, state: FSMContext):
         log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
 
 
-@dp.callback_query(Post.wait_content, F.data == "post_done")
+@dp.callback_query(F.data == "post_done", Post.wait_content)
 async def post_done(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] post_done triggered: user_id={cq.from_user.id}")
     await cq.answer()
@@ -1164,6 +1164,11 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await state.clear()
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
 
+
+@dp.callback_query(F.data == "post_done")
+async def post_done_debug(cq: CallbackQuery):
+    log.info(f"[POST_PLAN] post_done debug triggered: user_id={cq.from_user.id} chat_id={cq.message.chat.id}")
+    await cq.answer()
 
 async def scheduled_poster():
     log.debug("scheduled_poster called!")
