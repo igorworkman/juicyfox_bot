@@ -1090,10 +1090,9 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     # Сохраняем выбранный канал (ID исходного сообщения уже сохранён)
     await state.update_data(channel=channel)
     await state.set_state(Post.wait_content)
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="✅ Готово", callback_data="post_done")]]
-    )
-    await cq.message.edit_text("Пришли текст поста или медиа.", reply_markup=kb)
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Готово", callback_data="post_done")
+    await cq.message.edit_text("Пришли текст поста или медиа.", reply_markup=builder.as_markup())
     log.info(f"[POST_PLAN] Кнопка 'Готово' создана для message_id={cq.message.message_id}")
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
@@ -1132,15 +1131,11 @@ async def post_content(msg: Message, state: FSMContext):
         log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
 
 
-@dp.callback_query(F.data == "post_done", Post.wait_content)
+@dp.callback_query(F.data == "post_done")
 async def post_done(cq: CallbackQuery, state: FSMContext):
-    log.info(f"[POST_PLAN] post_done triggered: user_id={cq.from_user.id}")
-    await cq.answer()
-    state_name = await state.get_state()
     data = await state.get_data()
-    log.info(
-        f"[POST_PLAN] post_done: user_id={cq.from_user.id} chat_id={cq.message.chat.id} state={state_name} data={data}"
-    )
+    log.info("[POST_PLAN] post_done triggered, state=%s, data=%s", await state.get_state(), data)
+    await cq.answer()
     channel = data.get("channel")
     media_ids = ','.join(data.get("media_ids", []))
     text = data.get("text", "")
@@ -1164,12 +1159,6 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text("✅ Пост запланирован!")
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
     await state.clear()
-
-
-@dp.callback_query(F.data == "post_done")
-async def post_done_debug(cq: CallbackQuery):
-    log.info(f"[POST_PLAN] post_done debug triggered: user_id={cq.from_user.id} chat_id={cq.message.chat.id}")
-    await cq.answer()
 
 async def scheduled_poster():
     log.debug("scheduled_poster called!")
