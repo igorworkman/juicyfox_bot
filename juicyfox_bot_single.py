@@ -1209,8 +1209,7 @@ async def scheduled_poster():
                     ids = [tuple(item.split(':', 1)) for item in media_ids.split(',')]
                     if len(ids) == 1:
                         media_type, file_id = ids[0]
-                        if not chat_id or not (file_id or text):
-                            log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id={file_id}, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
+                        if not chat_id or not (file_id or text): log.warning(f"[POST SKIPPED] rowid={rowid} channel={channel} chat_id={chat_id} file_id={file_id} text={text}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
                         try:
                             if media_type == "photo":
                                 published = await bot.send_photo(chat_id, file_id, caption=text)
@@ -1218,8 +1217,7 @@ async def scheduled_poster():
                                 published = await bot.send_video(chat_id, file_id, caption=text)
                             else:
                                 published = await bot.send_animation(chat_id, file_id, caption=text)
-                        except Exception as e:
-                            log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                        except Exception as e: log.error(f"[POST ERROR] rowid={rowid} channel={channel} {e}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                         sent_ids.append(str(published.message_id))
                     else:
                         from aiogram.types import InputMediaPhoto, InputMediaVideo, InputMediaAnimation
@@ -1232,35 +1230,31 @@ async def scheduled_poster():
                             else:
                                 m = InputMediaAnimation(media=file_id, caption=text if i == 0 else None)
                             media.append(m)
-                        grp = await bot.send_media_group(chat_id, media)
+                        try:
+                            grp = await bot.send_media_group(chat_id, media)
+                        except Exception as e: log.error(f"[POST ERROR] rowid={rowid} channel={channel} {e}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                         if grp:
                             published = grp[0]
                             sent_ids = [str(m.message_id) for m in grp]
                 elif not media_ids and text:
-                    if not chat_id or not text:
-                        log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id=None, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
+                    if not chat_id or not text: log.warning(f"[POST SKIPPED] rowid={rowid} channel={channel} chat_id={chat_id} file_id=None text={text}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
                     try:
                         published = await bot.send_message(chat_id, text, disable_notification=True)
-                    except Exception as e:
-                        log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                    except Exception as e: log.error(f"[POST ERROR] rowid={rowid} channel={channel} {e}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 elif text == '<media>' or not text:
-                    if not chat_id or (not from_msg and not text):
-                        log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id={from_msg}, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
+                    if not chat_id or (not from_msg and not text): log.warning(f"[POST SKIPPED] rowid={rowid} channel={channel} chat_id={chat_id} file_id={from_msg} text={text}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
                     try:
                         published = await bot.copy_message(chat_id, from_chat, from_msg)
-                    except Exception as e:
-                        log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                    except Exception as e: log.error(f"[POST ERROR] rowid={rowid} channel={channel} {e}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
                 else:
-                    if not chat_id or (not from_msg and not text):
-                        log.warning(f"[POST SKIPPED] chat_id={chat_id}, file_id={from_msg}, text={text}"); await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
+                    if not chat_id or (not from_msg and not text): log.warning(f"[POST SKIPPED] rowid={rowid} channel={channel} chat_id={chat_id} file_id={from_msg} text={text}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post skipped: channel={channel}, reason=empty data"); continue
                     try:
                         published = await bot.copy_message(chat_id, from_chat, from_msg, caption=text)
-                    except Exception as e:
-                        log.error(f"[POST FAILED] {e}"); await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
+                    except Exception as e: log.error(f"[POST ERROR] rowid={rowid} channel={channel} {e}"); LOG_CHANNEL_ID and await bot.send_message(LOG_CHANNEL_ID, f"Post error in channel={channel}: {e}"); continue
                     sent_ids.append(str(published.message_id))
-                log.info(f"[POST OK] Message sent to {channel}")
+                log.info(f"[POST OK] rowid={rowid} channel={channel}")
                 if published:
                     await _db_exec(
                         "INSERT INTO published_posts (chat_id, message_id) VALUES (?, ?)",
