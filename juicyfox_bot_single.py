@@ -1316,7 +1316,12 @@ async def cryptobot_hook(request: web.Request):
     if data.get('update_type') != 'invoice_paid' or data.get('status') != 'paid':
         return web.json_response({'ok': True})
 
-    payload_str = data.get('payload', '')
+    payload = data.get('payload')
+    amount = data.get('amount')
+    if not payload or not amount:
+        log.warning('[WEBHOOK] Missing payload or amount in update: %s', data)
+        return web.Response(status=400)
+    payload_str = payload
     try:
         uid_str, plan = payload_str.split(':', 1)
         user_id = int(uid_str)
@@ -1339,7 +1344,7 @@ async def cryptobot_hook(request: web.Request):
     if not usd_amt and asset:
         try:
             rates = await exchange_rates()
-            usd_amt = float(data.get('amount', 0)) * rates.get(asset.upper(), 0)
+            usd_amt = float(amount) * rates.get(asset.upper(), 0)
         except Exception:
             usd_amt = 0
     if usd_amt:
