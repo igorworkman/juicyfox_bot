@@ -1110,11 +1110,14 @@ async def post_content(msg: Message, state: FSMContext):
         ids = data.get("media_ids", [])
         if msg.photo:
             file_id = msg.photo[-1].file_id
+            mtype = "photo"
         elif msg.video:
             file_id = msg.video.file_id
+            mtype = "video"
         else:
             file_id = msg.animation.file_id
-        ids.append(file_id)
+            mtype = "animation"
+        ids.append(f"{mtype}:{file_id}")
         await state.update_data(media_ids=ids)
         if msg.caption:
             await state.update_data(text=msg.caption)
@@ -1128,9 +1131,10 @@ async def post_content(msg: Message, state: FSMContext):
         log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
 
 
-@dp.callback_query(F.data == "post_done", Post.wait_content)
+@dp.callback_query(Post.wait_content, F.data == "post_done")
 async def post_done(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] post_done triggered: user_id={cq.from_user.id}")
+    await cq.answer()
     state_name = await state.get_state()
     data = await state.get_data()
     log.info(
