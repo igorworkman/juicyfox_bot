@@ -1197,6 +1197,15 @@ async def scheduled_poster():
                 log.warning(f"[SCHEDULED_POSTER] Channel {channel} not found in CHANNELS, skipping rowid={rowid}")
                 continue
             log.debug(f"[DEBUG] Ready to post: rowid={rowid} channel={channel} text={text[:30]}")
+            post_data = {
+                "text": text,
+                "media_ids": media_ids,
+                "from_chat": from_chat,
+                "from_msg": from_msg,
+            }
+            log.info(
+                f"[SCHEDULED_POSTER] rowid={rowid} channel={channel} data={post_data}"
+            )
             try:
                 published = None
                 sent_ids = []
@@ -1267,6 +1276,9 @@ async def scheduled_poster():
                 )
                 log.info(
                     f"[POST_PLAN] Пост rowid={rowid} успешно опубликован и удалён из очереди, remaining={remaining[0]}",
+                )
+                log.info(
+                    f"[SCHEDULED_POSTER] sent message_ids for rowid={rowid}: {sent_ids}"
                 )
                 if remaining[0] == 0:
                     state_key = StorageKey(bot.id, from_chat, from_chat)
