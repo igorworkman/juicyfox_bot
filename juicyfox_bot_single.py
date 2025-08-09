@@ -1161,8 +1161,8 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
     await cq.message.edit_text("✅ Пост запланирован!")
-    await state.clear()
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
+    await state.clear()
 
 
 async def scheduled_poster():
