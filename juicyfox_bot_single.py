@@ -1239,11 +1239,11 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     log.info("[POST_PLAN] post_done triggered, state=%s, data=%s", await state.get_state(), data)
     await cq.answer()
-    channel = data.get("channel")
+    channel = data["channel"]
     media_ids = ','.join(data.get("media_ids", []))
     text = data.get("text", "")
     source_msg_id = data.get("source_message_id", cq.message.message_id)
-    ts = data.get("publish_ts", int(time.time()))
+    ts = data["publish_ts"]
     rowid = await _db_exec(
         "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status, is_sent) VALUES(?,?,?,?,?,?,?,?,?,?)",
         int(time.time()),
@@ -1262,7 +1262,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     lang = cq.from_user.language_code
     date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
     time_str = f"{data['h']:02d}:{data['min']:02d}"
-    tariff_str = data.get("tariff", "")
+    tariff_str = data["tariff"]
     await cq.message.edit_reply_markup()
     await cq.message.answer(
         tr(lang, 'post_scheduled').format(
