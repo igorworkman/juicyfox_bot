@@ -1095,13 +1095,34 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
 
-def dt_kb(d, lang):
-    y,m,dn,h,mi=d['y'],d['m'],d.get('d'),d['h'],d['min']; cal=calendar.monthcalendar(y,m); kb=InlineKeyboardBuilder()
-    kb.row(InlineKeyboardButton(text='◀️',callback_data='m:-1'),InlineKeyboardButton(text=f'{y}-{m:02d}',callback_data='noop'),InlineKeyboardButton(text='▶️',callback_data='m:1'))
+def date_kb(d, lang):
+    y, m, selected_day = d['y'], d['m'], d.get('d')
+    cal = calendar.monthcalendar(y, m)
+    kb = InlineKeyboardBuilder()
+    kb.row(InlineKeyboardButton(text=f'{y}-{m:02d}', callback_data='noop'))
     for w in cal:
-        kb.row(*[InlineKeyboardButton(text=' ' if x==0 else(f'[{x}]' if x==dn else str(x)),callback_data=('noop' if x==0 else f'd:{x}')) for x in w])
-    kb.row(InlineKeyboardButton(text='◀️',callback_data='h:-1'),InlineKeyboardButton(text=f'{h:02d}',callback_data='noop'),InlineKeyboardButton(text='▶️',callback_data='h:1'),*[InlineKeyboardButton(text=f'{mm:02d}',callback_data=f'mi:{mm}') for mm in (0,15,30,45)])
-    kb.row(InlineKeyboardButton(text=tr(lang,'dt_ok'),callback_data='ok'),InlineKeyboardButton(text=tr(lang,'dt_cancel'),callback_data='cancel'))
+        kb.row(*[
+            InlineKeyboardButton(
+                text=' ' if x == 0 else (f'[{x}]' if x == selected_day else str(x)),
+                callback_data='noop' if x == 0 else f'd:{x}'
+            ) for x in w
+        ])
+    kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
+    return kb.as_markup()
+
+
+def hour_kb(lang):
+    kb = InlineKeyboardBuilder()
+    for r in range(4):
+        kb.row(*[InlineKeyboardButton(text=f'{h:02d}', callback_data=f'h:{h}') for h in range(r * 6, (r + 1) * 6)])
+    kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
+    return kb.as_markup()
+
+
+def minute_kb(lang):
+    kb = InlineKeyboardBuilder()
+    kb.row(*[InlineKeyboardButton(text=f'{mm:02d}', callback_data=f'mi:{mm}') for mm in (0, 15, 30, 45)])
+    kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
     return kb.as_markup()
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
@@ -1110,33 +1131,42 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel=cq.data.split(":")[1]; await state.update_data(channel=channel)
     now=datetime.now(); data={'y':now.year,'m':now.month,'d':now.day,'h':now.hour,'min':0}
     await state.update_data(**data); await state.set_state(Post.select_datetime)
-    await cq.message.edit_text(tr(cq.from_user.language_code,'dt_prompt'), reply_markup=dt_kb(data,cq.from_user.language_code))
+    await cq.message.edit_text(tr(cq.from_user.language_code,'dt_prompt'), reply_markup=date_kb(data,cq.from_user.language_code))
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
 @dp.callback_query(Post.select_datetime)
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
-    data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
-    if act=='noop': await cq.answer(); return
-    if act=='m':
-        m=data['m']+int(val); y=data['y']
-        if m<1: m, y = 12, y-1
-        elif m>12: m, y = 1, y+1
-        data['y'], data['m'] = y, m
-        md=calendar.monthrange(y,m)[1]
-        if data.get('d',0)>md: data['d']=md
-    elif act=='d':
-        d=int(val)
-        if d==0: await cq.answer(); return
-        data['d']=d
-    elif act=='h': data['h']=(data['h']+int(val))%24
-    elif act=='mi': data['min']=int(val)
-    elif act=='ok':
-        ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); await cq.answer(); return
-    elif act=='cancel':
-        await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); await cq.answer(); return
-    await state.update_data(**data)
-    await cq.message.edit_reply_markup(dt_kb(data,cq.from_user.language_code))
+    data = await state.get_data()
+    act, val = (cq.data.split(':') + ['0'])[:2]
+    if act == 'noop':
+        await cq.answer()
+        return
+    lang = cq.from_user.language_code
+    if act == 'd':
+        d = int(val)
+        if d == 0:
+            await cq.answer()
+            return
+        data['d'] = d
+        await state.update_data(**data)
+        await cq.message.edit_reply_markup(hour_kb(lang))
+    elif act == 'h':
+        data['h'] = int(val)
+        await state.update_data(**data)
+        await cq.message.edit_reply_markup(minute_kb(lang))
+    elif act == 'mi':
+        data['min'] = int(val)
+        await state.update_data(**data)
+        ts = int(datetime(data['y'], data['m'], data['d'], data['h'], data['min']).timestamp())
+        await state.update_data(publish_ts=ts)
+        await state.set_state(Post.wait_content)
+        b = InlineKeyboardBuilder()
+        b.button(text='✅ Готово', callback_data='post_done')
+        await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+    elif act == 'cancel':
+        await cq.message.edit_text(tr(lang, 'cancel'))
+        await state.clear()
     await cq.answer()
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
