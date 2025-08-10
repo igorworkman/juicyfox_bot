@@ -467,7 +467,7 @@ L10N={
 'not_allowed_channel': '🚫 Неизвестный канал назначения.',
 'error_post_not_found': 'Пост не найден',
 'post_deleted':'Пост удалён',
-'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
+'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена','post_content_prompt':'Пришли текст поста или медиа.',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
@@ -515,7 +515,7 @@ Just you and me... Let’s get a little closer 💋
  'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
 'not_allowed_channel': '🚫 Unknown target channel.',
 'error_post_not_found': 'Post not found',
-'post_deleted':'Post deleted','dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
+'post_deleted':'Post deleted','dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel','post_content_prompt':'Send post text or media.',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -564,7 +564,7 @@ Solo tú y yo... Acércate un poquito más 💋
  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
 'not_allowed_channel': '🚫 Canal de destino desconocido.',
 'error_post_not_found': 'Publicación no encontrada',
-'post_deleted':'Post eliminado','dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
+'post_deleted':'Post eliminado','dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar','post_content_prompt':'Envía texto o media del post.',
   }
 }
 
@@ -1112,7 +1112,7 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
     elif act=='d': data['d']=int(val)
     elif act=='h': data['h']=(data['h']+int(val))%24
     elif act=='mi': data['min']=int(val)
-    elif act=='ok': ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); return
+    elif act=='ok': ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text(tr(cq.from_user.language_code, 'post_content_prompt'),reply_markup=b.as_markup()); return
     elif act=='cancel': await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); return
     await state.update_data(**data)
     await cq.message.edit_reply_markup(dt_kb(data,cq.from_user.language_code))
