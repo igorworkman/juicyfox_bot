@@ -213,6 +213,13 @@ CHANNELS = {
     "chat_30": CHAT_GROUP_ID,  # Juicy Chat group
 }
 
+# Default tariff description for each posting channel
+CHANNEL_TARIFFS = {
+    "life": "100 Stars⭐️",
+    "vip": "Подписка 35 $",
+    "luxury": "Подписка 15 $",
+}
+
 log.info(
     "Env CHAT_GROUP_ID=%s HISTORY_GROUP_ID=%s LIFE_CHANNEL_ID=%s POST_PLAN_GROUP_ID=%s",
     CHAT_GROUP_ID,
@@ -1128,7 +1135,9 @@ def minute_kb(lang):
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
-    channel=cq.data.split(":")[1]; await state.update_data(channel=channel)
+    channel = cq.data.split(":")[1]
+    tariff = CHANNEL_TARIFFS.get(channel, "")
+    await state.update_data(channel=channel, tariff=tariff)
     now=datetime.now(); data={'y':now.year,'m':now.month,'d':now.day,'h':now.hour,'min':0}
     await state.update_data(**data); await state.set_state(Post.select_datetime)
     await cq.message.edit_text(tr(cq.from_user.language_code,'dt_prompt'), reply_markup=date_kb(data,cq.from_user.language_code))
@@ -1228,13 +1237,19 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
-    lang=cq.from_user.language_code
-    date_str=f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
-    time_str=f"{data['h']:02d}:{data['min']:02d}"
-    tariffs={'life':'100 Stars⭐️','vip':'Подписка 35 $','luxury':'Подписка 15 $'}
-    tariff_str=tariffs.get(channel,'')
+    lang = cq.from_user.language_code
+    date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
+    time_str = f"{data['h']:02d}:{data['min']:02d}"
+    tariff_str = data.get("tariff", "")
     await cq.message.edit_reply_markup()
-    await cq.message.answer(tr(lang,'post_scheduled').format(channel=channel.upper(),date=date_str,time=time_str,tariff=tariff_str))
+    await cq.message.answer(
+        tr(lang, 'post_scheduled').format(
+            channel=channel.upper(),
+            date=date_str,
+            time=time_str,
+            tariff=tariff_str,
+        )
+    )
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
     await state.clear()
 
