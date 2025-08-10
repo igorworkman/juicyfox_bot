@@ -1163,23 +1163,28 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         data['d'] = d
         await state.update_data(**data)
         await cq.message.edit_reply_markup(hour_kb(lang))
+        log.info("Day selected: %s", d)
     elif act == 'h':
         data['h'] = int(val)
         await state.update_data(**data)
         await cq.message.edit_reply_markup(minute_kb(lang))
+        log.info("Hour selected: %s", data['h'])
     elif act == 'mi':
         data['min'] = int(val)
         await state.update_data(**data)
+        log.info("Minute selected: %s", data['min'])
         ts = int(datetime(data['y'], data['m'], data['d'], data['h'], data['min']).timestamp())
         channel = data.get("channel")
         await state.update_data(publish_ts=ts)
         if channel == "life":
             await state.set_state(Post.select_stars)
+            log.info("Transitioning to Post.select_stars for channel '%s'", channel)
             await cq.message.edit_text('Укажи количество звезд:')
         else:
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
             await state.set_state(Post.wait_content)
+            log.info("Transitioning to Post.wait_content for channel '%s'", channel)
             b = InlineKeyboardBuilder()
             b.button(text='✅ Готово', callback_data='post_done')
             await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
@@ -1196,6 +1201,7 @@ async def select_stars(msg: Message, state: FSMContext):
     stars = int(msg.text)
     await state.update_data(tariff=f"{stars} Stars⭐️")
     await state.set_state(Post.wait_content)
+    log.info("Transitioning to Post.wait_content after selecting %s stars", stars)
     b = InlineKeyboardBuilder()
     b.button(text='✅ Готово', callback_data='post_done')
     await msg.answer('Пришли текст поста или медиа.', reply_markup=b.as_markup())
