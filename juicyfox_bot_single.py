@@ -1098,6 +1098,7 @@ def dt_kb(d, lang):
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
+    await cq.answer()
     channel=cq.data.split(":")[1]; await state.update_data(channel=channel)
     now=datetime.now(); data={'y':now.year,'m':now.month,'d':now.day,'h':now.hour,'min':0}
     await state.update_data(**data); await state.set_state(Post.select_datetime)
@@ -1107,13 +1108,18 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(Post.select_datetime)
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
+    await cq.answer()
     data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
     if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
     elif act=='d': data['d']=int(val)
     elif act=='h': data['h']=(data['h']+int(val))%24
     elif act=='mi': data['min']=int(val)
-    elif act=='ok': ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); return
-    elif act=='cancel': await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); return
+    elif act=='ok':
+        await cq.answer()
+        ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); return
+    elif act=='cancel':
+        await cq.answer()
+        await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); return
     await state.update_data(**data)
     await cq.message.edit_reply_markup(dt_kb(data,cq.from_user.language_code))
 
