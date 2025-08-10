@@ -871,6 +871,9 @@ async def vip_secret_reply(msg: Message):
 @dp.message((F.chat.type == 'private') & (~F.text.startswith('/')))
 @relay_error_handler
 async def relay_private(msg: Message, state: FSMContext, **kwargs):
+    if not getattr(msg, "from_user", None):
+        log.warning("[RELAY] message without from_user: %s", msg)
+        return
     if not await is_paid(msg.from_user.id):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
