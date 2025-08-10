@@ -468,6 +468,7 @@ L10N={
 'error_post_not_found': 'Пост не найден',
 'post_deleted':'Пост удалён',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
+'post_scheduled': '✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
@@ -516,6 +517,7 @@ Just you and me... Let’s get a little closer 💋
 'not_allowed_channel': '🚫 Unknown target channel.',
 'error_post_not_found': 'Post not found',
 'post_deleted':'Post deleted','dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
+'post_scheduled': '✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -565,6 +567,7 @@ Solo tú y yo... Acércate un poquito más 💋
 'not_allowed_channel': '🚫 Canal de destino desconocido.',
 'error_post_not_found': 'Publicación no encontrada',
 'post_deleted':'Post eliminado','dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
+'post_scheduled': '✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
   }
 }
 
@@ -1113,7 +1116,13 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
     data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
     if act=='noop': await cq.answer(); return
-    if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
+    if act=='m':
+        y,m=data['y'],data['m']+int(val)
+        if m<1: y-=1; m=12
+        elif m>12: y+=1; m=1
+        maxd=calendar.monthrange(y,m)[1]
+        if data.get('d',0)>maxd: data['d']=maxd
+        data['y'],data['m']=y,m
     elif act=='d':
         d=int(val)
         if d==0: await cq.answer(); return
@@ -1187,7 +1196,17 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
-    await cq.message.edit_text("✅ Пост запланирован!")
+    dt = datetime.fromtimestamp(ts)
+    msg = tr(
+        cq.from_user.language_code,
+        'post_scheduled'
+    ).format(
+        channel=channel.upper() if channel else '',
+        date=f"{dt.day:02d} {dt.month:02d} {dt.year}",
+        time=f"{dt.hour:02d}:{dt.minute:02d}",
+        tariff=data.get('tariff','')
+    )
+    await cq.message.edit_text(msg)
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
     await state.clear()
 
