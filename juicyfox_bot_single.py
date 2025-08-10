@@ -475,6 +475,8 @@ L10N={
 'not_allowed_channel': '🚫 Неизвестный канал назначения.',
 'error_post_not_found': 'Пост не найден',
 'post_deleted':'Пост удалён',
+'ask_stars': 'Укажи количество звезд:',
+'ask_content': 'Пришли текст поста или медиа.',
 'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
 },
@@ -525,6 +527,8 @@ Just you and me... Let’s get a little closer 💋
 'not_allowed_channel': '🚫 Unknown target channel.',
 'error_post_not_found': 'Post not found',
 'post_deleted':'Post deleted',
+'ask_stars': 'Specify number of stars:',
+'ask_content': 'Send post text or media.',
 'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
@@ -576,6 +580,8 @@ Solo tú y yo... Acércate un poquito más 💋
 'not_allowed_channel': '🚫 Canal de destino desconocido.',
 'error_post_not_found': 'Publicación no encontrada',
 'post_deleted':'Post eliminado',
+'ask_stars': 'Indica la cantidad de estrellas:',
+'ask_content': 'Envía el texto del post o un medio.',
 'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
   }
@@ -1175,14 +1181,14 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         await state.update_data(publish_ts=ts)
         if channel == "life":
             await state.set_state(Post.select_stars)
-            await cq.message.edit_text('Укажи количество звезд:')
+            await cq.message.edit_text(tr(lang, 'ask_stars'))
         else:
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
             await state.set_state(Post.wait_content)
             b = InlineKeyboardBuilder()
             b.button(text='✅ Готово', callback_data='post_done')
-            await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+            await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=b.as_markup())
     elif act == 'cancel':
         await cq.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
@@ -1190,15 +1196,16 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
 
 @dp.message(Post.select_stars, F.chat.id == POST_PLAN_GROUP_ID)
 async def select_stars(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
     if not (msg.text and msg.text.isdigit()):
-        await msg.reply('Пришли число — количество звезд.')
+        await msg.reply(tr(lang, 'ask_stars'))
         return
     stars = int(msg.text)
     await state.update_data(tariff=f"{stars} Stars⭐️")
     await state.set_state(Post.wait_content)
     b = InlineKeyboardBuilder()
     b.button(text='✅ Готово', callback_data='post_done')
-    await msg.answer('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+    await msg.answer(tr(lang, 'ask_content'), reply_markup=b.as_markup())
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
