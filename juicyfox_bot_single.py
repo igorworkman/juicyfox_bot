@@ -1102,34 +1102,37 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
 
-def date_kb(d, lang):
-    y, m, selected_day = d['y'], d['m'], d.get('d')
+def kb_days(y, m, dn=None):
     cal = calendar.monthcalendar(y, m)
     kb = InlineKeyboardBuilder()
-    kb.row(InlineKeyboardButton(text=f'{y}-{m:02d}', callback_data='noop'))
+    kb.row(InlineKeyboardButton(text=f"{y}-{m:02d}", callback_data="noop"))
     for w in cal:
-        kb.row(*[
-            InlineKeyboardButton(
-                text=' ' if x == 0 else (f'[{x}]' if x == selected_day else str(x)),
-                callback_data='noop' if x == 0 else f'd:{x}'
-            ) for x in w
-        ])
-    kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
+        kb.row(
+            *[
+                InlineKeyboardButton(
+                    text=" " if x == 0 else (f"[{x}]" if x == dn else str(x)),
+                    callback_data="noop" if x == 0 else f"d:{x}",
+                )
+                for x in w
+            ]
+        )
     return kb.as_markup()
 
 
-def hour_kb(lang):
+def kb_hours():
     kb = InlineKeyboardBuilder()
     for r in range(4):
-        kb.row(*[InlineKeyboardButton(text=f'{h:02d}', callback_data=f'h:{h}') for h in range(r * 6, (r + 1) * 6)])
-    kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
+        kb.row(
+            *[InlineKeyboardButton(text=f"{h:02d}", callback_data=f"h:{h}") for h in range(r * 6, (r + 1) * 6)]
+        )
     return kb.as_markup()
 
 
-def minute_kb(lang):
+def kb_minutes():
     kb = InlineKeyboardBuilder()
-    kb.row(*[InlineKeyboardButton(text=f'{mm:02d}', callback_data=f'mi:{mm}') for mm in (0, 15, 30, 45)])
-    kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
+    kb.row(
+        *[InlineKeyboardButton(text=f"{mm:02d}", callback_data=f"mi:{mm}") for mm in (0, 15, 30, 45)]
+    )
     return kb.as_markup()
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
@@ -1138,9 +1141,14 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     channel = cq.data.split(":")[1]
     tariff = CHANNEL_TARIFFS.get(channel, "")
     await state.update_data(channel=channel, tariff=tariff)
-    now=datetime.now(); data={'y':now.year,'m':now.month,'d':now.day,'h':now.hour,'min':0}
-    await state.update_data(**data); await state.set_state(Post.select_datetime)
-    await cq.message.edit_text(tr(cq.from_user.language_code,'dt_prompt'), reply_markup=date_kb(data,cq.from_user.language_code))
+    now = datetime.now()
+    data = {'y': now.year, 'm': now.month, 'd': now.day, 'h': now.hour, 'min': 0}
+    await state.update_data(**data)
+    await state.set_state(Post.select_datetime)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'dt_prompt'),
+        reply_markup=kb_days(data['y'], data['m'], data['d'])
+    )
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
@@ -1159,11 +1167,11 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
             return
         data['d'] = d
         await state.update_data(**data)
-        await cq.message.edit_reply_markup(hour_kb(lang))
+        await cq.message.edit_reply_markup(kb_hours())
     elif act == 'h':
         data['h'] = int(val)
         await state.update_data(**data)
-        await cq.message.edit_reply_markup(minute_kb(lang))
+        await cq.message.edit_reply_markup(kb_minutes())
     elif act == 'mi':
         data['min'] = int(val)
         await state.update_data(**data)
