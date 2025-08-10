@@ -71,6 +71,7 @@ from aiogram.fsm.state import StatesGroup, State
 class Post(StatesGroup):
     wait_channel = State()
     select_datetime = State()
+    select_stars = State()
     wait_content = State()
     wait_confirm = State()
 
@@ -1136,8 +1137,10 @@ def minute_kb(lang):
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
     channel = cq.data.split(":")[1]
-    tariff = CHANNEL_TARIFFS.get(channel, "")
-    await state.update_data(channel=channel, tariff=tariff)
+    data_update = {"channel": channel}
+    if channel != "life":
+        data_update["tariff"] = CHANNEL_TARIFFS.get(channel, "")
+    await state.update_data(**data_update)
     now=datetime.now(); data={'y':now.year,'m':now.month,'d':now.day,'h':now.hour,'min':0}
     await state.update_data(**data); await state.set_state(Post.select_datetime)
     await cq.message.edit_text(tr(cq.from_user.language_code,'dt_prompt'), reply_markup=date_kb(data,cq.from_user.language_code))
@@ -1168,15 +1171,34 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         data['min'] = int(val)
         await state.update_data(**data)
         ts = int(datetime(data['y'], data['m'], data['d'], data['h'], data['min']).timestamp())
+        channel = data.get("channel")
         await state.update_data(publish_ts=ts)
-        await state.set_state(Post.wait_content)
-        b = InlineKeyboardBuilder()
-        b.button(text='✅ Готово', callback_data='post_done')
-        await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+        if channel == "life":
+            await state.set_state(Post.select_stars)
+            await cq.message.edit_text('Укажи количество звезд:')
+        else:
+            tariff = CHANNEL_TARIFFS.get(channel, "")
+            await state.update_data(tariff=tariff)
+            await state.set_state(Post.wait_content)
+            b = InlineKeyboardBuilder()
+            b.button(text='✅ Готово', callback_data='post_done')
+            await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
     elif act == 'cancel':
         await cq.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
     await cq.answer()
+
+@dp.message(Post.select_stars, F.chat.id == POST_PLAN_GROUP_ID)
+async def select_stars(msg: Message, state: FSMContext):
+    if not (msg.text and msg.text.isdigit()):
+        await msg.reply('Пришли число — количество звезд.')
+        return
+    stars = int(msg.text)
+    await state.update_data(tariff=f"{stars} Stars⭐️")
+    await state.set_state(Post.wait_content)
+    b = InlineKeyboardBuilder()
+    b.button(text='✅ Готово', callback_data='post_done')
+    await msg.answer('Пришли текст поста или медиа.', reply_markup=b.as_markup())
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
