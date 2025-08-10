@@ -1111,21 +1111,22 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(Post.select_datetime)
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
-    await cq.answer()
     data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
     if act=='noop': await cq.answer(); return
     if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
-    elif act=='d': data['d']=int(val)
+    elif act=='d':
+        d=int(val)
+        if d==0: await cq.answer(); return
+        data['d']=d
     elif act=='h': data['h']=(data['h']+int(val))%24
     elif act=='mi': data['min']=int(val)
     elif act=='ok':
-        await cq.answer()
-        ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); return
+        ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); await cq.answer(); return
     elif act=='cancel':
-        await cq.answer()
-        await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); return
+        await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); await cq.answer(); return
     await state.update_data(**data)
     await cq.message.edit_reply_markup(dt_kb(data,cq.from_user.language_code))
+    await cq.answer()
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
