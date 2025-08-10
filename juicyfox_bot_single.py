@@ -11,7 +11,8 @@ import aiohttp
 from os import getenv
 from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
-from datetime import datetime
+from datetime import datetime, timedelta
+import calendar
 from types import SimpleNamespace
 os.makedirs("/app/data", exist_ok=True)
 DB_PATH = "/app/data/juicyfox.db"
@@ -69,6 +70,7 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 from aiogram.fsm.state import StatesGroup, State
 class Post(StatesGroup):
     wait_channel = State()
+    select_datetime = State()
     wait_content = State()
     wait_confirm = State()
 
@@ -462,9 +464,10 @@ L10N={
     "💵 Стоимость: 35,\n"
     "💳💸 — выбери, как тебе удобнее"
  ),
- 'not_allowed_channel': '🚫 Неизвестный канал назначения.',
- 'error_post_not_found': 'Пост не найден',
- 'post_deleted':'Пост удалён',
+'not_allowed_channel': '🚫 Неизвестный канал назначения.',
+'error_post_not_found': 'Пост не найден',
+'post_deleted':'Пост удалён',
+'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
@@ -512,7 +515,7 @@ Just you and me... Let’s get a little closer 💋
  'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
 'not_allowed_channel': '🚫 Unknown target channel.',
 'error_post_not_found': 'Post not found',
-'post_deleted':'Post deleted',
+'post_deleted':'Post deleted','dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -561,7 +564,7 @@ Solo tú y yo... Acércate un poquito más 💋
  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
 'not_allowed_channel': '🚫 Canal de destino desconocido.',
 'error_post_not_found': 'Publicación no encontrada',
-'post_deleted':'Post eliminado',
+'post_deleted':'Post eliminado','dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
   }
 }
 
@@ -1084,18 +1087,35 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
     await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
 
 
+def dt_kb(d, lang):
+    y,m,dn,h,mi=d['y'],d['m'],d.get('d'),d['h'],d['min']; cal=calendar.monthcalendar(y,m); kb=InlineKeyboardBuilder()
+    kb.row(InlineKeyboardButton(text='◀️',callback_data='m:-1'),InlineKeyboardButton(text=f'{y}-{m:02d}',callback_data='noop'),InlineKeyboardButton(text='▶️',callback_data='m:1'))
+    for w in cal:
+        kb.row(*[InlineKeyboardButton(text=' ' if x==0 else(f'[{x}]' if x==dn else str(x)),callback_data=f'd:{x}') for x in w])
+    kb.row(InlineKeyboardButton(text='◀️',callback_data='h:-1'),InlineKeyboardButton(text=f'{h:02d}',callback_data='noop'),InlineKeyboardButton(text='▶️',callback_data='h:1'),*[InlineKeyboardButton(text=f'{mm:02d}',callback_data=f'mi:{mm}') for mm in (0,15,30,45)])
+    kb.row(InlineKeyboardButton(text=tr(lang,'dt_ok'),callback_data='ok'),InlineKeyboardButton(text=tr(lang,'dt_cancel'),callback_data='cancel'))
+    return kb.as_markup()
+
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
-    channel = cq.data.split(":")[1]
-    # Сохраняем выбранный канал (ID исходного сообщения уже сохранён)
-    await state.update_data(channel=channel)
-    await state.set_state(Post.wait_content)
-    builder = InlineKeyboardBuilder()
-    builder.button(text="✅ Готово", callback_data="post_done")
-    await cq.message.edit_text("Пришли текст поста или медиа.", reply_markup=builder.as_markup())
-    log.info(f"[POST_PLAN] Кнопка 'Готово' создана для message_id={cq.message.message_id}")
+    channel=cq.data.split(":")[1]; await state.update_data(channel=channel)
+    now=datetime.now(); data={'y':now.year,'m':now.month,'d':now.day,'h':now.hour,'min':0}
+    await state.update_data(**data); await state.set_state(Post.select_datetime)
+    await cq.message.edit_text(tr(cq.from_user.language_code,'dt_prompt'), reply_markup=dt_kb(data,cq.from_user.language_code))
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
+
+@dp.callback_query(Post.select_datetime)
+async def dt_callback(cq: CallbackQuery, state: FSMContext):
+    data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
+    if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
+    elif act=='d': data['d']=int(val)
+    elif act=='h': data['h']=(data['h']+int(val))%24
+    elif act=='mi': data['min']=int(val)
+    elif act=='ok': ts=int(datetime(data['y'],data['m'],data['d'],data['h'],data['min']).timestamp()); await state.update_data(publish_ts=ts); await state.set_state(Post.wait_content); b=InlineKeyboardBuilder(); b.button(text='✅ Готово',callback_data='post_done'); await cq.message.edit_text('Пришли текст поста или медиа.',reply_markup=b.as_markup()); return
+    elif act=='cancel': await cq.message.edit_text(tr(cq.from_user.language_code,'cancel')); await state.clear(); return
+    await state.update_data(**data)
+    await cq.message.edit_reply_markup(dt_kb(data,cq.from_user.language_code))
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
@@ -1140,7 +1160,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     media_ids = ','.join(data.get("media_ids", []))
     text = data.get("text", "")
     source_msg_id = data.get("source_message_id", cq.message.message_id)
-    ts = int(time.time())
+    ts = data.get("publish_ts", int(time.time()))
     rowid = await _db_exec(
         "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status, is_sent) VALUES(?,?,?,?,?,?,?,?,?,?)",
         int(time.time()),
