@@ -1091,7 +1091,7 @@ def dt_kb(d, lang):
     y,m,dn,h,mi=d['y'],d['m'],d.get('d'),d['h'],d['min']; cal=calendar.monthcalendar(y,m); kb=InlineKeyboardBuilder()
     kb.row(InlineKeyboardButton(text='◀️',callback_data='m:-1'),InlineKeyboardButton(text=f'{y}-{m:02d}',callback_data='noop'),InlineKeyboardButton(text='▶️',callback_data='m:1'))
     for w in cal:
-        kb.row(*[InlineKeyboardButton(text=' ' if x==0 else(f'[{x}]' if x==dn else str(x)),callback_data=f'd:{x}') for x in w])
+        kb.row(*[InlineKeyboardButton(text=' ' if x==0 else(f'[{x}]' if x==dn else str(x)),callback_data=('noop' if x==0 else f'd:{x}')) for x in w])
     kb.row(InlineKeyboardButton(text='◀️',callback_data='h:-1'),InlineKeyboardButton(text=f'{h:02d}',callback_data='noop'),InlineKeyboardButton(text='▶️',callback_data='h:1'),*[InlineKeyboardButton(text=f'{mm:02d}',callback_data=f'mi:{mm}') for mm in (0,15,30,45)])
     kb.row(InlineKeyboardButton(text=tr(lang,'dt_ok'),callback_data='ok'),InlineKeyboardButton(text=tr(lang,'dt_cancel'),callback_data='cancel'))
     return kb.as_markup()
@@ -1110,6 +1110,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
     data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
+    if act=='noop': await cq.answer(); return
     if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
     elif act=='d': data['d']=int(val)
     elif act=='h': data['h']=(data['h']+int(val))%24
