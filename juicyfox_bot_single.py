@@ -467,6 +467,7 @@ L10N={
 'not_allowed_channel': '🚫 Неизвестный канал назначения.',
 'error_post_not_found': 'Пост не найден',
 'post_deleted':'Пост удалён',
+'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
 },
  'en':{
@@ -515,7 +516,9 @@ Just you and me... Let’s get a little closer 💋
  'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
 'not_allowed_channel': '🚫 Unknown target channel.',
 'error_post_not_found': 'Post not found',
-'post_deleted':'Post deleted','dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
+'post_deleted':'Post deleted',
+'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
+'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -564,7 +567,9 @@ Solo tú y yo... Acércate un poquito más 💋
  'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
 'not_allowed_channel': '🚫 Canal de destino desconocido.',
 'error_post_not_found': 'Publicación no encontrada',
-'post_deleted':'Post eliminado','dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
+'post_deleted':'Post eliminado',
+'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
+'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
   }
 }
 
@@ -1113,7 +1118,13 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
     data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
     if act=='noop': await cq.answer(); return
-    if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
+    if act=='m':
+        m=data['m']+int(val); y=data['y']
+        if m<1: m, y = 12, y-1
+        elif m>12: m, y = 1, y+1
+        data['y'], data['m'] = y, m
+        md=calendar.monthrange(y,m)[1]
+        if data.get('d',0)>md: data['d']=md
     elif act=='d':
         d=int(val)
         if d==0: await cq.answer(); return
@@ -1187,7 +1198,13 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
-    await cq.message.edit_text("✅ Пост запланирован!")
+    lang=cq.from_user.language_code
+    date_str=f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
+    time_str=f"{data['h']:02d}:{data['min']:02d}"
+    tariffs={'life':'100 Stars⭐️','vip':'Подписка 35 $','luxury':'Подписка 15 $'}
+    tariff_str=tariffs.get(channel,'')
+    await cq.message.edit_reply_markup()
+    await cq.message.answer(tr(lang,'post_scheduled').format(channel=channel.upper(),date=date_str,time=time_str,tariff=tariff_str))
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
     await state.clear()
 
