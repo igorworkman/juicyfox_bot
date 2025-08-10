@@ -1108,7 +1108,12 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 @dp.callback_query(Post.select_datetime)
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
     data=await state.get_data(); act,val=(cq.data.split(':')+['0'])[:2]
-    if act=='m': dt=datetime(data['y'],data['m'],15)+timedelta(days=31*int(val)); data['y'],data['m']=dt.year,dt.month
+    if act=='m':
+        dt = datetime(data['y'], data['m'], 15) + timedelta(days=31 * int(val))
+        data['y'], data['m'] = dt.year, dt.month
+        max_day = calendar.monthrange(data['y'], data['m'])[1]
+        if data['d'] > max_day:
+            data['d'] = max_day
     elif act=='d': data['d']=int(val)
     elif act=='h': data['h']=(data['h']+int(val))%24
     elif act=='mi': data['min']=int(val)
