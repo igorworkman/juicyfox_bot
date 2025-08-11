@@ -912,8 +912,9 @@ async def cmd_start_private(msg: Message):
 @dp.message(F.chat.type == 'private')
 @relay_error_handler
 async def relay_private(msg: Message, state: FSMContext, **kwargs):
-    # Игнорируем команды в приватных сообщениях (только если это текст)
-    if msg.text and msg.text.startswith('/'):
+    # Игнорируем любые команды в приватных сообщениях
+    cmd_text = msg.text or msg.caption or ""
+    if cmd_text.startswith('/'):
         return
     if not getattr(msg, "from_user", None):
         log.warning("[RELAY] message without from_user: %s", msg)
@@ -979,18 +980,20 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
                 uid = row[0]
 
     # Только администраторы могут отвечать пользователю
-    admins = [a.user.id for a in await msg.chat.get_administrators()]
-    if uid and msg.from_user.id in admins:
-        await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
-        # await send_to_history(bot, HISTORY_GROUP_ID, msg)
+    admins = {a.user.id for a in await msg.chat.get_administrators()}
+    if not uid or msg.from_user.id not in admins:
+        return
 
-        text, fid, mtype = extract_media(msg)
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
-                (uid, 'admin', text, fid, mtype, int(time.time())),
-            )
-            await db.commit()
+    await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
+    # await send_to_history(bot, HISTORY_GROUP_ID, msg)
+
+    text, fid, mtype = extract_media(msg)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
+            (uid, 'admin', text, fid, mtype, int(time.time())),
+        )
+        await db.commit()
 
 # legacy history handler
 async def _unused_cmd_history_2(msg: Message):
