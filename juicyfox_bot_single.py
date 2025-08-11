@@ -5,6 +5,8 @@
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
 # • RU/EN/ES UI           → auto by language_code
 
+log = logging.getLogger(__name__)
+
 import os, logging, httpx, time, aiosqlite, traceback, sqlite3
 import asyncio
 import aiohttp
