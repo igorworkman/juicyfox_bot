@@ -1529,10 +1529,15 @@ async def cryptobot_hook(request: web.Request):
         return web.json_response({'ok': True})
 
     payload = data.get('payload')
-    amount = data.get('amount')
-    if not payload or not amount:
-        log.warning('[WEBHOOK] Missing payload or amount in update: %s', data)
+    if not payload:
+        log.warning("No payload in webhook data: %s", data)
         return web.Response(status=400)
+
+    amount = data.get('amount')
+    if not amount:
+        log.warning('[WEBHOOK] Missing amount in update: %s', data)
+        return web.Response(status=400)
+
     payload_str = payload
     try:
         uid_str, plan = payload_str.split(':', 1)
