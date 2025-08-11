@@ -923,15 +923,15 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
 
     cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
     relay[cp.message_id] = msg.from_user.id
+
+    # Запись связей и сообщения в базу
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
-            (header_msg.message_id, msg.from_user.id),
-        )
-        await db.execute(
-            "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
-            (cp.message_id, msg.from_user.id),
-        )
+        for mid in (header_msg.message_id, cp.message_id):
+            await db.execute(
+                "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
+                (mid, msg.from_user.id),
+            )
+
         text, fid, mtype = extract_media(msg)
         await db.execute(
             "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
@@ -958,18 +958,20 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             row = await cursor.fetchone()
             if row:
                 uid = row[0]
-    if uid and msg.from_user.id in [a.user.id for a in await msg.chat.get_administrators()]:
+
+    # Только администраторы могут отвечать пользователю
+    admins = [a.user.id for a in await msg.chat.get_administrators()]
+    if uid and msg.from_user.id in admins:
         await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
         # await send_to_history(bot, HISTORY_GROUP_ID, msg)
 
-        text, file_id, media_type = extract_media(msg)
-
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
-            (uid, 'admin', text, file_id, media_type, int(time.time())),
-        )
-        await db.commit()
+        text, fid, mtype = extract_media(msg)
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
+                (uid, 'admin', text, fid, mtype, int(time.time())),
+            )
+            await db.commit()
 
 # legacy history handler
 async def _unused_cmd_history_2(msg: Message):
