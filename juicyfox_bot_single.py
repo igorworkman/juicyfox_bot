@@ -119,14 +119,24 @@ def extract_media(msg: Message):
     fid = mtype = None
     if msg.photo:
         fid, mtype = msg.photo[-1].file_id, 'photo'
-    elif msg.voice:
-        fid, mtype = msg.voice.file_id, 'voice'
     elif msg.video:
         fid, mtype = msg.video.file_id, 'video'
+    elif msg.document:
+        fid, mtype = msg.document.file_id, 'document'
+    elif msg.voice:
+        fid, mtype = msg.voice.file_id, 'voice'
+    elif msg.audio:
+        fid, mtype = msg.audio.file_id, 'audio'
     elif msg.animation:
         fid, mtype = msg.animation.file_id, 'animation'
     elif msg.video_note:
         fid, mtype = msg.video_note.file_id, 'video_note'
+    elif msg.sticker:
+        fid, mtype = msg.sticker.file_id, 'sticker'
+    elif msg.contact:
+        fid, mtype = msg.contact.phone_number, 'contact'
+    elif msg.location:
+        fid, mtype = f"{msg.location.longitude},{msg.location.latitude}", 'location'
     return text, fid, mtype
 
 
