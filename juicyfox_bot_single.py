@@ -210,7 +210,11 @@ CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 #     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
 # --- END Codex-hack ---
 
-CHAT_GROUP_ID = int(os.getenv("CHAT_GROUP_ID", "-1002813332213"))
+# Retrieve and validate chat group ID from environment
+CHAT_GROUP_ID_ENV = getenv("CHAT_GROUP_ID")
+if not CHAT_GROUP_ID_ENV:
+    raise RuntimeError("CHAT_GROUP_ID environment variable is required")
+CHAT_GROUP_ID = int(CHAT_GROUP_ID_ENV)
 # Cast HISTORY_GROUP_ID to int so numeric chat IDs match correctly
 HISTORY_GROUP_ID = int(getenv("HISTORY_GROUP_ID"))
 ADMINS = [7893194894]
@@ -224,7 +228,8 @@ CHANNELS = {
     "life": LIFE_CHANNEL_ID,
     "luxury": int(os.getenv("LUXURY_CHANNEL_ID")),
     "vip": int(os.getenv("VIP_CHANNEL_ID")),
-    "chat_30": CHAT_GROUP_ID,  # Juicy Chat group
+    # Use the configured chat group for 30-day chat access
+    "chat_30": CHAT_GROUP_ID,
 }
 
 # Default tariff description for each posting channel
