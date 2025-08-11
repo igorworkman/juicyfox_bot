@@ -257,7 +257,7 @@ dp.startup.register(on_startup)
 
 
 # ---------------- Channel helpers ----------------
-from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, BotBlocked, ChatNotFound
+from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 async def give_vip_channel(user_id:int):
     """Добавляем юзера в VIP канал или шлём инвайт"""
     try:
@@ -919,48 +919,43 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     if not getattr(msg, "from_user", None):
         log.warning("[RELAY] message without from_user: %s", msg)
         return
-    user_id = msg.from_user.id
-    if not await is_paid(user_id):
+    if not await is_paid(msg.from_user.id):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
 
-    cnt = await inc_msg(user_id)
+    cnt = await inc_msg(msg.from_user.id)
     if cnt > CONSECUTIVE_LIMIT:
         await msg.answer(tr(msg.from_user.language_code, 'consecutive_limit'))
         return
 
     # Формируем шапку
-    expires = await expire_date_str(user_id)
-    donated = await total_donated(user_id)
+    expires = await expire_date_str(msg.from_user.id)
+    donated = await total_donated(msg.from_user.id)
     flag = {
         'ru': '🇷🇺', 'en': '🇺🇸', 'tr': '🇹🇷', 'de': '🇩🇪'
     }.get(msg.from_user.language_code[:2], '🏳️')
     username = msg.from_user.full_name
     header = (f"{username} "
-              f"• до {expires} • 💰 ${donated:.2f} • <code>{user_id}</code> • {flag}")
+              f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
-    try:
-        header_msg = await bot.send_message(CHANNELS["chat_30"], header, parse_mode="HTML")
-        relay[header_msg.message_id] = user_id
+    header_msg = await bot.send_message(CHANNELS["chat_30"], header, parse_mode="HTML")
+    relay[header_msg.message_id] = msg.from_user.id
 
-        cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
-        relay[cp.message_id] = user_id
-    except (BotBlocked, ChatNotFound) as e:
-        log.warning("[RELAY] cannot send to chat_30: %s", e)
-        return
+    cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
+    relay[cp.message_id] = msg.from_user.id
 
     # Запись связей и сообщения в базу
     async with aiosqlite.connect(DB_PATH) as db:
         for mid in (header_msg.message_id, cp.message_id):
             await db.execute(
                 "INSERT OR REPLACE INTO reply_links (reply_msg_id, user_id) VALUES (?, ?)",
-                (mid, user_id),
+                (mid, msg.from_user.id),
             )
 
         text, fid, mtype = extract_media(msg)
         await db.execute(
             "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
-            (user_id, 'user', text, fid, mtype, int(time.time())),
+            (msg.from_user.id, 'user', text, fid, mtype, int(time.time())),
         )
         await db.commit()
 
@@ -984,22 +979,12 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
             if row:
                 uid = row[0]
 
-    try:
-        uid = int(uid)
-    except (TypeError, ValueError):
-        log.warning("[RELAY] invalid uid: %s", uid)
-        return
-
     # Только администраторы могут отвечать пользователю
     admins = {a.user.id for a in await msg.chat.get_administrators()}
     if not uid or msg.from_user.id not in admins:
         return
 
-    try:
-        await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
-    except (BotBlocked, ChatNotFound) as e:
-        log.warning("[RELAY] cannot deliver to %s: %s", uid, e)
-        return
+    await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
     # await send_to_history(bot, HISTORY_GROUP_ID, msg)
 
     text, fid, mtype = extract_media(msg)
