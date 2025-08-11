@@ -15,6 +15,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
 import calendar
 from types import SimpleNamespace
+
 log = logging.getLogger(__name__)
 
 os.makedirs("/app/data", exist_ok=True)
