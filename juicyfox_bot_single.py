@@ -476,6 +476,8 @@ L10N={
 'error_post_not_found': 'Пост не найден',
 'post_deleted':'Пост удалён',
 'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
+'ask_content':'Пришли текст поста или медиа.',
+'btn_done':'✅ Готово',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
 },
  'en':{
@@ -526,6 +528,8 @@ Just you and me... Let’s get a little closer 💋
 'error_post_not_found': 'Post not found',
 'post_deleted':'Post deleted',
 'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
+'ask_content':'Send post text or media.',
+'btn_done':'✅ Done',
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
@@ -577,6 +581,8 @@ Solo tú y yo... Acércate un poquito más 💋
 'error_post_not_found': 'Publicación no encontrada',
 'post_deleted':'Post eliminado',
 'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
+'ask_content':'Envía el texto o los medios del post.',
+'btn_done':'✅ Listo',
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
   }
 }
@@ -1184,10 +1190,10 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
             await state.set_state(Post.wait_content)
-            log.info("Transitioning to Post.wait_content for channel '%s'", channel)
+            log.info("[POST_PLAN] Transition to Post.wait_content")
             b = InlineKeyboardBuilder()
-            b.button(text='✅ Готово', callback_data='post_done')
-            await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+            b.button(text=tr(lang, 'btn_done'), callback_data='post_done')
+            await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=b.as_markup())
     elif act == 'cancel':
         await cq.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
@@ -1195,16 +1201,17 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
 
 @dp.message(Post.select_stars, F.chat.id == POST_PLAN_GROUP_ID)
 async def select_stars(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
     if not (msg.text and msg.text.isdigit()):
         await msg.reply('Пришли число — количество звезд.')
         return
     stars = int(msg.text)
     await state.update_data(tariff=f"{stars} Stars⭐️")
     await state.set_state(Post.wait_content)
-    log.info("Transitioning to Post.wait_content after selecting %s stars", stars)
+    log.info("[POST_PLAN] Transition to Post.wait_content")
     b = InlineKeyboardBuilder()
-    b.button(text='✅ Готово', callback_data='post_done')
-    await msg.answer('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+    b.button(text=tr(lang, 'btn_done'), callback_data='post_done')
+    await msg.answer(tr(lang, 'ask_content'), reply_markup=b.as_markup())
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
