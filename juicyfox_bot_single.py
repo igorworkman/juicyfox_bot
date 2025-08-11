@@ -257,7 +257,7 @@ dp.startup.register(on_startup)
 
 
 # ---------------- Channel helpers ----------------
-from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, BotBlocked, ChatNotFound
+from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 async def give_vip_channel(user_id:int):
     """Добавляем юзера в VIP канал или шлём инвайт"""
     try:
@@ -922,16 +922,6 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     if not await is_paid(msg.from_user.id):
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
-    try:
-        await bot.send_message(
-            CHAT_GROUP_ID,
-            f"[{msg.from_user.id}] {cmd_text}",
-            parse_mode=None,
-            disable_web_page_preview=True,
-        )
-    except Exception as e:
-        logging.error("relay_private error: %s", e)
-    return
 
     cnt = await inc_msg(msg.from_user.id)
     if cnt > CONSECUTIVE_LIMIT:
@@ -976,17 +966,6 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
 @dp.message(F.chat.id == CHANNELS["chat_30"])
 @relay_error_handler
 async def relay_group(msg: Message, state: FSMContext, **kwargs):
-    text = msg.text or msg.caption or ""
-    if not text.startswith('[') or ']' not in text: return
-    try: uid_str, text = text[1:].split(']', 1); uid = int(uid_str)
-    except ValueError: return
-    admins = {a.user.id for a in await msg.chat.get_administrators()}
-    if msg.from_user.id not in admins: return
-    try: await bot.send_message(uid, text.lstrip(), parse_mode=None, disable_web_page_preview=True)
-    except BotBlocked: logging.error("relay_group error: user %s blocked the bot", uid)
-    except ChatNotFound: logging.error("relay_group error: chat not found for %s", uid)
-    except Exception as e: logging.error("relay_group error: %s", e)
-    return
     if not msg.reply_to_message:
         return
     uid = relay.get(msg.reply_to_message.message_id)
