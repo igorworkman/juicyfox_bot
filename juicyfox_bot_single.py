@@ -477,6 +477,8 @@ L10N={
 'post_deleted':'Пост удалён',
 'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
+'ask_stars':'Укажи количество звезд:',
+'free_label':'FREE',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
@@ -527,6 +529,8 @@ Just you and me... Let’s get a little closer 💋
 'post_deleted':'Post deleted',
 'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
+'ask_stars':'How many stars?',
+'free_label':'FREE',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -578,6 +582,8 @@ Solo tú y yo... Acércate un poquito más 💋
 'post_deleted':'Post eliminado',
 'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
+'ask_stars':'¿Cuántas estrellas?',
+'free_label':'FREE',
   }
 }
 
@@ -1133,6 +1139,15 @@ def minute_kb(lang):
     kb.row(InlineKeyboardButton(text=tr(lang, 'dt_cancel'), callback_data='cancel'))
     return kb.as_markup()
 
+
+def kb_stars():
+    kb = InlineKeyboardBuilder()
+    values = list(range(50, 1050, 50))
+    for i in range(0, len(values), 5):
+        kb.row(*[InlineKeyboardButton(text=str(v), callback_data=f'star:{v}') for v in values[i:i + 5]])
+    kb.row(InlineKeyboardButton(text='FREE', callback_data='star:FREE'))
+    return kb.as_markup()
+
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
@@ -1179,7 +1194,7 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         if channel == "life":
             await state.set_state(Post.select_stars)
             log.info("Transitioning to Post.select_stars for channel '%s'", channel)
-            await cq.message.edit_text('Укажи количество звезд:')
+            await cq.message.edit_text(tr(lang, 'ask_stars'), reply_markup=kb_stars())
         else:
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
@@ -1193,18 +1208,21 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         await state.clear()
     await cq.answer()
 
-@dp.message(Post.select_stars, F.chat.id == POST_PLAN_GROUP_ID)
-async def select_stars(msg: Message, state: FSMContext):
-    if not (msg.text and msg.text.isdigit()):
-        await msg.reply('Пришли число — количество звезд.')
-        return
-    stars = int(msg.text)
-    await state.update_data(tariff=f"{stars} Stars⭐️")
+@dp.callback_query(Post.select_stars)
+async def select_stars(cq: CallbackQuery, state: FSMContext):
+    await cq.answer()
+    value = cq.data.split(':')[1]
+    lang = cq.from_user.language_code
+    if value == 'FREE':
+        tariff = tr(lang, 'free_label')
+    else:
+        tariff = f"{value} Stars⭐️"
+    await state.update_data(tariff=tariff)
     await state.set_state(Post.wait_content)
-    log.info("Transitioning to Post.wait_content after selecting %s stars", stars)
+    log.info("[POST_PLAN] Selected stars: %s", value)
     b = InlineKeyboardBuilder()
     b.button(text='✅ Готово', callback_data='post_done')
-    await msg.answer('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+    await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
