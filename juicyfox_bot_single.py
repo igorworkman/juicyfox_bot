@@ -477,8 +477,10 @@ L10N={
 'post_deleted':'Пост удалён',
 'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
-'ask_stars':'Укажи количество звезд:',
+'ask_stars':'Укажи количество Stars:',
+'ask_content':'Пришли текст поста или медиа.',
 'free_label':'FREE',
+'done_label':'✅ Готово',
 },
  'en':{
   'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
@@ -529,8 +531,10 @@ Just you and me... Let’s get a little closer 💋
 'post_deleted':'Post deleted',
 'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
-'ask_stars':'How many stars?',
+'ask_stars':'Specify the number of Stars:',
+'ask_content':'Send the post text or media.',
 'free_label':'FREE',
+'done_label':'✅ Done',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
 'es': {
@@ -582,8 +586,10 @@ Solo tú y yo... Acércate un poquito más 💋
 'post_deleted':'Post eliminado',
 'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
-'ask_stars':'¿Cuántas estrellas?',
+'ask_stars':'Indica la cantidad de Stars:',
+'ask_content':'Envía el texto o media del post.',
 'free_label':'FREE',
+'done_label':'✅ Listo',
   }
 }
 
@@ -1166,13 +1172,21 @@ def kb_minutes(d: Dict[str, int], lang: str):
     return kb.as_markup()
 
 
-def kb_stars():
-    kb = InlineKeyboardBuilder()
-    values = list(range(50, 1050, 50))
-    for i in range(0, len(values), 5):
-        kb.row(*[InlineKeyboardButton(text=str(v), callback_data=f'star:{v}') for v in values[i:i + 5]])
-    kb.row(InlineKeyboardButton(text='FREE', callback_data='star:FREE'))
-    return kb.as_markup()
+def stars_kb(lang: str) -> InlineKeyboardMarkup:
+    """Stars selection keyboard for LIFE channel."""
+    builder = InlineKeyboardBuilder()
+    stars_values = [50, 100, 200, 300, 400, 600, 800, 1000]
+    for val in stars_values:
+        builder.button(text=f"{val}⭐️", callback_data=f"stars:{val}")
+    builder.button(text=tr(lang, 'free_label'), callback_data="stars:FREE")
+    builder.adjust(4)
+    return builder.as_markup()
+
+
+def done_kb(lang: str) -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=tr(lang, 'done_label'), callback_data='post_done')
+    return b.as_markup()
 
 @dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
@@ -1215,53 +1229,50 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         await state.update_data(d=d)
         data = await state.get_data()
         await cq.message.edit_reply_markup(kb_hours(data, lang))
-        log.info("Day selected: %s", d)
+        log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
         h = int(val)
         await state.update_data(h=h)
         data = await state.get_data()
         await cq.message.edit_reply_markup(kb_minutes(data, lang))
-        log.info("Hour selected: %s", data['h'])
+        log.info(f"[POST_PLAN] Selected hour: {h}")
     elif act == 'mi':
         mi = int(val)
         await state.update_data(min=mi)
         data['min'] = mi
-        log.info("Minute selected: %s", data['min'])
+        log.info(f"[POST_PLAN] Selected minute: {mi}")
         ts = int(datetime(data['y'], data['m'], data['d'], data['h'], data['min']).timestamp())
         channel = data.get("channel")
         await state.update_data(publish_ts=ts)
         if channel == "life":
             await state.set_state(Post.select_stars)
-            log.info("Transitioning to Post.select_stars for channel '%s'", channel)
-            await cq.message.edit_text(tr(lang, 'ask_stars'), reply_markup=kb_stars())
+            log.info(f"[POST_PLAN] Transition to Post.select_stars (channel={channel})")
+            await cq.message.edit_text(tr(lang, 'ask_stars'), reply_markup=stars_kb(lang))
         else:
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
             await state.set_state(Post.wait_content)
-            log.info("Transitioning to Post.wait_content for channel '%s'", channel)
-            b = InlineKeyboardBuilder()
-            b.button(text='✅ Готово', callback_data='post_done')
-            await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+            log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
+            await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
     elif act == 'cancel':
         await cq.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
     await cq.answer()
 
-@dp.callback_query(Post.select_stars)
-async def select_stars(cq: CallbackQuery, state: FSMContext):
+@dp.callback_query(F.data.startswith("stars:"), Post.select_stars)
+async def stars_selected(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
-    value = cq.data.split(':')[1]
     lang = cq.from_user.language_code
-    if value == 'FREE':
-        tariff = tr(lang, 'free_label')
+    val = cq.data.split(":")[1]
+    if val == "FREE":
+        tariff = "FREE"
     else:
-        tariff = f"{value} Stars⭐️"
+        tariff = f"{val} Stars⭐️"
     await state.update_data(tariff=tariff)
+    log.info(f"[POST_PLAN] Selected Stars: {tariff}")
     await state.set_state(Post.wait_content)
-    log.info("[POST_PLAN] Selected stars: %s", value)
-    b = InlineKeyboardBuilder()
-    b.button(text='✅ Готово', callback_data='post_done')
-    await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+    log.info("[POST_PLAN] Transition to Post.wait_content")
+    await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
