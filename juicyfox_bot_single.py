@@ -5,7 +5,6 @@
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
 # • RU/EN/ES UI           → auto by language_code
 
-log = logging.getLogger(__name__)
 
 import os, logging, httpx, time, aiosqlite, traceback, sqlite3
 import asyncio
@@ -16,6 +15,8 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
 import calendar
 from types import SimpleNamespace
+log = logging.getLogger(__name__)
+
 os.makedirs("/app/data", exist_ok=True)
 DB_PATH = "/app/data/juicyfox.db"
 
