@@ -476,6 +476,9 @@ L10N={
 'error_post_not_found': 'Пост не найден',
 'post_deleted':'Пост удалён',
 'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
+'ask_stars':'Укажи количество звезд:',
+'ask_content':'Пришли текст поста или медиа.',
+'free_label':'Бесплатно',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
 },
  'en':{
@@ -526,6 +529,9 @@ Just you and me... Let’s get a little closer 💋
 'error_post_not_found': 'Post not found',
 'post_deleted':'Post deleted',
 'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
+'ask_stars':'Specify number of stars:',
+'ask_content':'Send the post text or media.',
+'free_label':'Free',
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
  },
@@ -577,6 +583,9 @@ Solo tú y yo... Acércate un poquito más 💋
 'error_post_not_found': 'Publicación no encontrada',
 'post_deleted':'Post eliminado',
 'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
+'ask_stars':'Indica el número de estrellas:',
+'ask_content':'Envía el texto de la publicación o un archivo.',
+'free_label':'Gratis',
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
   }
 }
@@ -1179,7 +1188,7 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         if channel == "life":
             await state.set_state(Post.select_stars)
             log.info("Transitioning to Post.select_stars for channel '%s'", channel)
-            await cq.message.edit_text('Укажи количество звезд:')
+            await cq.message.edit_text(tr(lang, 'ask_stars'))
         else:
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
@@ -1187,7 +1196,7 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
             log.info("Transitioning to Post.wait_content for channel '%s'", channel)
             b = InlineKeyboardBuilder()
             b.button(text='✅ Готово', callback_data='post_done')
-            await cq.message.edit_text('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+            await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=b.as_markup())
     elif act == 'cancel':
         await cq.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
@@ -1195,8 +1204,9 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
 
 @dp.message(Post.select_stars, F.chat.id == POST_PLAN_GROUP_ID)
 async def select_stars(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
     if not (msg.text and msg.text.isdigit()):
-        await msg.reply('Пришли число — количество звезд.')
+        await msg.reply(tr(lang, 'ask_stars'))
         return
     stars = int(msg.text)
     await state.update_data(tariff=f"{stars} Stars⭐️")
@@ -1204,7 +1214,7 @@ async def select_stars(msg: Message, state: FSMContext):
     log.info("Transitioning to Post.wait_content after selecting %s stars", stars)
     b = InlineKeyboardBuilder()
     b.button(text='✅ Готово', callback_data='post_done')
-    await msg.answer('Пришли текст поста или медиа.', reply_markup=b.as_markup())
+    await msg.answer(tr(lang, 'ask_content'), reply_markup=b.as_markup())
 
 @dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
 async def post_content(msg: Message, state: FSMContext):
@@ -1268,7 +1278,11 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     lang = cq.from_user.language_code
     date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
     time_str = f"{data['h']:02d}:{data['min']:02d}"
-    tariff_str = data["tariff"]
+    tariff_val = data.get("tariff", "")
+    if str(tariff_val).strip() in ("", "0", "0.0"):
+        tariff_str = tr(lang, 'free_label')
+    else:
+        tariff_str = str(tariff_val)
     await cq.message.edit_reply_markup()
     await cq.message.answer(
         tr(lang, 'post_scheduled').format(
