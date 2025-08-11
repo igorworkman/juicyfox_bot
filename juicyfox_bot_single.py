@@ -893,9 +893,12 @@ async def vip_secret_reply(msg: Message):
 
 
 # ---------------- Relay private ↔ group -------------------
-@dp.message((F.chat.type == 'private') & (~F.text.startswith('/')))
+@dp.message(F.chat.type == 'private')
 @relay_error_handler
 async def relay_private(msg: Message, state: FSMContext, **kwargs):
+    # Игнорируем команды в приватных сообщениях (только если это текст)
+    if msg.text and msg.text.startswith('/'):
+        return
     if not getattr(msg, "from_user", None):
         log.warning("[RELAY] message without from_user: %s", msg)
         return
