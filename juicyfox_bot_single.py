@@ -26,7 +26,7 @@ def migrate_add_ts_column():
 
 from typing import Dict, Any, Optional, Tuple, List
 from aiogram import Bot, Dispatcher, Router, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -893,6 +893,12 @@ async def vip_secret_reply(msg: Message):
 
 
 # ---------------- Relay private ↔ group -------------------
+
+# Хендлер для /start в привате
+@dp.message(CommandStart())
+async def cmd_start_private(msg: Message):
+    await cmd_start(msg)
+
 @dp.message(F.chat.type == 'private')
 @relay_error_handler
 async def relay_private(msg: Message, state: FSMContext, **kwargs):
