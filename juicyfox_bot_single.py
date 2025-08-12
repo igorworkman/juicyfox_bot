@@ -77,6 +77,8 @@ class Post(StatesGroup):
     select_datetime = State()
     select_stars = State()
     wait_content = State()
+    wait_description = State()
+    wait_price = State()
     wait_confirm = State()
 
 from aiogram.fsm.context import FSMContext
@@ -239,6 +241,11 @@ CHANNEL_TARIFFS = {
     "vip": "Подписка 35 $",
     "luxury": "Подписка 15 $",
 }
+
+PAID_CHANNELS = {"vip", "luxury"}
+
+def is_paid_channel(channel: str) -> bool:
+    return channel in PAID_CHANNELS
 
 log.info(
     "Env CHAT_GROUP_ID=%s HISTORY_GROUP_ID=%s LIFE_CHANNEL_ID=%s POST_PLAN_GROUP_ID=%s",
@@ -498,6 +505,7 @@ L10N={
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
 'ask_stars':'Укажи количество Stars:',
 'ask_content':'Пришли текст поста или медиа.',
+'set_price_prompt':'Укажи цену поста:',
 'free_label':'FREE',
 'done_label':'✅ Готово',
 },
@@ -552,6 +560,7 @@ Just you and me... Let’s get a little closer 💋
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
 'ask_stars':'Specify the number of Stars:',
 'ask_content':'Send the post text or media.',
+'set_price_prompt':'Set post price:',
 'free_label':'FREE',
 'done_label':'✅ Done',
   "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
@@ -607,6 +616,7 @@ Solo tú y yo... Acércate un poquito más 💋
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
 'ask_stars':'Indica la cantidad de Stars:',
 'ask_content':'Envía el texto o media del post.',
+'set_price_prompt':'Indica el precio del post:',
 'free_label':'FREE',
 'done_label':'✅ Listo',
   }
@@ -1339,6 +1349,34 @@ async def post_content(msg: Message, state: FSMContext):
         log.info("[POST_PLAN] Сохранён текст поста")
     else:
         log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
+
+
+@dp.message(Post.wait_description)
+async def post_description(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
+    desc = msg.text or ""
+    await state.update_data(description=desc)
+    data = await state.get_data()
+    if is_paid_channel(data.get("channel")):
+        await state.update_data(price=None)
+        await state.set_state(Post.wait_price)
+        await msg.answer(tr(lang, 'set_price_prompt'))
+    else:
+        await state.set_state(Post.wait_confirm)
+        await msg.answer(tr(lang, 'done_label'))
+
+
+@dp.message(Post.wait_price)
+async def post_price(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
+    try:
+        price = int(msg.text)
+    except (ValueError, TypeError):
+        await msg.answer(tr(lang, 'set_price_prompt'))
+        return
+    await state.update_data(price=price)
+    await state.set_state(Post.wait_confirm)
+    await msg.answer(tr(lang, 'done_label'))
 
 
 @dp.callback_query(F.data == "post_done")
