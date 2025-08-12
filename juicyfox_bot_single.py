@@ -5,8 +5,14 @@
 # • Relay              → приват ↔ группа (CHAT_GROUP_ID)
 # • RU/EN/ES UI           → auto by language_code
 
-
-import os, logging, httpx, time, aiosqlite, traceback, sqlite3
+import os
+import logging
+log = logging.getLogger(__name__)
+import httpx
+import time
+import aiosqlite
+import traceback
+import sqlite3
 import asyncio
 import aiohttp
 from os import getenv
@@ -15,8 +21,6 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
 import calendar
 from types import SimpleNamespace
-
-log = logging.getLogger(__name__)
 
 os.makedirs("/app/data", exist_ok=True)
 DB_PATH = "/app/data/juicyfox.db"
@@ -29,7 +33,7 @@ def migrate_add_ts_column():
     pass
 
 from typing import Dict, Any, Optional, Tuple, List
-from aiogram import Bot, Dispatcher, Router, F
+from aiogram import Dispatcher, Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -72,6 +76,7 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 
 
 from aiogram.fsm.state import StatesGroup, State
+
 class Post(StatesGroup):
     wait_channel = State()
     select_datetime = State()
@@ -98,15 +103,13 @@ async def _init_db():
         await db.commit()
 
 
-import os
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     filename="logs/runtime.log",
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
-log = logging.getLogger(__name__)
-logging.info("\ud83d\udd25 Bot launched successfully")
+log.info("\ud83d\udd25 Bot launched successfully")
 
 
 def relay_error_handler(func):
@@ -271,9 +274,9 @@ bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
 dp  = Dispatcher(storage=MemoryStorage())
 dp.startup.register(on_startup)
 
-
 # ---------------- Channel helpers ----------------
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
+
 async def give_vip_channel(user_id:int):
     """Добавляем юзера в VIP канал или шлём инвайт"""
     try:
