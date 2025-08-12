@@ -80,11 +80,15 @@ from aiogram.fsm.state import StatesGroup, State
 class Post(StatesGroup):
     wait_channel = State()
     select_datetime = State()
+    WAIT_TIME = State()
     select_stars = State()
     wait_description = State()
     wait_price = State()
     wait_content = State()
     wait_confirm = State()
+
+
+WAIT_TIME = Post.WAIT_TIME
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -506,6 +510,7 @@ L10N={
 'post_deleted':'Пост удалён',
 'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
+'choose_time': '{time}',
 'ask_stars':'Укажи количество Stars:',
 'ask_content':'Пришли текст поста или медиа.',
 'set_price_prompt':'Укажи цену поста:',
@@ -561,6 +566,7 @@ Just you and me... Let’s get a little closer 💋
 'post_deleted':'Post deleted',
 'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
+'choose_time': '{time}',
 'ask_stars':'Specify the number of Stars:',
 'ask_content':'Send the post text or media.',
 'set_price_prompt':'Set the post price:',
@@ -617,6 +623,7 @@ Solo tú y yo... Acércate un poquito más 💋
 'post_deleted':'Post eliminado',
 'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
 'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
+'choose_time': '{time}',
 'ask_stars':'Indica la cantidad de Stars:',
 'ask_content':'Envía el texto o media del post.',
 'set_price_prompt':'Indica el precio del post:',
@@ -1183,6 +1190,23 @@ def kb_days(d: Dict[str, int], lang: str):
     return kb.as_markup()
 
 
+def get_time_keyboard(lang: str) -> InlineKeyboardMarkup:
+    """Build inline keyboard for selecting time."""
+    kb = InlineKeyboardBuilder()
+    for r in range(4):
+        kb.row(
+            *[
+                InlineKeyboardButton(
+                    text=tr(lang, "choose_time", time=f"{h:02d}:00"),
+                    callback_data=f"h:{h}",
+                )
+                for h in range(r * 6, (r + 1) * 6)
+            ]
+        )
+    kb.row(InlineKeyboardButton(text=tr(lang, "dt_cancel"), callback_data="cancel"))
+    return kb.as_markup()
+
+
 def kb_hours(d: Dict[str, int], lang: str):
     """Build keyboard for selecting an hour."""
     selected_hour = d.get("h")
@@ -1273,8 +1297,8 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
             await cq.answer()
             return
         await state.update_data(d=d)
-        data = await state.get_data()
-        await cq.message.edit_reply_markup(kb_hours(data, lang))
+        await state.set_state(WAIT_TIME)
+        await cq.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
         log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
         h = int(val)
