@@ -948,7 +948,9 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     if not getattr(msg, "from_user", None):
         log.warning("[RELAY] message without from_user: %s", msg)
         return
-    if not await is_paid(msg.from_user.id):
+    paid = await is_paid(msg.from_user.id)
+    log.info("[RELAY] is_paid(%s) -> %s", msg.from_user.id, paid)
+    if not paid:
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
 
@@ -967,10 +969,21 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     header = (f"{username} "
               f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
-    header_msg = await bot.send_message(CHANNELS["chat_30"], header, parse_mode="HTML")
+    log.info("[RELAY] send to group %s: user=%s text=%r", CHAT_GROUP_ID, msg.from_user.id, header)
+    try:
+        header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
+        log.info("[RELAY] header sent msg_id=%s", header_msg.message_id)
+    except Exception as e:
+        log.error("[RELAY] send_message error: %s", e)
+        return
     relay[header_msg.message_id] = msg.from_user.id
 
-    cp = await bot.copy_message(CHANNELS["chat_30"], msg.chat.id, msg.message_id)
+    try:
+        cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
+        log.info("[RELAY] message copied msg_id=%s", cp.message_id)
+    except Exception as e:
+        log.error("[RELAY] copy_message error: %s", e)
+        return
     relay[cp.message_id] = msg.from_user.id
 
     # Запись связей и сообщения в базу
