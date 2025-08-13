@@ -33,7 +33,7 @@ def migrate_add_ts_column():
     pass
 
 from typing import Dict, Any, Optional, Tuple, List
-from aiogram import Dispatcher, Router, F
+from aiogram import Dispatcher, Router, F, BaseMiddleware
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -116,6 +116,12 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 log.info("\ud83d\udd25 Bot launched successfully")
+
+
+class UpdateLogger(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        logging.info(f"Incoming update: {event}")
+        return await handler(event, data)
 
 
 def relay_error_handler(func):
@@ -278,6 +284,7 @@ async def on_startup():
 
 bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
 dp  = Dispatcher(storage=MemoryStorage())
+dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
 
 # ---------------- Channel helpers ----------------
@@ -1714,7 +1721,10 @@ async def main():
 
     # aiogram polling
     log.info('JuicyFox Bot started')
-    await dp.start_polling(bot)
+    allowed_updates = dp.resolve_used_update_types()
+    if "callback_query" not in allowed_updates:
+        allowed_updates.append("callback_query")
+    await dp.start_polling(bot, allowed_updates=allowed_updates)
 
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
