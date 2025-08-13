@@ -14,10 +14,8 @@ import aiosqlite
 import traceback
 import sqlite3
 import asyncio
-import aiohttp
 from os import getenv
 from aiogram import Bot
-from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 
@@ -257,6 +255,7 @@ async def on_startup():
 
 
 bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
+bot_pool: Dict[str, Bot] = {}
 dp  = Dispatcher(storage=MemoryStorage())
 dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
@@ -1367,6 +1366,21 @@ async def cmd_history(msg: Message):
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
     print("DEBUG: Inside main()")
+    # setup bot webhook
+    me = await bot.get_me()
+    bot_pool[str(me.id)] = bot
+    webhook_base = getenv("WEBHOOK_URL")
+    allowed_updates = dp.resolve_used_update_types()
+    if "callback_query" not in allowed_updates:
+        allowed_updates.append("callback_query")
+    if webhook_base:
+        await bot.set_webhook(
+            f"{webhook_base}/bot/{me.id}/webhook",
+            drop_pending_updates=True,
+            allowed_updates=allowed_updates,
+        )
+    await dp.emit_startup(bot)
+
     # aiohttp web‑server
     app = web.Application()
     app.router.add_post('/cryptobot/webhook', cryptobot_hook)
@@ -1375,15 +1389,7 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
     log.info('Webhook server started on 0.0.0.0:8080 /cryptobot/webhook')
-
-    # aiogram polling
-    log.info('JuicyFox Bot started')
-    allowed_updates = dp.resolve_used_update_types()
-    if "callback_query" not in allowed_updates:
-        allowed_updates.append("callback_query")
-    await bot.delete_webhook(drop_pending_updates=True)
-    logging.info("Webhook cleared before starting polling")
-    await dp.start_polling(bot, allowed_updates=allowed_updates)
+    log.info('JuicyFox Bot ready for webhooks')
 
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
@@ -1397,20 +1403,3 @@ async def test_vip_post(msg: Message):
         print(f"❌ Ошибка при отправке в VIP: {e}")
 
 
-
-async def setup_webhook():
-    session = AiohttpSession()
-    bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
-    webhook_url = getenv("WEBHOOK_URL")
-    await bot.set_webhook(webhook_url)
-
-
-
-# --- Codex-hack: TEMPORARY DISABLE AUTO-START FOR CODEX ---
-# if __name__ == "__main__":
-#     # Avoid starting an extra aiohttp server when running under gunicorn
-#     if "gunicorn" not in os.getenv("SERVER_SOFTWARE", "").lower():
-#         asyncio.run(setup_webhook())
-#         print("DEBUG: JuicyFox main() will run")
-#         asyncio.run(main())
-# --- END Codex-hack ---
