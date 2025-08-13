@@ -1383,11 +1383,7 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
             reply_markup=kb.as_markup()
         )
         log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
-    elif act == 'mi':
-
-            reply_markup=kb.as_markup(),
-        )
-        log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
+    
     elif act == 'mi':
         log.info(f"[POST_PLAN][WAIT_MINUTE] data: {callback_query.data}")
 
