@@ -9,3 +9,4 @@ aiosqlite
 gunicorn
 fastapi
 uvicorn[standard]
+prometheus-client
