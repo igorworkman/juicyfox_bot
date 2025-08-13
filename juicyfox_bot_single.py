@@ -14,10 +14,8 @@ import aiosqlite
 import traceback
 import sqlite3
 import asyncio
-import aiohttp
 from os import getenv
 from aiogram import Bot
-from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
 import calendar
 from types import SimpleNamespace
@@ -77,6 +75,7 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 
 from aiogram.fsm.state import StatesGroup, State
 
+
 class Post(StatesGroup):
     wait_channel = State()
     select_datetime = State()
@@ -89,14 +88,20 @@ class Post(StatesGroup):
     wait_confirm = State()
 
 
+
 WAIT_TIME = Post.wait_time
 WAIT_MINUTE = Post.wait_minute
 
+
+WAIT_DATE = Post.select_datetime
+WAIT_TIME = Post.wait_time
+WAIT_MINUTE = Post.wait_minute
+
+
+
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.base import StorageKey
-from redis.asyncio import Redis
-from redis.asyncio.cluster import RedisCluster
 
 async def _init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -225,11 +230,6 @@ async def get_last_messages(uid: int, limit: int):
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 
-REDIS_URL = os.getenv("REDIS_URL")
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-USE_REDIS_CLUSTER = os.getenv("REDIS_CLUSTER", "0") == "1"
-
 # --- Codex-hack: TEMPORARY DISABLE env checks for Codex PR ---
 # if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 #     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -289,21 +289,9 @@ async def on_startup():
     asyncio.create_task(scheduled_poster())
 
 
-if REDIS_URL:
-    if USE_REDIS_CLUSTER:
-        redis = RedisCluster.from_url(REDIS_URL)
-    else:
-        redis = Redis.from_url(REDIS_URL)
-else:
-    if USE_REDIS_CLUSTER:
-        redis = RedisCluster(host=REDIS_HOST or "localhost", port=REDIS_PORT)
-    else:
-        redis = Redis(host=REDIS_HOST or "localhost", port=REDIS_PORT)
-
-redis_storage = RedisStorage(redis=redis)
-
 bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
-dp  = Dispatcher(storage=redis_storage)
+bot_pool: Dict[str, Bot] = {}
+dp  = Dispatcher(storage=MemoryStorage())
 dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
 
@@ -376,6 +364,14 @@ CREATE TABLE IF NOT EXISTS published_posts(
   rowid INTEGER PRIMARY KEY AUTOINCREMENT,
   chat_id INTEGER,
   message_id TEXT
+);
+CREATE TABLE IF NOT EXISTS events(
+  key TEXT PRIMARY KEY,
+  post_id INTEGER,
+  run_at INTEGER,
+  channel TEXT,
+  text TEXT,
+  media_ids TEXT
 );
 """
 
@@ -1177,6 +1173,7 @@ async def _unused_cmd_history_3(msg: Message):
 # POSTING GROUP — новая версия
 # ==============================
 
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
     """Добавляет кнопку 📆 Post Plan под каждым одиночным медиа в постинг-группе"""
@@ -1337,7 +1334,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
         "mi": 0,
     }
     await state.update_data(**data)
-    await state.set_state(Post.select_datetime)
+
     await cq.message.edit_text(
         tr(cq.from_user.language_code, "dt_prompt"),
         reply_markup=kb_days(data, cq.from_user.language_code),
@@ -1345,7 +1342,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
-@dp.callback_query(Post.select_datetime, Post.wait_time, Post.wait_minute)
+
 async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
     logging.info(f"WAIT_DATE callback received: {callback_query.data}")
     data = await state.get_data()
@@ -1355,6 +1352,7 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         return
     lang = callback_query.from_user.language_code
     if act == 'd':
+
         d = int(val)
         if d == 0:
             await callback_query.answer()
@@ -1364,9 +1362,16 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         await callback_query.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
         log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
+
         h = int(val)
         await state.update_data(h=h)
         await state.set_state(Post.wait_minute)
+
+        log.info(f"[POST_PLAN][WAIT_TIME] data: {callback_query.data}")
+        h = int(val)
+        await state.update_data(h=h)
+        await state.set_state(WAIT_MINUTE)
+
         data = await state.get_data()
         kb = InlineKeyboardBuilder()
         for m in [0, 15, 30, 45]:
@@ -1374,10 +1379,18 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         kb.adjust(4)
         await callback_query.message.edit_caption(
             caption=tr(lang, 'choose_minute'),
+
             reply_markup=kb.as_markup()
         )
         log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
     elif act == 'mi':
+
+            reply_markup=kb.as_markup(),
+        )
+        log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
+    elif act == 'mi':
+        log.info(f"[POST_PLAN][WAIT_MINUTE] data: {callback_query.data}")
+
         mi = int(val)
         await state.update_data(mi=mi)
         data = await state.get_data()
@@ -1396,6 +1409,10 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
             log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
             await callback_query.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
     elif act == 'cancel':
+
+
+        log.info(f"[POST_PLAN] Cancel data: {callback_query.data}")
+
         await callback_query.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
     await callback_query.answer()
@@ -1495,6 +1512,20 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
+
+
+    event_key = f"{rowid}:{ts}"
+    await _db_exec(
+        "INSERT OR IGNORE INTO events (key, post_id, run_at, channel, text, media_ids) VALUES (?,?,?,?,?,?)",
+        event_key,
+        rowid,
+        ts,
+        channel,
+        text,
+        media_ids,
+    )
+    log.info(f"[POST_PLAN] Event published key={event_key}")
+
     lang = cq.from_user.language_code
     date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
     time_str = f"{data['h']:02d}:{data['mi']:02d}"
@@ -1510,6 +1541,10 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     )
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
     await state.clear()
+
+
+
+
 
 async def notify_log_channel(text: str):
     if LOG_CHANNEL_ID:
@@ -1745,6 +1780,21 @@ async def cmd_history(msg: Message):
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
     print("DEBUG: Inside main()")
+    # setup bot webhook
+    me = await bot.get_me()
+    bot_pool[str(me.id)] = bot
+    webhook_base = getenv("WEBHOOK_URL")
+    allowed_updates = dp.resolve_used_update_types()
+    if "callback_query" not in allowed_updates:
+        allowed_updates.append("callback_query")
+    if webhook_base:
+        await bot.set_webhook(
+            f"{webhook_base}/bot/{me.id}/webhook",
+            drop_pending_updates=True,
+            allowed_updates=allowed_updates,
+        )
+    await dp.emit_startup(bot)
+
     # aiohttp web‑server
     app = web.Application()
     app.router.add_post('/cryptobot/webhook', cryptobot_hook)
@@ -1753,15 +1803,7 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
     log.info('Webhook server started on 0.0.0.0:8080 /cryptobot/webhook')
-
-    # aiogram polling
-    log.info('JuicyFox Bot started')
-    allowed_updates = dp.resolve_used_update_types()
-    if "callback_query" not in allowed_updates:
-        allowed_updates.append("callback_query")
-    await bot.delete_webhook(drop_pending_updates=True)
-    logging.info("Webhook cleared before starting polling")
-    await dp.start_polling(bot, allowed_updates=allowed_updates)
+    log.info('JuicyFox Bot ready for webhooks')
 
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
@@ -1805,20 +1847,3 @@ async def delete_post_cmd(msg: Message):
     except Exception as e:
         print(f"❌ Ошибка удаления: {e}")
 
-
-async def setup_webhook():
-    session = AiohttpSession()
-    bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
-    webhook_url = getenv("WEBHOOK_URL")
-    await bot.set_webhook(webhook_url)
-
-
-
-# --- Codex-hack: TEMPORARY DISABLE AUTO-START FOR CODEX ---
-# if __name__ == "__main__":
-#     # Avoid starting an extra aiohttp server when running under gunicorn
-#     if "gunicorn" not in os.getenv("SERVER_SOFTWARE", "").lower():
-#         asyncio.run(setup_webhook())
-#         print("DEBUG: JuicyFox main() will run")
-#         asyncio.run(main())
-# --- END Codex-hack ---
