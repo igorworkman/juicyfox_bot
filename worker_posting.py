@@ -1,4 +1,7 @@
-qjmeyx-codex/add-prometheus-metrics-integration
+
+import os
+
+
 import time
 from typing import Any, Awaitable, Callable
 
@@ -43,7 +46,6 @@ async def worker_posting(
             posting_queue_depth.set(queue.qsize())
 
 import os
-linaus-codex/instantiate-bot-without-webhook-or-polling
 import logging
 from typing import Optional
 from aiogram import Bot
@@ -77,6 +79,8 @@ async def close_bot() -> None:
     """Close the Bot's HTTP session."""
     bot = get_bot()
     await bot.session.close()
+
+
 
 import asyncio
 import logging
@@ -214,5 +218,4 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
- main
- main
+
