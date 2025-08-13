@@ -1842,3 +1842,5 @@ async def delete_post_cmd(msg: Message):
     except Exception as e:
         print(f"❌ Ошибка удаления: {e}")
 
+if __name__ == "__main__":
+    asyncio.run(main())
