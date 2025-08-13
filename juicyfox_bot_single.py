@@ -1509,7 +1509,6 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
 
-
     event_key = f"{rowid}:{ts}"
     await _db_exec(
         "INSERT OR IGNORE INTO events (key, post_id, run_at, channel, text, media_ids) VALUES (?,?,?,?,?,?)",
