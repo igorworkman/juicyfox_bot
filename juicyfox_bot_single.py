@@ -14,12 +14,9 @@ import aiosqlite
 import traceback
 import sqlite3
 import asyncio
-import aiohttp
 from os import getenv
 from aiogram import Bot
-from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
-import calendar
 from types import SimpleNamespace
 
 os.makedirs("/app/data", exist_ok=True)
@@ -37,16 +34,6 @@ from aiogram import Dispatcher, Router, F, BaseMiddleware
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-def get_post_plan_kb():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="👀 Life", callback_data="post_to:life")
-    kb.button(text="💿 Luxury", callback_data="post_to:luxury")
-    kb.button(text="👑 VIP", callback_data="post_to:vip")
-    kb.adjust(1)
-    return kb.as_markup()
-
-post_plan_kb = get_post_plan_kb()
 
 # ==============================
 #  POSTING GROUP — обновлённая версия
@@ -76,21 +63,6 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 
 
 from aiogram.fsm.state import StatesGroup, State
-
-class Post(StatesGroup):
-    wait_channel = State()
-    select_datetime = State()
-    wait_time = State()
-    wait_minute = State()
-    select_stars = State()
-    wait_description = State()
-    wait_price = State()
-    wait_content = State()
-    wait_confirm = State()
-
-
-WAIT_TIME = Post.wait_time
-WAIT_MINUTE = Post.wait_minute
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -283,6 +255,7 @@ async def on_startup():
 
 
 bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
+bot_pool: Dict[str, Bot] = {}
 dp  = Dispatcher(storage=MemoryStorage())
 dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
@@ -1165,6 +1138,7 @@ async def _unused_cmd_history_3(msg: Message):
 # POSTING GROUP — новая версия
 # ==============================
 
+codex/publish-event-to-events-table-or-redis-stream
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
     """Добавляет кнопку 📆 Post Plan под каждым одиночным медиа в постинг-группе"""
@@ -1510,6 +1484,8 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
     await state.clear()
 
+
+main
 async def notify_log_channel(text: str):
     if LOG_CHANNEL_ID:
         await bot.send_message(LOG_CHANNEL_ID, text)
@@ -1655,6 +1631,8 @@ async def scheduled_poster():
 dp.include_router(main_r)
 dp.include_router(router)
 dp.include_router(donate_r)
+from posting.router import router as post_router
+dp.include_router(post_router)
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web
@@ -1744,6 +1722,21 @@ async def cmd_history(msg: Message):
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
     print("DEBUG: Inside main()")
+    # setup bot webhook
+    me = await bot.get_me()
+    bot_pool[str(me.id)] = bot
+    webhook_base = getenv("WEBHOOK_URL")
+    allowed_updates = dp.resolve_used_update_types()
+    if "callback_query" not in allowed_updates:
+        allowed_updates.append("callback_query")
+    if webhook_base:
+        await bot.set_webhook(
+            f"{webhook_base}/bot/{me.id}/webhook",
+            drop_pending_updates=True,
+            allowed_updates=allowed_updates,
+        )
+    await dp.emit_startup(bot)
+
     # aiohttp web‑server
     app = web.Application()
     app.router.add_post('/cryptobot/webhook', cryptobot_hook)
@@ -1752,15 +1745,7 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
     log.info('Webhook server started on 0.0.0.0:8080 /cryptobot/webhook')
-
-    # aiogram polling
-    log.info('JuicyFox Bot started')
-    allowed_updates = dp.resolve_used_update_types()
-    if "callback_query" not in allowed_updates:
-        allowed_updates.append("callback_query")
-    await bot.delete_webhook(drop_pending_updates=True)
-    logging.info("Webhook cleared before starting polling")
-    await dp.start_polling(bot, allowed_updates=allowed_updates)
+    log.info('JuicyFox Bot ready for webhooks')
 
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
@@ -1773,51 +1758,4 @@ async def test_vip_post(msg: Message):
     except Exception as e:
         print(f"❌ Ошибка при отправке в VIP: {e}")
 
-@dp.message(Command("delete_post"))
-async def delete_post_cmd(msg: Message):
-    lang = msg.from_user.language_code
-    if msg.from_user.id not in ADMINS:
-        await msg.reply("⛔️ Только админ может удалять посты.")
-        return
 
-    parts = msg.text.strip().split()
-    if len(parts) != 2 or not parts[1].isdigit():
-        await msg.reply("❌ Используй /delete_post <id>")
-        return
-
-    msg_id = int(parts[1])
-    row = await _db_exec(
-        "SELECT chat_id FROM published_posts WHERE message_id = ?",
-        (msg_id,),
-        fetchone=True,
-    )
-    if not row:
-        await msg.reply(tr(lang, 'error_post_not_found'))
-        return
-    chat_id = row[0]
-    if chat_id not in [CHANNELS["vip"], LIFE_CHANNEL_ID, CHANNELS["luxury"]]:
-        await msg.reply(tr(lang, 'not_allowed_channel'))
-        return
-    try:
-        await bot.delete_message(chat_id, msg_id)
-        await msg.reply(tr(lang, 'post_deleted'))
-    except Exception as e:
-        print(f"❌ Ошибка удаления: {e}")
-
-
-async def setup_webhook():
-    session = AiohttpSession()
-    bot = Bot(token=getenv("TELEGRAM_TOKEN"), session=session)
-    webhook_url = getenv("WEBHOOK_URL")
-    await bot.set_webhook(webhook_url)
-
-
-
-# --- Codex-hack: TEMPORARY DISABLE AUTO-START FOR CODEX ---
-# if __name__ == "__main__":
-#     # Avoid starting an extra aiohttp server when running under gunicorn
-#     if "gunicorn" not in os.getenv("SERVER_SOFTWARE", "").lower():
-#         asyncio.run(setup_webhook())
-#         print("DEBUG: JuicyFox main() will run")
-#         asyncio.run(main())
-# --- END Codex-hack ---
