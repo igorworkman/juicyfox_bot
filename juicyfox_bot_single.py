@@ -1739,8 +1739,6 @@ async def main():
     allowed_updates = dp.resolve_used_update_types()
     if "callback_query" not in allowed_updates:
         allowed_updates.append("callback_query")
-    await bot.delete_webhook(drop_pending_updates=True)
-    logging.info("Webhook cleared before starting polling")
     await dp.start_polling(bot, allowed_updates=allowed_updates)
 
 @dp.message(Command("test_vip"))
