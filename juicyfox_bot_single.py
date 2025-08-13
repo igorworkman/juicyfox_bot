@@ -1783,15 +1783,18 @@ async def main():
     me = await bot.get_me()
     bot_pool[str(me.id)] = bot
     webhook_base = getenv("WEBHOOK_URL")
+    if not webhook_base:
+        log.warning("WEBHOOK_URL is empty. Starting polling mode")
+        await dp.start_polling(bot)
+        return
     allowed_updates = dp.resolve_used_update_types()
     if "callback_query" not in allowed_updates:
         allowed_updates.append("callback_query")
-    if webhook_base:
-        await bot.set_webhook(
-            f"{webhook_base}/bot/{me.id}/webhook",
-            drop_pending_updates=True,
-            allowed_updates=allowed_updates,
-        )
+    await bot.set_webhook(
+        f"{webhook_base}/bot/{me.id}/webhook",
+        drop_pending_updates=True,
+        allowed_updates=allowed_updates,
+    )
     await dp.emit_startup(bot)
 
     # aiohttp web‑server
