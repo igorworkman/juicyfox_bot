@@ -1208,17 +1208,13 @@ def kb_days(d: Dict[str, int], lang: str):
     kb = InlineKeyboardBuilder()
     kb.row(InlineKeyboardButton(text=f"{y}-{m:02d}", callback_data="noop"))
     for w in cal:
-        kb.row(
-            *[
-                InlineKeyboardButton(
-                    text=" "
-                    if x == 0
-                    else (f"[{x}]" if x == selected_day else str(x)),
-                    callback_data="noop" if x == 0 else f"d:{x}",
-                )
-                for x in w
-            ]
-        )
+        row_buttons = []
+        for x in w:
+            text = " " if x == 0 else (f"[{x}]" if x == selected_day else str(x))
+            callback_data = "noop" if x == 0 else f"d:{x}"
+            logging.info(f"Generated date button callback: {callback_data}")
+            row_buttons.append(InlineKeyboardButton(text=text, callback_data=callback_data))
+        kb.row(*row_buttons)
     kb.row(InlineKeyboardButton(text=tr(lang, "dt_cancel"), callback_data="cancel"))
     return kb.as_markup()
 
@@ -1308,21 +1304,22 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query(Post.select_datetime, Post.wait_time, Post.wait_minute)
-async def dt_callback(cq: CallbackQuery, state: FSMContext):
+async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
+    logging.info(f"WAIT_DATE callback received: {callback_query.data}")
     data = await state.get_data()
-    act, val = (cq.data.split(':') + ['0'])[:2]
+    act, val = (callback_query.data.split(':') + ['0'])[:2]
     if act == 'noop':
-        await cq.answer()
+        await callback_query.answer()
         return
-    lang = cq.from_user.language_code
+    lang = callback_query.from_user.language_code
     if act == 'd':
         d = int(val)
         if d == 0:
-            await cq.answer()
+            await callback_query.answer()
             return
         await state.update_data(d=d)
         await state.set_state(WAIT_TIME)
-        await cq.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
+        await callback_query.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
         log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
         h = int(val)
@@ -1333,7 +1330,7 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         for m in [0, 15, 30, 45]:
             kb.button(text=f"{m:02d}", callback_data=f"mi:{m:02d}")
         kb.adjust(4)
-        await cq.message.edit_caption(
+        await callback_query.message.edit_caption(
             caption=tr(lang, 'choose_minute'),
             reply_markup=kb.as_markup()
         )
@@ -1349,17 +1346,17 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         if channel == "life":
             await state.set_state(Post.select_stars)
             log.info(f"[POST_PLAN] Transition to Post.select_stars (channel={channel})")
-            await cq.message.edit_text(tr(lang, 'ask_stars'), reply_markup=stars_kb(lang))
+            await callback_query.message.edit_text(tr(lang, 'ask_stars'), reply_markup=stars_kb(lang))
         else:
             tariff = CHANNEL_TARIFFS.get(channel, "")
             await state.update_data(tariff=tariff)
             await state.set_state(Post.wait_content)
             log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
-            await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
+            await callback_query.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
     elif act == 'cancel':
-        await cq.message.edit_text(tr(lang, 'cancel'))
+        await callback_query.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
-    await cq.answer()
+    await callback_query.answer()
 
 @dp.callback_query(F.data.startswith("stars:"), Post.select_stars)
 async def stars_selected(cq: CallbackQuery, state: FSMContext):
