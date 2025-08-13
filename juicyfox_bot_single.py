@@ -80,8 +80,8 @@ from aiogram.fsm.state import StatesGroup, State
 class Post(StatesGroup):
     wait_channel = State()
     select_datetime = State()
-    WAIT_TIME = State()
-    WAIT_MINUTE = State()
+    wait_time = State()
+    wait_minute = State()
     select_stars = State()
     wait_description = State()
     wait_price = State()
@@ -89,8 +89,8 @@ class Post(StatesGroup):
     wait_confirm = State()
 
 
-WAIT_TIME = Post.WAIT_TIME
-WAIT_MINUTE = Post.WAIT_MINUTE
+WAIT_TIME = Post.wait_time
+WAIT_MINUTE = Post.wait_minute
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -1224,7 +1224,7 @@ def get_time_keyboard(lang: str) -> InlineKeyboardMarkup:
 
 def kb_hours(d: Dict[str, int], lang: str):
     """Build keyboard for selecting an hour."""
-    selected_hour = d.get("hour")
+    selected_hour = d.get("h")
     kb = InlineKeyboardBuilder()
     for r in range(4):
         kb.row(
@@ -1243,7 +1243,7 @@ def kb_hours(d: Dict[str, int], lang: str):
 def kb_minutes(data: Dict[str, int], lang: str):
     kb = InlineKeyboardBuilder()
     for m in [0, 15, 30, 45]:
-        kb.button(text=f"{m:02d}", callback_data=f"minute_selected:{m}")
+        kb.button(text=f"{m:02d}", callback_data=f"mi:{m:02d}")
     kb.adjust(4)
     return kb.as_markup()
 
@@ -1277,8 +1277,8 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
         "y": now.year,
         "m": now.month,
         "d": now.day,
-        "hour": now.hour,
-        "min": 0,
+        "h": now.hour,
+        "mi": 0,
     }
     await state.update_data(**data)
     await state.set_state(Post.select_datetime)
@@ -1289,7 +1289,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
-@dp.callback_query(Post.select_datetime)
+@dp.callback_query(Post.select_datetime, Post.wait_time, Post.wait_minute)
 async def dt_callback(cq: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     act, val = (cq.data.split(':') + ['0'])[:2]
@@ -1308,19 +1308,24 @@ async def dt_callback(cq: CallbackQuery, state: FSMContext):
         log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
         h = int(val)
-        log.info(f"[POST_PLAN] Selected hour: {h}")
-        await state.update_data(hour=h)
-        await state.set_state(WAIT_MINUTE)
+        await state.update_data(h=h)
+        await state.set_state(Post.wait_minute)
+        data = await state.get_data()
+        kb = InlineKeyboardBuilder()
+        for m in [0, 15, 30, 45]:
+            kb.button(text=f"{m:02d}", callback_data=f"mi:{m:02d}")
+        kb.adjust(4)
         await cq.message.edit_caption(
             caption=tr(lang, 'choose_minute'),
-            reply_markup=kb_minutes(await state.get_data(), lang)
+            reply_markup=kb.as_markup()
         )
-    elif act == 'minute_selected':
+        log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
+    elif act == 'mi':
         mi = int(val)
-        await state.update_data(min=mi)
+        await state.update_data(mi=mi)
         data = await state.get_data()
         log.info(f"[POST_PLAN] Selected minute: {mi}")
-        ts = int(datetime(data['y'], data['m'], data['d'], data['hour'], data['min']).timestamp())
+        ts = int(datetime(data['y'], data['m'], data['d'], data['h'], data['mi']).timestamp())
         channel = data.get("channel")
         await state.update_data(publish_ts=ts)
         if channel == "life":
@@ -1435,7 +1440,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
     lang = cq.from_user.language_code
     date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
-    time_str = f"{data['hour']:02d}:{data['min']:02d}"
+    time_str = f"{data['h']:02d}:{data['mi']:02d}"
     tariff_str = data["tariff"]
     await cq.message.edit_reply_markup()
     await cq.message.answer(
