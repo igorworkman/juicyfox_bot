@@ -17,6 +17,7 @@ import asyncio
 from os import getenv
 from aiogram import Bot
 from datetime import datetime, timedelta
+import calendar
 from types import SimpleNamespace
 
 os.makedirs("/app/data", exist_ok=True)
@@ -34,6 +35,16 @@ from aiogram import Dispatcher, Router, F, BaseMiddleware
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+def get_post_plan_kb():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="👀 Life", callback_data="post_to:life")
+    kb.button(text="💿 Luxury", callback_data="post_to:luxury")
+    kb.button(text="👑 VIP", callback_data="post_to:vip")
+    kb.adjust(1)
+    return kb.as_markup()
+
+post_plan_kb = get_post_plan_kb()
 
 # ==============================
 #  POSTING GROUP — обновлённая версия
@@ -64,7 +75,7 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 
 from aiogram.fsm.state import StatesGroup, State
 
-vxefwz-codex/define-wait_date-and-add-logging-in-dt_callback
+
 class Post(StatesGroup):
     wait_channel = State()
     select_datetime = State()
@@ -76,9 +87,16 @@ class Post(StatesGroup):
     wait_content = State()
     wait_confirm = State()
 
+
+
+WAIT_TIME = Post.wait_time
+WAIT_MINUTE = Post.wait_minute
+
+
 WAIT_DATE = Post.select_datetime
 WAIT_TIME = Post.wait_time
 WAIT_MINUTE = Post.wait_minute
+
 
 
 from aiogram.fsm.context import FSMContext
@@ -1155,7 +1173,7 @@ async def _unused_cmd_history_3(msg: Message):
 # POSTING GROUP — новая версия
 # ==============================
 
-codex/publish-event-to-events-table-or-redis-stream
+
 @dp.message(F.chat.id == POST_PLAN_GROUP_ID)
 async def add_post_plan_button(msg: Message):
     """Добавляет кнопку 📆 Post Plan под каждым одиночным медиа в постинг-группе"""
@@ -1316,7 +1334,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
         "mi": 0,
     }
     await state.update_data(**data)
-    await state.set_state(WAIT_DATE)
+
     await cq.message.edit_text(
         tr(cq.from_user.language_code, "dt_prompt"),
         reply_markup=kb_days(data, cq.from_user.language_code),
@@ -1324,7 +1342,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
-@dp.callback_query(WAIT_DATE, WAIT_TIME, WAIT_MINUTE)
+
 async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
     logging.info(f"WAIT_DATE callback received: {callback_query.data}")
     data = await state.get_data()
@@ -1334,7 +1352,7 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         return
     lang = callback_query.from_user.language_code
     if act == 'd':
-        log.info(f"[POST_PLAN][WAIT_DATE] data: {callback_query.data}")
+
         d = int(val)
         if d == 0:
             await callback_query.answer()
@@ -1344,10 +1362,16 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         await callback_query.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
         log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
+
+        h = int(val)
+        await state.update_data(h=h)
+        await state.set_state(Post.wait_minute)
+
         log.info(f"[POST_PLAN][WAIT_TIME] data: {callback_query.data}")
         h = int(val)
         await state.update_data(h=h)
         await state.set_state(WAIT_MINUTE)
+
         data = await state.get_data()
         kb = InlineKeyboardBuilder()
         for m in [0, 15, 30, 45]:
@@ -1355,11 +1379,18 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         kb.adjust(4)
         await callback_query.message.edit_caption(
             caption=tr(lang, 'choose_minute'),
+
+            reply_markup=kb.as_markup()
+        )
+        log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
+    elif act == 'mi':
+
             reply_markup=kb.as_markup(),
         )
         log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
     elif act == 'mi':
         log.info(f"[POST_PLAN][WAIT_MINUTE] data: {callback_query.data}")
+
         mi = int(val)
         await state.update_data(mi=mi)
         data = await state.get_data()
@@ -1378,7 +1409,10 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
             log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
             await callback_query.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
     elif act == 'cancel':
+
+
         log.info(f"[POST_PLAN] Cancel data: {callback_query.data}")
+
         await callback_query.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
     await callback_query.answer()
@@ -1478,6 +1512,8 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
+
+
     event_key = f"{rowid}:{ts}"
     await _db_exec(
         "INSERT OR IGNORE INTO events (key, post_id, run_at, channel, text, media_ids) VALUES (?,?,?,?,?,?)",
@@ -1489,6 +1525,7 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         media_ids,
     )
     log.info(f"[POST_PLAN] Event published key={event_key}")
+
     lang = cq.from_user.language_code
     date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
     time_str = f"{data['h']:02d}:{data['mi']:02d}"
@@ -1506,7 +1543,9 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-main
+
+
+
 async def notify_log_channel(text: str):
     if LOG_CHANNEL_ID:
         await bot.send_message(LOG_CHANNEL_ID, text)
@@ -1652,8 +1691,6 @@ async def scheduled_poster():
 dp.include_router(main_r)
 dp.include_router(router)
 dp.include_router(donate_r)
-from posting.router import router as post_router
-dp.include_router(post_router)
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web
@@ -1779,4 +1816,34 @@ async def test_vip_post(msg: Message):
     except Exception as e:
         print(f"❌ Ошибка при отправке в VIP: {e}")
 
+@dp.message(Command("delete_post"))
+async def delete_post_cmd(msg: Message):
+    lang = msg.from_user.language_code
+    if msg.from_user.id not in ADMINS:
+        await msg.reply("⛔️ Только админ может удалять посты.")
+        return
+
+    parts = msg.text.strip().split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await msg.reply("❌ Используй /delete_post <id>")
+        return
+
+    msg_id = int(parts[1])
+    row = await _db_exec(
+        "SELECT chat_id FROM published_posts WHERE message_id = ?",
+        (msg_id,),
+        fetchone=True,
+    )
+    if not row:
+        await msg.reply(tr(lang, 'error_post_not_found'))
+        return
+    chat_id = row[0]
+    if chat_id not in [CHANNELS["vip"], LIFE_CHANNEL_ID, CHANNELS["luxury"]]:
+        await msg.reply(tr(lang, 'not_allowed_channel'))
+        return
+    try:
+        await bot.delete_message(chat_id, msg_id)
+        await msg.reply(tr(lang, 'post_deleted'))
+    except Exception as e:
+        print(f"❌ Ошибка удаления: {e}")
 
