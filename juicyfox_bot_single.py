@@ -357,6 +357,14 @@ CREATE TABLE IF NOT EXISTS published_posts(
   chat_id INTEGER,
   message_id TEXT
 );
+CREATE TABLE IF NOT EXISTS events(
+  key TEXT PRIMARY KEY,
+  post_id INTEGER,
+  run_at INTEGER,
+  channel TEXT,
+  text TEXT,
+  media_ids TEXT
+);
 """
 
 async def _db_exec(
@@ -1475,6 +1483,17 @@ async def post_done(cq: CallbackQuery, state: FSMContext):
         return_rowid=True,
     )
     log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
+    event_key = f"{rowid}:{ts}"
+    await _db_exec(
+        "INSERT OR IGNORE INTO events (key, post_id, run_at, channel, text, media_ids) VALUES (?,?,?,?,?,?)",
+        event_key,
+        rowid,
+        ts,
+        channel,
+        text,
+        media_ids,
+    )
+    log.info(f"[POST_PLAN] Event published key={event_key}")
     lang = cq.from_user.language_code
     date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
     time_str = f"{data['h']:02d}:{data['mi']:02d}"
