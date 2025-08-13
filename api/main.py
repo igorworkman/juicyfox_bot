@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from aiogram.types import Update
 from juicyfox_bot_single import main as run_bot, dp, bot_pool
- main
+
 from .check_logs import get_logs_clean, get_logs_full
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
