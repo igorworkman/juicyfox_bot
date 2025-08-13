@@ -950,14 +950,22 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     if not getattr(msg, "from_user", None):
         log.warning("[RELAY] message without from_user: %s", msg)
         return
+    log.info("[RELAY] checking access for user=%s", msg.from_user.id)
     paid = await is_paid(msg.from_user.id)
     log.info("[RELAY] is_paid(%s) -> %s", msg.from_user.id, paid)
     if not paid:
+        log.info("[RELAY] blocked by is_paid for user=%s", msg.from_user.id)
         await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
         return
 
     cnt = await inc_msg(msg.from_user.id)
+    log.info("[RELAY] inc_msg(%s) -> %s", msg.from_user.id, cnt)
     if cnt > CONSECUTIVE_LIMIT:
+        log.info(
+            "[RELAY] blocked by limit: user=%s count=%s",
+            msg.from_user.id,
+            cnt,
+        )
         await msg.answer(tr(msg.from_user.language_code, 'consecutive_limit'))
         return
 
@@ -1028,10 +1036,20 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
     if not uid or msg.from_user.id not in admins:
         return
 
-    await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
+    text, fid, mtype = extract_media(msg)
+    log.info(
+        "[RELAY_GROUP] send to user=%s via group=%s text=%r",
+        uid,
+        CHAT_GROUP_ID,
+        text,
+    )
+    try:
+        await bot.copy_message(uid, CHANNELS["chat_30"], msg.message_id)
+    except Exception as e:
+        log.error("[RELAY_GROUP] copy_message error (%s): %s", type(e).__name__, e)
+        return
     # await send_to_history(bot, HISTORY_GROUP_ID, msg)
 
-    text, fid, mtype = extract_media(msg)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT INTO messages (uid, sender, text, file_id, media_type, timestamp) VALUES (?,?,?,?,?,?)",
