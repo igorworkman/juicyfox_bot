@@ -1739,6 +1739,7 @@ async def main():
     allowed_updates = dp.resolve_used_update_types()
     if "callback_query" not in allowed_updates:
         allowed_updates.append("callback_query")
+    logging.info(f"Allowed updates: {allowed_updates}")
     await dp.start_polling(bot, allowed_updates=allowed_updates)
 
 @dp.message(Command("test_vip"))
