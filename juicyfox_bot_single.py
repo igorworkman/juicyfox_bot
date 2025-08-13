@@ -277,9 +277,6 @@ log.info(
     POST_PLAN_GROUP_ID,
 )
 
-if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
-    raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
-
 # --- Startup ------------------------------------------------
 async def on_startup(bot: Bot):
     log.info("on_startup called")
@@ -289,14 +286,14 @@ async def on_startup(bot: Bot):
     asyncio.create_task(scheduled_poster())
 
 
-bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
+bot: Optional[Bot] = None
 bot_pool: Dict[str, Bot] = {}
 dp  = Dispatcher(storage=MemoryStorage())
 dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
 
 # ---------------- Channel helpers ----------------
-from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
+from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, Unauthorized
 
 async def give_vip_channel(user_id:int):
     """Добавляем юзера в VIP канал или шлём инвайт"""
@@ -1692,7 +1689,7 @@ dp.include_router(donate_r)
 log.info("donate_r router included")
 
 # ---------------- Webhook server (CryptoBot) --------------
-from aiohttp import web
+from aiohttp import web, ClientSession, ClientConnectorError, ClientTimeout
 
 async def cryptobot_hook(request: web.Request):
     """Принимаем invoice_paid от CryptoBot и выдаём доступ"""
@@ -1779,8 +1776,44 @@ async def cmd_history(msg: Message):
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
     log.info("main() started")
-    # setup bot webhook
-    me = await bot.get_me()
+    if not TELEGRAM_TOKEN:
+        log.error("TELEGRAM_TOKEN is empty or not set")
+        return
+
+    global bot
+    bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
+
+    test_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getMe"
+    try:
+        timeout = ClientTimeout(total=5)
+        async with ClientSession(timeout=timeout) as session:
+            async with session.get(test_url) as resp:
+                if resp.status != 200:
+                    log.error("Проверьте BOT_TOKEN: %s", await resp.text())
+                    return
+                data = await resp.json()
+                if not data.get("ok"):
+                    log.error("Проверьте BOT_TOKEN: %s", data)
+                    return
+        log.info("Test connection to Telegram API succeeded")
+    except ClientConnectorError as e:
+        log.error("Нет доступа к Telegram API: %s", e)
+        return
+    except asyncio.TimeoutError:
+        log.error("Нет доступа к Telegram API: timeout")
+        return
+
+    try:
+        me = await bot.get_me()
+    except ClientConnectorError as e:
+        log.error("Нет доступа к Telegram API: %s", e)
+        return
+    except asyncio.TimeoutError:
+        log.error("Нет доступа к Telegram API: timeout")
+        return
+    except Unauthorized:
+        log.error("Проверьте BOT_TOKEN")
+        return
     bot_pool[str(me.id)] = bot
     webhook_base = getenv("WEBHOOK_URL")
     if not webhook_base:
