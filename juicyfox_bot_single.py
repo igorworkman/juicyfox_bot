@@ -67,10 +67,8 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 from aiogram.fsm.state import StatesGroup, State
 
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.base import StorageKey
-from redis.asyncio import Redis
-from redis.asyncio.cluster import RedisCluster
 
 async def _init_db():
     async with aiosqlite.connect(DB_PATH) as db:
@@ -199,11 +197,6 @@ async def get_last_messages(uid: int, limit: int):
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 
-REDIS_URL = os.getenv("REDIS_URL")
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-USE_REDIS_CLUSTER = os.getenv("REDIS_CLUSTER", "0") == "1"
-
 # --- Codex-hack: TEMPORARY DISABLE env checks for Codex PR ---
 # if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 #     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -263,21 +256,8 @@ async def on_startup():
     asyncio.create_task(scheduled_poster())
 
 
-if REDIS_URL:
-    if USE_REDIS_CLUSTER:
-        redis = RedisCluster.from_url(REDIS_URL)
-    else:
-        redis = Redis.from_url(REDIS_URL)
-else:
-    if USE_REDIS_CLUSTER:
-        redis = RedisCluster(host=REDIS_HOST or "localhost", port=REDIS_PORT)
-    else:
-        redis = Redis(host=REDIS_HOST or "localhost", port=REDIS_PORT)
-
-redis_storage = RedisStorage(redis=redis)
-
 bot = Bot(token=TELEGRAM_TOKEN, parse_mode='HTML')
-dp  = Dispatcher(storage=redis_storage)
+dp  = Dispatcher(storage=MemoryStorage())
 dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
 

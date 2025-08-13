@@ -6,7 +6,6 @@ requests>=2.31,<3.0
 pipdeptree
 httpx
 aiosqlite
-redis>=5.0,<6.0
 gunicorn
 fastapi
 uvicorn[standard]
