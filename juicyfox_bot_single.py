@@ -989,20 +989,32 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
     header = (f"{username} "
               f"• до {expires} • 💰 ${donated:.2f} • <code>{msg.from_user.id}</code> • {flag}")
 
-    log.info("[RELAY] send to group %s: user=%s text=%r", CHAT_GROUP_ID, msg.from_user.id, header)
+    log.warning(
+        "[DEBUG RELAY] sending header to group=%s from=%s msg_id=%s header=%r",
+        CHAT_GROUP_ID,
+        msg.chat.id,
+        msg.message_id,
+        header,
+    )
     try:
         header_msg = await bot.send_message(CHAT_GROUP_ID, header, parse_mode="HTML")
-        log.info("[RELAY] header sent msg_id=%s", header_msg.message_id)
+        log.warning("[DEBUG RELAY] Header sent OK msg_id=%s", header_msg.message_id)
     except Exception as e:
-        log.error("[RELAY] send_message error: %s", e)
+        log.warning("[DEBUG RELAY] send_message failed: %s", e)
         return
     relay[header_msg.message_id] = msg.from_user.id
 
+    log.warning(
+        "[DEBUG RELAY] copying message to group=%s from=%s msg_id=%s",
+        CHAT_GROUP_ID,
+        msg.chat.id,
+        msg.message_id,
+    )
     try:
         cp = await bot.copy_message(CHAT_GROUP_ID, msg.chat.id, msg.message_id)
-        log.info("[RELAY] message copied msg_id=%s", cp.message_id)
+        log.warning("[DEBUG RELAY] Message copied OK msg_id=%s", cp.message_id)
     except Exception as e:
-        log.error("[RELAY] copy_message error: %s", e)
+        log.warning("[DEBUG RELAY] copy_message failed: %s", e)
         return
     relay[cp.message_id] = msg.from_user.id
 
