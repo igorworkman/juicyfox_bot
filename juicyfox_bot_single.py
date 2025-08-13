@@ -282,7 +282,7 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 
 # --- Startup ------------------------------------------------
 async def on_startup(bot: Bot):
-    print("DEBUG: on_startup called")
+    log.info("on_startup called")
     await _db_exec(
         "CREATE TABLE IF NOT EXISTS reply_links (reply_msg_id INTEGER PRIMARY KEY, user_id INTEGER)"
     )
@@ -868,7 +868,8 @@ async def cancel_any(msg: Message, state: FSMContext):
 # ---------------- Main menu / live ------------------------
 @main_r.message(Command('start'))
 async def cmd_start(m: Message):
-        # если пользователь застрял в FSM (донат), сбрасываем
+    # если пользователь застрял в FSM (донат), сбрасываем
+    log.info("/start handler called for user %s", m.from_user.id)
     state = dp.fsm.get_context(bot, chat_id=m.chat.id, user_id=m.from_user.id)
     if await state.get_state():
         await state.clear()
@@ -1684,8 +1685,11 @@ async def scheduled_poster():
 
 # ---------------- Mount & run -----------------------------
 dp.include_router(main_r)
+log.info("main_r router included")
 dp.include_router(router)
+log.info("router included")
 dp.include_router(donate_r)
+log.info("donate_r router included")
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web
@@ -1774,7 +1778,7 @@ async def cmd_history(msg: Message):
 
 # ---------------- Run bot + aiohttp -----------------------
 async def main():
-    print("DEBUG: Inside main()")
+    log.info("main() started")
     # setup bot webhook
     me = await bot.get_me()
     bot_pool[str(me.id)] = bot
