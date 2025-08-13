@@ -88,7 +88,7 @@ class Post(StatesGroup):
     wait_content = State()
     wait_confirm = State()
 
-
+WAIT_DATE = Post.select_datetime
 WAIT_TIME = Post.wait_time
 WAIT_MINUTE = Post.wait_minute
 
@@ -1317,7 +1317,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
         "mi": 0,
     }
     await state.update_data(**data)
-    await state.set_state(Post.select_datetime)
+    await state.set_state(WAIT_DATE)
     await cq.message.edit_text(
         tr(cq.from_user.language_code, "dt_prompt"),
         reply_markup=kb_days(data, cq.from_user.language_code),
@@ -1325,7 +1325,7 @@ async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Выбран канал: {channel}")
 
 
-@dp.callback_query(Post.select_datetime, Post.wait_time, Post.wait_minute)
+@dp.callback_query(WAIT_DATE, WAIT_TIME, WAIT_MINUTE)
 async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
     logging.info(f"WAIT_DATE callback received: {callback_query.data}")
     data = await state.get_data()
@@ -1335,6 +1335,7 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         return
     lang = callback_query.from_user.language_code
     if act == 'd':
+        log.info(f"[POST_PLAN][WAIT_DATE] data: {callback_query.data}")
         d = int(val)
         if d == 0:
             await callback_query.answer()
@@ -1344,9 +1345,10 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         await callback_query.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
         log.info(f"[POST_PLAN] Selected day: {d}")
     elif act == 'h':
+        log.info(f"[POST_PLAN][WAIT_TIME] data: {callback_query.data}")
         h = int(val)
         await state.update_data(h=h)
-        await state.set_state(Post.wait_minute)
+        await state.set_state(WAIT_MINUTE)
         data = await state.get_data()
         kb = InlineKeyboardBuilder()
         for m in [0, 15, 30, 45]:
@@ -1354,10 +1356,11 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
         kb.adjust(4)
         await callback_query.message.edit_caption(
             caption=tr(lang, 'choose_minute'),
-            reply_markup=kb.as_markup()
+            reply_markup=kb.as_markup(),
         )
         log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
     elif act == 'mi':
+        log.info(f"[POST_PLAN][WAIT_MINUTE] data: {callback_query.data}")
         mi = int(val)
         await state.update_data(mi=mi)
         data = await state.get_data()
@@ -1376,6 +1379,7 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
             log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
             await callback_query.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
     elif act == 'cancel':
+        log.info(f"[POST_PLAN] Cancel data: {callback_query.data}")
         await callback_query.message.edit_text(tr(lang, 'cancel'))
         await state.clear()
     await callback_query.answer()
