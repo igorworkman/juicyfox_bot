@@ -478,7 +478,7 @@ L10N={
   'don_enter':'💸 Введи сумму в USD (5/10/25/50/100/200)',
   'don_num':'💸 Введи сумму доната в USD',
  'inv_err':'⚠️ Не удалось создать счёт. Попробуй другую валюту, милый 😉',
- 'not_paid':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
+ 'access_denied':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
   'life': """💎 Добро пожаловать в мой мир 💋
 {my_channel}""",
   'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
@@ -544,7 +544,7 @@ Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
   'don_enter':'💸 Enter amount in USD (5/10/25/50/100/200)',
   'don_num':'💸 Enter a donation amount in USD',
   'inv_err':'⚠️ Failed to create invoice. Try another currency, sweetheart 😉',
-  'not_paid':'💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘',
+  'access_denied':'💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘',
   'life': """💎 Welcome to my world 💋
 {my_channel}""",
   'pay_conf':'✅ Done! You’re with me for 30 days 😘',
@@ -601,7 +601,7 @@ No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
   'don_enter': '💸 Introduce el monto en USD (5/10/25/50/100/200)',
   'don_num': '💸 Introduce una cantidad válida en USD',
   'inv_err': '⚠️ No se pudo crear la factura. Intenta con otra moneda, cariño 😉',
-  'not_paid': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
+  'access_denied': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
   'life': "💎 Bienvenido a mi mundo 💋\n{my_channel}",
   'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
   'cancel': '❌ Quizás en otro momento… 😔',
@@ -958,11 +958,14 @@ async def relay_private(msg: Message, state: FSMContext, **kwargs):
         log.warning("[RELAY] message without from_user: %s", msg)
         return
     log.info("[RELAY] checking access for user=%s", msg.from_user.id)
-    paid = await is_paid(msg.from_user.id)
-    log.info("[RELAY] is_paid(%s) -> %s", msg.from_user.id, paid)
+    try:
+        paid = await is_paid(msg.from_user.id)
+    except Exception as e:
+        log.error("[RELAY] is_paid error for %s: %s", msg.from_user.id, e)
+        paid = False
+
     if not paid:
-        log.info("[RELAY] blocked by is_paid for user=%s", msg.from_user.id)
-        await msg.reply(tr(msg.from_user.language_code, 'not_paid'))
+        await msg.reply(tr(msg.from_user.language_code, 'access_denied'))
         return
 
     cnt = await inc_msg(msg.from_user.id)
