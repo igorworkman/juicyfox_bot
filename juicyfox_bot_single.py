@@ -281,7 +281,7 @@ if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
 
 # --- Startup ------------------------------------------------
-async def on_startup():
+async def on_startup(bot: Bot):
     print("DEBUG: on_startup called")
     await _db_exec(
         "CREATE TABLE IF NOT EXISTS reply_links (reply_msg_id INTEGER PRIMARY KEY, user_id INTEGER)"
