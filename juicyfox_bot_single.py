@@ -19,7 +19,6 @@ from os import getenv
 from aiogram import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from datetime import datetime, timedelta
-import calendar
 from types import SimpleNamespace
 
 os.makedirs("/app/data", exist_ok=True)
@@ -37,16 +36,6 @@ from aiogram import Dispatcher, Router, F, BaseMiddleware
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-def get_post_plan_kb():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="👀 Life", callback_data="post_to:life")
-    kb.button(text="💿 Luxury", callback_data="post_to:luxury")
-    kb.button(text="👑 VIP", callback_data="post_to:vip")
-    kb.adjust(1)
-    return kb.as_markup()
-
-post_plan_kb = get_post_plan_kb()
 
 # ==============================
 #  POSTING GROUP — обновлённая версия
@@ -76,21 +65,6 @@ def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
 
 
 from aiogram.fsm.state import StatesGroup, State
-
-class Post(StatesGroup):
-    wait_channel = State()
-    select_datetime = State()
-    wait_time = State()
-    wait_minute = State()
-    select_stars = State()
-    wait_description = State()
-    wait_price = State()
-    wait_content = State()
-    wait_confirm = State()
-
-
-WAIT_TIME = Post.wait_time
-WAIT_MINUTE = Post.wait_minute
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.redis import RedisStorage
@@ -1177,340 +1151,6 @@ async def _unused_cmd_history_3(msg: Message):
 # POSTING GROUP — новая версия
 # ==============================
 
-@dp.message(F.chat.id == POST_PLAN_GROUP_ID)
-async def add_post_plan_button(msg: Message):
-    """Добавляет кнопку 📆 Post Plan под каждым одиночным медиа в постинг-группе"""
-    log.info(f"[POST_PLAN] Получено сообщение {msg.message_id} от {msg.from_user.id} в {msg.chat.id}")
-
-    # Проверка: только админы
-    if msg.from_user.id not in ADMINS:
-        log.info(f"[POST_PLAN] Игнор: не админ ({msg.from_user.id})")
-        return
-
-    # Пропускаем альбомы
-    if msg.media_group_id is not None:
-        log.info(f"[POST_PLAN] Игнор: альбом (media_group_id={msg.media_group_id})")
-        return
-
-    # Только одиночные медиа (фото, видео, gif-анимация)
-    if not (msg.photo or msg.video or msg.animation):
-        log.info(f"[POST_PLAN] Игнор: не медиа ({msg.content_type})")
-        return
-
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="📆 Post Plan", callback_data=f"start_post_plan:{msg.message_id}")]]
-    )
-
-    global POST_COUNTER
-    cnt = POST_COUNTER
-    try:
-        await bot.send_message(
-            msg.chat.id,
-            f"Пост №{cnt:03d}",
-            reply_markup=kb,
-            reply_to_message_id=msg.message_id,
-        )
-        log.info(f"[POST_PLAN] Кнопка добавлена (пост №{cnt:03d}) к сообщению {msg.message_id}")
-        POST_COUNTER += 1
-    except Exception as e:
-        log.error(f"[POST_PLAN] Ошибка при добавлении кнопки: {e}")
-
-
-@dp.callback_query(F.data.startswith("start_post_plan:"))
-async def start_post_plan(cq: CallbackQuery, state: FSMContext):
-    log.info(f"[POST_PLAN] Запуск планирования от {cq.from_user.id} в {cq.message.chat.id}")
-
-    # Проверка чата
-    if cq.message.chat.id != POST_PLAN_GROUP_ID:
-        await cq.answer("⛔ Доступно только в постинг-группе", show_alert=True)
-        return
-
-    # Проверка на админа
-    if cq.from_user.id not in ADMINS:
-        await cq.answer("⛔ Только админы могут планировать посты", show_alert=True)
-        return
-
-    # Сохраняем ID исходного медиа
-    try:
-        msg_id = int(cq.data.split(":")[1])
-        await state.update_data(source_message_id=msg_id)
-    except Exception as e:
-        log.error(f"[POST_PLAN] Ошибка парсинга message_id: {e}")
-        return
-
-    # Не очищаем state здесь, чтобы не потерять source_message_id
-    await state.set_state(Post.wait_channel)
-    await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
-
-
-def kb_days(d: Dict[str, int], lang: str):
-    """Build keyboard for selecting a day."""
-    y, m, selected_day = d["y"], d["m"], d.get("d")
-    cal = calendar.monthcalendar(y, m)
-    kb = InlineKeyboardBuilder()
-    kb.row(InlineKeyboardButton(text=f"{y}-{m:02d}", callback_data="noop"))
-    for w in cal:
-        row_buttons = []
-        for x in w:
-            text = " " if x == 0 else (f"[{x}]" if x == selected_day else str(x))
-            callback_data = "noop" if x == 0 else f"d:{x}"
-            logging.info(f"Generated date button callback: {callback_data}")
-            row_buttons.append(InlineKeyboardButton(text=text, callback_data=callback_data))
-        kb.row(*row_buttons)
-    kb.row(InlineKeyboardButton(text=tr(lang, "dt_cancel"), callback_data="cancel"))
-    return kb.as_markup()
-
-
-def get_time_keyboard(lang: str) -> InlineKeyboardMarkup:
-    """Build inline keyboard for selecting time."""
-    kb = InlineKeyboardBuilder()
-    for r in range(4):
-        kb.row(
-            *[
-                InlineKeyboardButton(
-                    text=tr(lang, "choose_time", time=f"{h:02d}:00"),
-                    callback_data=f"h:{h}",
-                )
-                for h in range(r * 6, (r + 1) * 6)
-            ]
-        )
-    kb.row(InlineKeyboardButton(text=tr(lang, "dt_cancel"), callback_data="cancel"))
-    return kb.as_markup()
-
-
-def kb_hours(d: Dict[str, int], lang: str):
-    """Build keyboard for selecting an hour."""
-    selected_hour = d.get("h")
-    kb = InlineKeyboardBuilder()
-    for r in range(4):
-        kb.row(
-            *[
-                InlineKeyboardButton(
-                    text=f"[{h:02d}]" if h == selected_hour else f"{h:02d}",
-                    callback_data=f"h:{h}",
-                )
-                for h in range(r * 6, (r + 1) * 6)
-            ]
-        )
-    kb.row(InlineKeyboardButton(text=tr(lang, "dt_cancel"), callback_data="cancel"))
-    return kb.as_markup()
-
-
-def kb_minutes(data: Dict[str, int], lang: str):
-    kb = InlineKeyboardBuilder()
-    for m in [0, 15, 30, 45]:
-        kb.button(text=f"{m:02d}", callback_data=f"mi:{m:02d}")
-    kb.adjust(4)
-    return kb.as_markup()
-
-
-def stars_kb(lang: str) -> InlineKeyboardMarkup:
-    """Stars selection keyboard for LIFE channel."""
-    builder = InlineKeyboardBuilder()
-    stars_values = [50, 100, 200, 300, 400, 600, 800, 1000]
-    for val in stars_values:
-        builder.button(text=f"{val}⭐️", callback_data=f"stars:{val}")
-    builder.button(text=tr(lang, 'free_label'), callback_data="stars:FREE")
-    builder.adjust(4)
-    return builder.as_markup()
-
-
-def done_kb(lang: str) -> InlineKeyboardMarkup:
-    b = InlineKeyboardBuilder()
-    b.button(text=tr(lang, 'done_label'), callback_data='post_done')
-    return b.as_markup()
-
-@dp.callback_query(F.data.startswith("post_to:"), Post.wait_channel)
-async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
-    await cq.answer()
-    channel = cq.data.split(":")[1]
-    data_update = {"channel": channel}
-    if channel != "life":
-        data_update["tariff"] = CHANNEL_TARIFFS.get(channel, "")
-    await state.update_data(**data_update)
-    now = datetime.now()
-    data = {
-        "y": now.year,
-        "m": now.month,
-        "d": now.day,
-        "h": now.hour,
-        "mi": 0,
-    }
-    await state.update_data(**data)
-    await state.set_state(Post.select_datetime)
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, "dt_prompt"),
-        reply_markup=kb_days(data, cq.from_user.language_code),
-    )
-    log.info(f"[POST_PLAN] Выбран канал: {channel}")
-
-
-@dp.callback_query(Post.select_datetime, Post.wait_time, Post.wait_minute)
-async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
-    logging.info(f"WAIT_DATE callback received: {callback_query.data}")
-    data = await state.get_data()
-    act, val = (callback_query.data.split(':') + ['0'])[:2]
-    if act == 'noop':
-        await callback_query.answer()
-        return
-    lang = callback_query.from_user.language_code
-    if act == 'd':
-        d = int(val)
-        if d == 0:
-            await callback_query.answer()
-            return
-        await state.update_data(d=d)
-        await state.set_state(WAIT_TIME)
-        await callback_query.message.edit_reply_markup(reply_markup=get_time_keyboard(lang))
-        log.info(f"[POST_PLAN] Selected day: {d}")
-    elif act == 'h':
-        h = int(val)
-        await state.update_data(h=h)
-        await state.set_state(Post.wait_minute)
-        data = await state.get_data()
-        kb = InlineKeyboardBuilder()
-        for m in [0, 15, 30, 45]:
-            kb.button(text=f"{m:02d}", callback_data=f"mi:{m:02d}")
-        kb.adjust(4)
-        await callback_query.message.edit_caption(
-            caption=tr(lang, 'choose_minute'),
-            reply_markup=kb.as_markup()
-        )
-        log.info(f"[POST_PLAN] Selected hour: {h} → waiting minute selection")
-    elif act == 'mi':
-        mi = int(val)
-        await state.update_data(mi=mi)
-        data = await state.get_data()
-        log.info(f"[POST_PLAN] Selected minute: {mi}")
-        ts = int(datetime(data['y'], data['m'], data['d'], data['h'], data['mi']).timestamp())
-        channel = data.get("channel")
-        await state.update_data(publish_ts=ts)
-        if channel == "life":
-            await state.set_state(Post.select_stars)
-            log.info(f"[POST_PLAN] Transition to Post.select_stars (channel={channel})")
-            await callback_query.message.edit_text(tr(lang, 'ask_stars'), reply_markup=stars_kb(lang))
-        else:
-            tariff = CHANNEL_TARIFFS.get(channel, "")
-            await state.update_data(tariff=tariff)
-            await state.set_state(Post.wait_content)
-            log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
-            await callback_query.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
-    elif act == 'cancel':
-        await callback_query.message.edit_text(tr(lang, 'cancel'))
-        await state.clear()
-    await callback_query.answer()
-
-@dp.callback_query(F.data.startswith("stars:"), Post.select_stars)
-async def stars_selected(cq: CallbackQuery, state: FSMContext):
-    await cq.answer()
-    lang = cq.from_user.language_code
-    val = cq.data.split(":")[1]
-    if val == "FREE":
-        tariff = "FREE"
-    else:
-        tariff = f"{val} Stars⭐️"
-    await state.update_data(tariff=tariff)
-    log.info(f"[POST_PLAN] Selected Stars: {tariff}")
-    await state.set_state(Post.wait_content)
-    log.info("[POST_PLAN] Transition to Post.wait_content")
-    await cq.message.edit_text(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
-
-@dp.message(Post.wait_description, F.chat.id == POST_PLAN_GROUP_ID)
-async def post_description(msg: Message, state: FSMContext):
-    lang = msg.from_user.language_code
-    desc = msg.text or ''
-    await state.update_data(description=desc)
-    data = await state.get_data()
-    if is_paid_channel(data.get('channel')):
-        await state.update_data(price=None)
-        await state.set_state(Post.wait_price)
-        await msg.answer(tr(lang, 'set_price_prompt'))
-    else:
-        await state.set_state(Post.wait_content)
-        await msg.answer(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
-
-@dp.message(Post.wait_price, F.chat.id == POST_PLAN_GROUP_ID)
-async def post_price(msg: Message, state: FSMContext):
-    lang = msg.from_user.language_code
-    await state.update_data(price=msg.text)
-    await state.set_state(Post.wait_content)
-    await msg.answer(tr(lang, 'ask_content'), reply_markup=done_kb(lang))
-
-@dp.message(Post.wait_content, F.chat.id == POST_PLAN_GROUP_ID)
-async def post_content(msg: Message, state: FSMContext):
-    data = await state.get_data()
-    channel = data.get("channel")
-    if not channel:
-        log.error("[POST_PLAN] Ошибка: канал не выбран")
-        await msg.reply("Ошибка: не выбран канал.")
-        return
-
-    if msg.photo or msg.video or msg.animation:
-        ids = data.get("media_ids", [])
-        if msg.photo:
-            file_id = msg.photo[-1].file_id
-            mtype = "photo"
-        elif msg.video:
-            file_id = msg.video.file_id
-            mtype = "video"
-        else:
-            file_id = msg.animation.file_id
-            mtype = "animation"
-        ids.append(f"{mtype}:{file_id}")
-        await state.update_data(media_ids=ids)
-        if msg.caption:
-            await state.update_data(text=msg.caption)
-        await msg.reply("Медиа добавлено")
-        log.info(f"[POST_PLAN] Добавлено медиа: {file_id}")
-    elif msg.text:
-        await state.update_data(text=msg.text)
-        await msg.reply("Текст сохранён")
-        log.info("[POST_PLAN] Сохранён текст поста")
-    else:
-        log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
-
-
-@dp.callback_query(F.data == "post_done")
-async def post_done(cq: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    log.info("[POST_PLAN] post_done triggered, state=%s, data=%s", await state.get_state(), data)
-    await cq.answer()
-    channel = data["channel"]
-    media_ids = ','.join(data.get("media_ids", []))
-    text = data.get("text", "")
-    source_msg_id = data.get("source_message_id", cq.message.message_id)
-    ts = data["publish_ts"]
-    rowid = await _db_exec(
-        "INSERT INTO scheduled_posts (created_ts, publish_ts, channel, price, text, from_chat_id, from_msg_id, media_ids, status, is_sent) VALUES(?,?,?,?,?,?,?,?,?,?)",
-        int(time.time()),
-        ts,
-        channel,
-        0,
-        text,
-        cq.message.chat.id,
-        int(source_msg_id),
-        media_ids,
-        "scheduled",
-        0,
-        return_rowid=True,
-    )
-    log.info(f"[POST_PLAN] Запись добавлена в scheduled_posts rowid={rowid}")
-    lang = cq.from_user.language_code
-    date_str = f"{data['d']:02d}.{data['m']:02d}.{data['y']}"
-    time_str = f"{data['h']:02d}:{data['mi']:02d}"
-    tariff_str = data["tariff"]
-    await cq.message.edit_reply_markup()
-    await cq.message.answer(
-        tr(lang, 'post_scheduled').format(
-            channel=channel.upper(),
-            date=date_str,
-            time=time_str,
-            tariff=tariff_str,
-        )
-    )
-    log.info(f"[POST_PLAN] Пост запланирован в {channel}, медиа={media_ids}, текст={bool(text)}, source_msg_id={source_msg_id}")
-    await state.clear()
-
 async def notify_log_channel(text: str):
     if LOG_CHANNEL_ID:
         await bot.send_message(LOG_CHANNEL_ID, text)
@@ -1656,6 +1296,8 @@ async def scheduled_poster():
 dp.include_router(main_r)
 dp.include_router(router)
 dp.include_router(donate_r)
+from posting.router import router as post_router
+dp.include_router(post_router)
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web
@@ -1774,36 +1416,6 @@ async def test_vip_post(msg: Message):
     except Exception as e:
         print(f"❌ Ошибка при отправке в VIP: {e}")
 
-@dp.message(Command("delete_post"))
-async def delete_post_cmd(msg: Message):
-    lang = msg.from_user.language_code
-    if msg.from_user.id not in ADMINS:
-        await msg.reply("⛔️ Только админ может удалять посты.")
-        return
-
-    parts = msg.text.strip().split()
-    if len(parts) != 2 or not parts[1].isdigit():
-        await msg.reply("❌ Используй /delete_post <id>")
-        return
-
-    msg_id = int(parts[1])
-    row = await _db_exec(
-        "SELECT chat_id FROM published_posts WHERE message_id = ?",
-        (msg_id,),
-        fetchone=True,
-    )
-    if not row:
-        await msg.reply(tr(lang, 'error_post_not_found'))
-        return
-    chat_id = row[0]
-    if chat_id not in [CHANNELS["vip"], LIFE_CHANNEL_ID, CHANNELS["luxury"]]:
-        await msg.reply(tr(lang, 'not_allowed_channel'))
-        return
-    try:
-        await bot.delete_message(chat_id, msg_id)
-        await msg.reply(tr(lang, 'post_deleted'))
-    except Exception as e:
-        print(f"❌ Ошибка удаления: {e}")
 
 
 async def setup_webhook():
