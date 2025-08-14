@@ -1694,8 +1694,6 @@ async def scheduled_poster():
 # Routers are now registered in the FastAPI startup event
 
 # ---------------- Mount & run -----------------------------
-dp.include_router(main_r)
-log.info("main_r router included")
 dp.include_router(router)
 log.info("router included")
 dp.include_router(donate_r)
