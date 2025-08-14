@@ -1698,7 +1698,7 @@ async def scheduled_poster():
 from aiogram import Router
 donate_r = Router(name="donate")
 
-@donate_r.message()
+@donate_r.message(Command("donate"))
 async def donate_stub(message):
     # Заглушка логики донатов
     await message.answer("💰 Донаты временно недоступны. Скоро появятся снова!")
