@@ -1695,6 +1695,14 @@ async def scheduled_poster():
 
 # ---------------- Mount & run -----------------------------
 # Removed obsolete generic router registration to prevent NameError
+from aiogram import Router
+donate_r = Router(name="donate")
+
+@donate_r.message()
+async def donate_stub(message):
+    # Заглушка логики донатов
+    await message.answer("💰 Донаты временно недоступны. Скоро появятся снова!")
+
 dp.include_router(donate_r)
 log.info("donate_r router included")
 dp.include_router(router_pay)
