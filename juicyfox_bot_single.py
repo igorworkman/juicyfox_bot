@@ -36,6 +36,13 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from router_pay import router as router_pay
+from router_access import router as router_access
+from router_posting import router as router_posting
+from router_relay import router as router_relay
+from router_history import router as router_history
+from router_ui import router as router_ui
+
 def get_post_plan_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="👀 Life", callback_data="post_to:life")
@@ -1683,7 +1690,29 @@ async def scheduled_poster():
                     f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
                 )
 
+
 # Routers are now registered in the FastAPI startup event
+
+# ---------------- Mount & run -----------------------------
+dp.include_router(main_r)
+log.info("main_r router included")
+dp.include_router(router)
+log.info("router included")
+dp.include_router(donate_r)
+log.info("donate_r router included")
+dp.include_router(router_pay)
+log.info("router_pay registered")
+dp.include_router(router_access)
+log.info("router_access registered")
+dp.include_router(router_posting)
+log.info("router_posting registered")
+dp.include_router(router_relay)
+log.info("router_relay registered")
+dp.include_router(router_history)
+log.info("router_history registered")
+dp.include_router(router_ui)
+log.info("router_ui registered")
+
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web, ClientSession, ClientConnectorError, ClientTimeout
@@ -1813,10 +1842,6 @@ async def main():
         return
     bot_pool[str(me.id)] = bot
     webhook_base = getenv("WEBHOOK_URL")
-    if not webhook_base:
-        log.warning("WEBHOOK_URL is empty. Starting polling mode")
-        await dp.start_polling(bot)
-        return
     allowed_updates = dp.resolve_used_update_types()
     if "callback_query" not in allowed_updates:
         allowed_updates.append("callback_query")
@@ -1825,7 +1850,11 @@ async def main():
         drop_pending_updates=True,
         allowed_updates=allowed_updates,
     )
+
     log.info("Webhook set successfully")
+
+    log.info("Webhook installed at %s/bot/%s/webhook", webhook_base, me.id)
+
     await dp.emit_startup(bot)
 
     # aiohttp web‑server

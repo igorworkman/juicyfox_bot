@@ -45,7 +45,9 @@ async def startup_event():
         log.info("Registered %s", name)
     await run_bot()
     log.info("Bot started from API startup event")
+
     log.info("FastAPI server running")
+
 
 
 @app.post("/bot/{bot_id}/webhook")
