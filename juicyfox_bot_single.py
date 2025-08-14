@@ -36,6 +36,13 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from router_pay import router as router_pay
+from router_access import router as router_access
+from router_posting import router as router_posting
+from router_relay import router as router_relay
+from router_history import router as router_history
+from router_ui import router as router_ui
+
 def get_post_plan_kb():
     kb = InlineKeyboardBuilder()
     kb.button(text="👀 Life", callback_data="post_to:life")
@@ -1687,6 +1694,18 @@ dp.include_router(router)
 log.info("router included")
 dp.include_router(donate_r)
 log.info("donate_r router included")
+dp.include_router(router_pay)
+log.info("router_pay registered")
+dp.include_router(router_access)
+log.info("router_access registered")
+dp.include_router(router_posting)
+log.info("router_posting registered")
+dp.include_router(router_relay)
+log.info("router_relay registered")
+dp.include_router(router_history)
+log.info("router_history registered")
+dp.include_router(router_ui)
+log.info("router_ui registered")
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web, ClientSession, ClientConnectorError, ClientTimeout
