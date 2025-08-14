@@ -1711,20 +1711,9 @@ async def scheduled_poster():
                 )
 
 
-# Routers are now registered in the FastAPI startup event
-
 # ---------------- Mount & run -----------------------------
-# Removed obsolete generic router registration to prevent NameError
-from aiogram import Router
-donate_r = Router(name="donate")
-
-@donate_r.message(Command("donate"))
-async def donate_stub(message):
-    # Заглушка логики донатов
-    await message.answer("💰 Донаты временно недоступны. Скоро появятся снова!")
-
-dp.include_router(donate_r)
-log.info("donate_r router included")
+dp.include_router(router_donate)
+log.info("router_donate registered")
 dp.include_router(router_pay)
 log.info("router_pay registered")
 dp.include_router(router_access)

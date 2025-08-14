@@ -5,10 +5,6 @@ from juicyfox_bot_single import (
     main as run_bot,
     dp,
     bot_pool,
-    router_pay,
-    router_donate,
-    router_history,
-    router_ui,
 )
 import logging
 
@@ -35,17 +31,8 @@ async def metrics() -> Response:
 @app.on_event("startup")
 async def startup_event():
     log.info("Starting bot from API startup event")
-    for router, name in [
-        (router_pay, "router_pay"),
-        (router_donate, "router_donate"),
-        (router_history, "router_history"),
-        (router_ui, "router_ui"),
-    ]:
-        dp.include_router(router)
-        log.info("Registered %s", name)
     await run_bot()
     log.info("Bot started from API startup event")
-
     log.info("FastAPI server running")
 
 
