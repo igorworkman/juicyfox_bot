@@ -705,10 +705,13 @@ def vip_currency_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-router=Router(); donate_r=Router(); main_r=Router()
+router_pay = Router()
+router_donate = Router()
+router_history = Router()
+router_ui = Router()
 
 
-@router.callback_query(F.data.startswith('pay:'))
+@router_pay.callback_query(F.data.startswith('pay:'))
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
     lang = cq.from_user.language_code
@@ -740,7 +743,7 @@ async def choose_cur(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text(text, reply_markup=kb.as_markup())
 
 
-@router.callback_query(F.data.startswith('payc:'))
+@router_pay.callback_query(F.data.startswith('payc:'))
 async def pay_make(cq: CallbackQuery):
     parts = cq.data.split(':')
     if len(parts) == 4 and parts[1] == 'chat':
@@ -759,7 +762,7 @@ async def pay_make(cq: CallbackQuery):
     else:
         await cq.answer(tr(cq.from_user.language_code,'inv_err'),show_alert=True)
 
-@router.callback_query(F.data.startswith('vipay:'))
+@router_pay.callback_query(F.data.startswith('vipay:'))
 async def handle_vip_currency(cq: CallbackQuery):
     cur = cq.data.split(':')[1]
     amt = TARIFFS['vip']
@@ -778,7 +781,7 @@ class ChatGift(StatesGroup):
     plan = State()
     choose_tier = State()
 
-@router.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
+@router_pay.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
 async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
     days = int(cq.data.split(':')[1])
     amt = CHAT_TIERS.get(days, 0)
@@ -793,7 +796,7 @@ async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
     )
     await state.clear()
 
-@donate_r.callback_query(F.data == 'donate')
+@router_donate.callback_query(F.data == 'donate')
 async def donate_currency(cq: CallbackQuery, state: FSMContext):
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
@@ -806,7 +809,7 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext):
     )
     await state.set_state(Donate.choosing_currency)
 
-@donate_r.callback_query(F.data.startswith('doncur:'),Donate.choosing_currency)
+@router_donate.callback_query(F.data.startswith('doncur:'),Donate.choosing_currency)
 async def donate_amount(cq: CallbackQuery, state: FSMContext):
     """Отображаем просьбу ввести сумму + кнопка 🔙 Назад"""
     await state.update_data(currency=cq.data.split(':')[1])
@@ -820,7 +823,7 @@ async def donate_amount(cq: CallbackQuery, state: FSMContext):
     await state.set_state(Donate.entering_amount)
 
 # --- кнопка Назад из ввода суммы ---
-@donate_r.callback_query(F.data=='don_back', Donate.entering_amount)
+@router_donate.callback_query(F.data=='don_back', Donate.entering_amount)
 async def donate_back(cq: CallbackQuery, state: FSMContext):
     """Возврат к выбору валюты с кнопкой Назад"""
     await state.set_state(Donate.choosing_currency)
@@ -834,7 +837,7 @@ async def donate_back(cq: CallbackQuery, state: FSMContext):
         reply_markup=kb.as_markup()
     )
 
-@dp.message(Donate.entering_amount)
+@router_donate.message(Donate.entering_amount)
 async def donate_finish(msg: Message, state: FSMContext):
     """Получаем сумму в USD, создаём счёт и завершаем FSM"""
     text = msg.text.replace(',', '.').strip()
@@ -863,7 +866,7 @@ async def cancel_any(msg: Message, state: FSMContext):
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
 
 # ---------------- Main menu / live ------------------------
-@main_r.message(Command('start'))
+@router_ui.message(Command('start'))
 async def cmd_start(m: Message):
     # если пользователь застрял в FSM (донат), сбрасываем
     log.info("/start handler called for user %s", m.from_user.id)
@@ -895,7 +898,7 @@ async def cmd_start(m: Message):
         reply_markup=reply_kb
     )
 
-@main_r.callback_query(F.data == 'life')
+@router_ui.callback_query(F.data == 'life')
 async def life_link(cq: CallbackQuery):
     kb = InlineKeyboardBuilder()
     kb.button(text="⬅️ Назад", callback_data="back")
@@ -905,7 +908,7 @@ async def life_link(cq: CallbackQuery):
         reply_markup=kb.as_markup()
     )
 
-@router.callback_query(F.data == 'back')
+@router_ui.callback_query(F.data == 'back')
 async def back_to_main(cq: CallbackQuery):
     lang = cq.from_user.language_code
     kb = build_tip_menu(lang)
@@ -914,7 +917,7 @@ async def back_to_main(cq: CallbackQuery):
         reply_markup=kb.as_markup()
     )
 
-@main_r.callback_query(F.data == 'tip_menu')
+@router_ui.callback_query(F.data == 'tip_menu')
 async def tip_menu(cq: CallbackQuery):
     lang = cq.from_user.language_code
     kb = build_tip_menu(lang)
@@ -1680,13 +1683,7 @@ async def scheduled_poster():
                     f"✅ Пост опубликован! Для удаления: /delete_post {published.message_id}",
                 )
 
-# ---------------- Mount & run -----------------------------
-dp.include_router(main_r)
-log.info("main_r router included")
-dp.include_router(router)
-log.info("router included")
-dp.include_router(donate_r)
-log.info("donate_r router included")
+# Routers are now registered in the FastAPI startup event
 
 # ---------------- Webhook server (CryptoBot) --------------
 from aiohttp import web, ClientSession, ClientConnectorError, ClientTimeout
@@ -1751,7 +1748,7 @@ async def cryptobot_hook(request: web.Request):
 
 # ---------------- History command -------------------------
 # Only respond to /history inside the configured history group
-@dp.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
+@router_history.message(Command("history"), F.chat.id == HISTORY_GROUP_ID)
 async def cmd_history(msg: Message):
     print(f"[DEBUG] Получена команда history из чата {msg.chat.id}, ожидается {HISTORY_GROUP_ID}")
     parts = msg.text.strip().split()
@@ -1828,6 +1825,7 @@ async def main():
         drop_pending_updates=True,
         allowed_updates=allowed_updates,
     )
+    log.info("Webhook set successfully")
     await dp.emit_startup(bot)
 
     # aiohttp web‑server
