@@ -1691,12 +1691,10 @@ async def scheduled_poster():
                 )
 
 
-# Routers are now registered in the FastAPI startup event
-
 # ---------------- Mount & run -----------------------------
-# Removed obsolete generic router registration to prevent NameError
-dp.include_router(donate_r)
-log.info("donate_r router included")
+# Register routers
+dp.include_router(router_donate)
+log.info("router_donate registered")
 dp.include_router(router_pay)
 log.info("router_pay registered")
 dp.include_router(router_access)
