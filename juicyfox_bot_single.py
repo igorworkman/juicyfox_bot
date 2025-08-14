@@ -293,7 +293,7 @@ dp.update.outer_middleware(UpdateLogger())
 dp.startup.register(on_startup)
 
 # ---------------- Channel helpers ----------------
-from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest, Unauthorized
+from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 
 async def give_vip_channel(user_id:int):
     """Добавляем юзера в VIP канал или шлём инвайт"""
@@ -1811,8 +1811,8 @@ async def main():
     except asyncio.TimeoutError:
         log.error("Нет доступа к Telegram API: timeout")
         return
-    except Unauthorized:
-        log.error("Проверьте BOT_TOKEN")
+    except TelegramBadRequest as e:
+        log.error("Проверьте BOT_TOKEN: %s", e)
         return
     bot_pool[str(me.id)] = bot
     webhook_base = getenv("WEBHOOK_URL")
