@@ -726,10 +726,6 @@ def vip_currency_kb() -> InlineKeyboardMarkup:
     kb.adjust(2)
     return kb.as_markup()
 
-
-router_donate = Router()
-
-
 @router_pay.callback_query(F.data.startswith('pay:'))
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
@@ -815,7 +811,7 @@ async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
     )
     await state.clear()
 
-@router_donate.callback_query(F.data == 'donate')
+@router_ui.callback_query(F.data == 'donate')
 async def donate_currency(cq: CallbackQuery, state: FSMContext):
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
@@ -828,7 +824,7 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext):
     )
     await state.set_state(Donate.choosing_currency)
 
-@router_donate.callback_query(F.data.startswith('doncur:'),Donate.choosing_currency)
+@router_ui.callback_query(F.data.startswith('doncur:'),Donate.choosing_currency)
 async def donate_amount(cq: CallbackQuery, state: FSMContext):
     """Отображаем просьбу ввести сумму + кнопка 🔙 Назад"""
     await state.update_data(currency=cq.data.split(':')[1])
@@ -842,7 +838,7 @@ async def donate_amount(cq: CallbackQuery, state: FSMContext):
     await state.set_state(Donate.entering_amount)
 
 # --- кнопка Назад из ввода суммы ---
-@router_donate.callback_query(F.data=='don_back', Donate.entering_amount)
+@router_ui.callback_query(F.data=='don_back', Donate.entering_amount)
 async def donate_back(cq: CallbackQuery, state: FSMContext):
     """Возврат к выбору валюты с кнопкой Назад"""
     await state.set_state(Donate.choosing_currency)
@@ -856,7 +852,7 @@ async def donate_back(cq: CallbackQuery, state: FSMContext):
         reply_markup=kb.as_markup()
     )
 
-@router_donate.message(Donate.entering_amount)
+@router_ui.message(Donate.entering_amount)
 async def donate_finish(msg: Message, state: FSMContext):
     """Получаем сумму в USD, создаём счёт и завершаем FSM"""
     text = msg.text.replace(',', '.').strip()
@@ -1704,8 +1700,6 @@ async def scheduled_poster():
 
 
 # ---------------- Mount & run -----------------------------
-dp.include_router(router_donate)
-log.info("router_donate registered")
 dp.include_router(router_pay)
 log.info("router_pay registered")
 dp.include_router(router_access)
