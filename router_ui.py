@@ -1,4 +1,4 @@
-# <<<<<<< codex/move-donate-class-to-router_ui.py
+
 from aiogram import Router, F
 from aiogram.types import (
     CallbackQuery,
@@ -12,25 +12,23 @@ from aiogram.fsm.state import StatesGroup, State
 
 from juicyfox_bot_single import CURRENCIES, create_invoice, tr
 from aiogram.filters import Command
-# =======
-# <<<<<<< codex/declare-functions-and-update-decorators-in-router_ui.py-qos7w1
+
 from aiogram import Router
-# <<<<<<< codex/add-cancel_any-function-to-router_ui.py
+
 from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-# =======
+
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 
-# >>>>>>> main
-# >>>>>>> main
+
 
 router = Router()
 
 
-# <<<<<<< codex/add-cancel_any-function-to-router_ui.py
+
 @router.message(Command('cancel'))
 async def cancel_any(msg: Message, state: FSMContext):
     """Команда /cancel сбрасывает текущее состояние и возвращает меню"""
@@ -42,8 +40,8 @@ async def cancel_any(msg: Message, state: FSMContext):
         await cmd_start(msg, state)
     else:
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
-# =======
-# <<<<<<< codex/move-donate-class-to-router_ui.py
+
+
 @router.message(Command("ui_test"))
 async def ui_stub(message: Message):
     await message.answer("🖥️ UI модуль временно недоступен.")
@@ -95,7 +93,7 @@ async def donate_back(cq: CallbackQuery, state: FSMContext):
     tr(cq.from_user.language_code, "choose_cur", amount="donate")
 )
 
-# =======
+
 @router.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
 async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = msg.from_user.language_code
@@ -125,7 +123,7 @@ async def vip_secret_reply(msg: Message):
         reply_markup=vip_currency_kb()
     )
 
-# =======
+
 """UI-related handlers and keyboards for JuicyFox bot."""
 
 import logging
@@ -240,12 +238,12 @@ async def back_to_main(cq: CallbackQuery):
     kb = build_tip_menu(lang)
     await cq.message.edit_text(
         tr(lang, "choose_action"),
-# >>>>>>> main
+
         reply_markup=kb.as_markup(),
     )
 
 
-# <<<<<<< codex/move-donate-class-to-router_ui.py
+
 @router.message(Donate.entering_amount)
 async def donate_finish(msg: Message, state: FSMContext):
     """Получаем сумму в USD, создаём счёт и завершаем FSM"""
@@ -262,7 +260,7 @@ async def donate_finish(msg: Message, state: FSMContext):
     else:
         await msg.reply(tr(msg.from_user.language_code, "inv_err"))
     await state.clear()
-# =======
+
 @router.callback_query(F.data == "tip_menu")
 async def tip_menu(cq: CallbackQuery):
     """Send the tip menu as a new message."""
@@ -272,6 +270,4 @@ async def tip_menu(cq: CallbackQuery):
     kb = build_tip_menu(lang)
     await cq.message.answer(tr(lang, "choose_action"), reply_markup=kb.as_markup())
 
-# >>>>>>> main
-# >>>>>>> main
-# >>>>>>> main
+
