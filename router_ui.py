@@ -92,7 +92,9 @@ async def donate_back(cq: CallbackQuery, state: FSMContext):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, "choose_cur", amount="donate"),
+    tr(cq.from_user.language_code, "choose_cur", amount="donate")
+)
+
 # =======
 @router.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
 async def handle_chat_btn(msg: Message, state: FSMContext):
