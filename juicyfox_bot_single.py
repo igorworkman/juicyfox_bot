@@ -39,6 +39,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from router_pay import router as router_pay
 from router_access import router as router_access
 from router_posting import router as router_posting
+from router_history import router as router_history
+from router_ui import router as router_ui
 
 router_relay = Router(name="relay")
 
@@ -48,15 +50,9 @@ async def relay_stub(message: Message):
     await message.answer("🔄 Relay модуль временно недоступен.")
 
 
-router_history = Router(name="history")
-
-
 @router_history.message(Command("history_test"))
 async def history_stub(message: Message):
     await message.answer("📜 История временно недоступна.")
-
-
-router_ui = Router(name="ui")
 
 
 @router_ui.message(Command("ui_test"))
@@ -732,10 +728,7 @@ def vip_currency_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-router_pay = Router()
 router_donate = Router()
-router_history = Router()
-router_ui = Router()
 
 
 @router_pay.callback_query(F.data.startswith('pay:'))
