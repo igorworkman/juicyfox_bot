@@ -40,10 +40,9 @@ from router_pay import router as router_pay
 from router_access import router as router_access
 from router_posting import router as router_posting
 from router_history import router as router_history
-# <<<<<<< codex/move-donate-class-to-router_ui.py
-# =======
+
 from router_ui import router as router_ui, cmd_start, chat_plan_kb, vip_currency_kb
-# >>>>>>> main
+
 from router_relay import router as router_relay
 
 
@@ -781,12 +780,10 @@ async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
 
 
 # ---------------- Main menu / live ------------------------
-# <<<<<<< codex/move-donate-class-to-router_ui.py
+
 from router_ui import router as router_ui
 
-# =======
-# <<<<<<< codex/declare-functions-and-update-decorators-in-router_ui.py-qos7w1
-# >>>>>>> main
+
 @router_ui.message(Command('start'))
 async def cmd_start(message: Message, state: FSMContext):
     log.info("/start handler called for user %s", message.from_user.id)
@@ -841,7 +838,7 @@ async def tip_menu(cq: CallbackQuery):
     lang = cq.from_user.language_code
     kb = build_tip_menu(lang)
     await cq.message.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
-# =======
+
 @dp.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
 async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = msg.from_user.language_code
@@ -871,7 +868,7 @@ async def vip_secret_reply(msg: Message):
         reply_markup=vip_currency_kb()
     )
 
-# >>>>>>> main
+
 
 
 
