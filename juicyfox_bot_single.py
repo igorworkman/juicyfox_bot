@@ -40,7 +40,7 @@ from router_pay import router as router_pay
 from router_access import router as router_access
 from router_posting import router as router_posting
 from router_history import router as router_history
-from router_ui import router as router_ui
+from router_ui import router as router_ui, cmd_start, chat_plan_kb, vip_currency_kb
 from router_relay import router as router_relay
 
 
@@ -76,23 +76,6 @@ POST_PLAN_GROUP_ID = -1002825908735
 POST_PLAN_GROUP_ID = int(POST_PLAN_GROUP_ID)
 POST_COUNTER = 1
 
-def chat_plan_kb(lang: str) -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    for key, days in [('chat_flower_1',7), ('chat_flower_2',15), ('chat_flower_3',30)]:
-        kb.button(text=tr(lang, key), callback_data=f'chatgift:{days}')
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(1)
-    return kb.as_markup()
-
-def build_tip_menu(lang: str) -> InlineKeyboardBuilder:
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, 'btn_life'), callback_data='life')
-    kb.button(text=tr(lang, 'btn_club'), callback_data='pay:club')
-    kb.button(text=tr(lang, 'btn_vip'), callback_data='pay:vip')
-    kb.button(text=tr(lang, 'btn_donate'), callback_data='donate')
-    kb.button(text="💬 Chat", callback_data='pay:chat')
-    kb.adjust(1)
-    return kb
 
 
 from aiogram.fsm.state import StatesGroup, State
@@ -717,15 +700,6 @@ relay: dict[int, int] = {}  # group_msg_id -> user_id
 TARIFFS={'club':15.00,'vip':35.00}
 CHAT_TIERS={7:5.0,15:9.0,30:15.0}
 CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bnb'),('TRX','trx'),('DAI','dai'),('USDC','usdc')]
-
-def vip_currency_kb() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f'vipay:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(2)
-    return kb.as_markup()
-
 @router_pay.callback_query(F.data.startswith('pay:'))
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
@@ -881,6 +855,7 @@ async def cancel_any(msg: Message, state: FSMContext):
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
 
 # ---------------- Main menu / live ------------------------
+# <<<<<<< codex/declare-functions-and-update-decorators-in-router_ui.py-qos7w1
 @router_ui.message(Command('start'))
 async def cmd_start(message: Message, state: FSMContext):
     log.info("/start handler called for user %s", message.from_user.id)
@@ -935,6 +910,37 @@ async def tip_menu(cq: CallbackQuery):
     lang = cq.from_user.language_code
     kb = build_tip_menu(lang)
     await cq.message.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
+# =======
+@dp.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
+async def handle_chat_btn(msg: Message, state: FSMContext):
+    lang = msg.from_user.language_code
+    await state.set_state(ChatGift.plan)
+    await msg.answer(
+        tr(lang, 'chat_access'),
+        reply_markup=chat_plan_kb(lang)
+    )
+
+
+
+
+@dp.message(lambda msg: msg.text == "💎 Luxury Room – 15$")
+async def luxury_room_reply(msg: Message):
+    lang = msg.from_user.language_code
+    kb = InlineKeyboardBuilder()
+    for t, c in CURRENCIES:
+        kb.button(text=t, callback_data=f'payc:club:{c}')
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(2)
+    await msg.answer(tr(lang, 'luxury_room_desc'), reply_markup=kb.as_markup())
+@dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret – 35$")
+async def vip_secret_reply(msg: Message):
+    lang = msg.from_user.language_code
+    await msg.answer(
+        tr(lang, 'vip_secret_desc'),
+        reply_markup=vip_currency_kb()
+    )
+
+# >>>>>>> main
 
 
 
