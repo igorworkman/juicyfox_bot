@@ -855,6 +855,62 @@ async def cancel_any(msg: Message, state: FSMContext):
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
 
 # ---------------- Main menu / live ------------------------
+# <<<<<<< codex/declare-functions-and-update-decorators-in-router_ui.py-qos7w1
+@router_ui.message(Command('start'))
+async def cmd_start(message: Message, state: FSMContext):
+    log.info("/start handler called for user %s", message.from_user.id)
+    if await state.get_state():
+        await state.clear()
+    lang = message.from_user.language_code
+    reply_kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="SEE YOU MY CHAT💬")],
+            [
+                KeyboardButton(text="💎 Luxury Room – 15$"),
+                KeyboardButton(text="❤️‍🔥 VIP Secret – 35$")
+            ]
+        ],
+        resize_keyboard=True
+    )
+
+    kb = build_tip_menu(lang)
+
+    await message.answer_photo(
+        photo="https://files.catbox.moe/cqckle.jpg",
+        caption=tr(lang, 'menu', name=message.from_user.first_name)
+    )
+
+
+    await message.answer(
+        text=tr(lang, 'my_channel', link=LIFE_URL),
+        reply_markup=reply_kb
+    )
+
+@router_ui.callback_query(F.data == 'life')
+async def life_link(cq: CallbackQuery):
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.adjust(1)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, 'life', my_channel=LIFE_URL),
+        reply_markup=kb.as_markup()
+    )
+
+@router_ui.callback_query(F.data == 'back')
+async def back_to_main(cq: CallbackQuery):
+    lang = cq.from_user.language_code
+    kb = build_tip_menu(lang)
+    await cq.message.edit_text(
+        tr(lang, 'choose_action'),
+        reply_markup=kb.as_markup()
+    )
+
+@router_ui.callback_query(F.data == 'tip_menu')
+async def tip_menu(cq: CallbackQuery):
+    lang = cq.from_user.language_code
+    kb = build_tip_menu(lang)
+    await cq.message.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
+# =======
 @dp.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
 async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = msg.from_user.language_code
@@ -884,6 +940,7 @@ async def vip_secret_reply(msg: Message):
         reply_markup=vip_currency_kb()
     )
 
+# >>>>>>> main
 
 
 
