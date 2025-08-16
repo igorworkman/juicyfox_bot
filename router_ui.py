@@ -15,15 +15,34 @@ from aiogram.filters import Command
 # =======
 # <<<<<<< codex/declare-functions-and-update-decorators-in-router_ui.py-qos7w1
 from aiogram import Router
+# <<<<<<< codex/add-cancel_any-function-to-router_ui.py
+from aiogram.filters import Command
+from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+# =======
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 
 # >>>>>>> main
+# >>>>>>> main
 
 router = Router()
 
 
+# <<<<<<< codex/add-cancel_any-function-to-router_ui.py
+@router.message(Command('cancel'))
+async def cancel_any(msg: Message, state: FSMContext):
+    """Команда /cancel сбрасывает текущее состояние и возвращает меню"""
+    from juicyfox_bot_single import tr, cmd_start
+
+    if await state.get_state():
+        await state.clear()
+        await msg.answer(tr(msg.from_user.language_code, 'cancel'))
+        await cmd_start(msg, state)
+    else:
+        await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
+# =======
 # <<<<<<< codex/move-donate-class-to-router_ui.py
 @router.message(Command("ui_test"))
 async def ui_stub(message: Message):
@@ -251,5 +270,6 @@ async def tip_menu(cq: CallbackQuery):
     kb = build_tip_menu(lang)
     await cq.message.answer(tr(lang, "choose_action"), reply_markup=kb.as_markup())
 
+# >>>>>>> main
 # >>>>>>> main
 # >>>>>>> main
