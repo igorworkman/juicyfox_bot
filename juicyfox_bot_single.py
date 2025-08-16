@@ -40,7 +40,10 @@ from router_pay import router as router_pay
 from router_access import router as router_access
 from router_posting import router as router_posting
 from router_history import router as router_history
+# <<<<<<< codex/move-donate-class-to-router_ui.py
+# =======
 from router_ui import router as router_ui, cmd_start, chat_plan_kb, vip_currency_kb
+# >>>>>>> main
 from router_relay import router as router_relay
 
 
@@ -53,10 +56,6 @@ async def relay_stub(message: Message):
 async def history_stub(message: Message):
     await message.answer("📜 История временно недоступна.")
 
-
-@router_ui.message(Command("ui_test"))
-async def ui_stub(message: Message):
-    await message.answer("🖥️ UI модуль временно недоступен.")
 
 def get_post_plan_kb():
     kb = InlineKeyboardBuilder()
@@ -761,11 +760,6 @@ async def handle_vip_currency(cq: CallbackQuery):
     else:
         await cq.answer(tr(cq.from_user.language_code,'inv_err'), show_alert=True)
 
-# ---- Donate FSM ----
-class Donate(StatesGroup):
-    choosing_currency = State()
-    entering_amount = State()
-
 class ChatGift(StatesGroup):
     plan = State()
     choose_tier = State()
@@ -785,63 +779,6 @@ async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
     )
     await state.clear()
 
-@router_ui.callback_query(F.data == 'donate')
-async def donate_currency(cq: CallbackQuery, state: FSMContext):
-    kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f'doncur:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(2)
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'choose_cur', amount='donate'),
-        reply_markup=kb.as_markup()
-    )
-    await state.set_state(Donate.choosing_currency)
-
-@router_ui.callback_query(F.data.startswith('doncur:'),Donate.choosing_currency)
-async def donate_amount(cq: CallbackQuery, state: FSMContext):
-    """Отображаем просьбу ввести сумму + кнопка 🔙 Назад"""
-    await state.update_data(currency=cq.data.split(':')[1])
-    back_kb = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text='🔙 Назад', callback_data='don_back')]]
-    )
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'don_enter'),
-        reply_markup=back_kb
-    )
-    await state.set_state(Donate.entering_amount)
-
-# --- кнопка Назад из ввода суммы ---
-@router_ui.callback_query(F.data=='don_back', Donate.entering_amount)
-async def donate_back(cq: CallbackQuery, state: FSMContext):
-    """Возврат к выбору валюты с кнопкой Назад"""
-    await state.set_state(Donate.choosing_currency)
-    kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f'doncur:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(2)
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'choose_cur', amount='donate'),
-        reply_markup=kb.as_markup()
-    )
-
-@router_ui.message(Donate.entering_amount)
-async def donate_finish(msg: Message, state: FSMContext):
-    """Получаем сумму в USD, создаём счёт и завершаем FSM"""
-    text = msg.text.replace(',', '.').strip()
-    if not text.replace('.', '', 1).isdigit():
-        await msg.reply(tr(msg.from_user.language_code, 'don_num'))
-        return
-    usd = float(text)
-    data = await state.get_data()
-    cur  = data['currency']
-    url  = await create_invoice(msg.from_user.id, usd, cur, 'JuicyFox Donation', pl='donate')
-    if url:
-        await msg.answer(f"Счёт на оплату (Donate): {url}")
-    else:
-        await msg.reply(tr(msg.from_user.language_code, 'inv_err'))
-    await state.clear()
 
 # ---------------- Cancel / Отмена -------------------------
 @dp.message(Command('cancel'))
@@ -855,7 +792,12 @@ async def cancel_any(msg: Message, state: FSMContext):
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
 
 # ---------------- Main menu / live ------------------------
+# <<<<<<< codex/move-donate-class-to-router_ui.py
+from router_ui import router as router_ui
+
+# =======
 # <<<<<<< codex/declare-functions-and-update-decorators-in-router_ui.py-qos7w1
+# >>>>>>> main
 @router_ui.message(Command('start'))
 async def cmd_start(message: Message, state: FSMContext):
     log.info("/start handler called for user %s", message.from_user.id)
