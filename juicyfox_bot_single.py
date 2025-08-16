@@ -32,7 +32,7 @@ def migrate_add_ts_column():
 
 from typing import Dict, Any, Optional, Tuple, List
 from aiogram import Dispatcher, Router, F, BaseMiddleware
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -876,25 +876,23 @@ async def cancel_any(msg: Message, state: FSMContext):
     if await state.get_state():
         await state.clear()
         await msg.answer(tr(msg.from_user.language_code, 'cancel'))
-        await cmd_start(msg)  # показать меню заново
+        await cmd_start(msg, state)  # показать меню заново
     else:
         await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
 
 # ---------------- Main menu / live ------------------------
 @router_ui.message(Command('start'))
-async def cmd_start(m: Message):
-    # если пользователь застрял в FSM (донат), сбрасываем
-    log.info("/start handler called for user %s", m.from_user.id)
-    state = dp.fsm.get_context(bot, chat_id=m.chat.id, user_id=m.from_user.id)
+async def cmd_start(message: Message, state: FSMContext):
+    log.info("/start handler called for user %s", message.from_user.id)
     if await state.get_state():
         await state.clear()
-    lang = m.from_user.language_code
+    lang = message.from_user.language_code
     reply_kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="SEE YOU MY CHAT💬")],
             [
-                KeyboardButton(text="💎 Luxury Room - 15$"),
-                KeyboardButton(text="❤️‍🔥 VIP Secret - 35$")
+                KeyboardButton(text="💎 Luxury Room – 15$"),
+                KeyboardButton(text="❤️‍🔥 VIP Secret – 35$")
             ]
         ],
         resize_keyboard=True
@@ -902,13 +900,13 @@ async def cmd_start(m: Message):
 
     kb = build_tip_menu(lang)
 
-    await m.answer_photo(
+    await message.answer_photo(
         photo="https://files.catbox.moe/cqckle.jpg",
-        caption=tr(lang, 'menu', name=m.from_user.first_name),
+        caption=tr(lang, 'menu', name=message.from_user.first_name)
     )
 
 
-    await m.answer(
+    await message.answer(
         text=tr(lang, 'my_channel', link=LIFE_URL),
         reply_markup=reply_kb
     )
@@ -951,7 +949,7 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 
 
 
-@dp.message(lambda msg: msg.text == "💎 Luxury Room - 15$")
+@dp.message(lambda msg: msg.text == "💎 Luxury Room – 15$")
 async def luxury_room_reply(msg: Message):
     lang = msg.from_user.language_code
     kb = InlineKeyboardBuilder()
@@ -960,7 +958,7 @@ async def luxury_room_reply(msg: Message):
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
     await msg.answer(tr(lang, 'luxury_room_desc'), reply_markup=kb.as_markup())
-@dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret - 35$")
+@dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret – 35$")
 async def vip_secret_reply(msg: Message):
     lang = msg.from_user.language_code
     await msg.answer(
@@ -974,10 +972,6 @@ async def vip_secret_reply(msg: Message):
 
 # ---------------- Relay private ↔ group -------------------
 
-# Хендлер для /start в привате
-@dp.message(CommandStart())
-async def cmd_start_private(msg: Message):
-    await cmd_start(msg)
 
 @dp.message(F.chat.type == 'private')
 @relay_error_handler
