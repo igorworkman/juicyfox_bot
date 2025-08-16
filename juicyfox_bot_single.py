@@ -869,17 +869,6 @@ async def donate_finish(msg: Message, state: FSMContext):
         await msg.reply(tr(msg.from_user.language_code, 'inv_err'))
     await state.clear()
 
-# ---------------- Cancel / Отмена -------------------------
-@dp.message(Command('cancel'))
-async def cancel_any(msg: Message, state: FSMContext):
-    """Команда /cancel сбрасывает текущее состояние и возвращает меню"""
-    if await state.get_state():
-        await state.clear()
-        await msg.answer(tr(msg.from_user.language_code, 'cancel'))
-        await cmd_start(msg, state)  # показать меню заново
-    else:
-        await msg.answer(tr(msg.from_user.language_code, 'nothing_cancel'))
-
 # ---------------- Main menu / live ------------------------
 @router_ui.message(Command('start'))
 async def cmd_start(message: Message, state: FSMContext):
