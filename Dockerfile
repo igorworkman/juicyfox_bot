@@ -1,8 +1,16 @@
 FROM python:3.11-slim-buster
 WORKDIR /app
 
-# Установка curl и bash (для дебага) + системные зависимости
-RUN apt-get update && apt-get install -y curl bash build-essential && rm -rf /var/lib/apt/lists/*
+# Устанавливаем системные зависимости (для aiohttp, uvicorn, psycopg2, aiosqlite и т.д.)
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    build-essential \
+    gcc \
+    libffi-dev \
+    libssl-dev \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Установка зависимостей Python
 COPY requirements.txt .
