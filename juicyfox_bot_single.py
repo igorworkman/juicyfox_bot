@@ -41,7 +41,7 @@ from router_access import router as router_access
 from router_posting import router as router_posting
 from router_history import router as router_history
 
-from router_ui import router as router_ui
+from modules.ui_membership.handlers import router as router_ui
 
 from router_relay import router as router_relay
 
