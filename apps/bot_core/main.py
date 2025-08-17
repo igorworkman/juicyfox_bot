@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher
 from fastapi import FastAPI
@@ -10,9 +11,34 @@ from router_pay import router as router_pay
 from router_posting import router as router_posting
 from router_relay import router as router_relay
 
+# Load environment variables from a local .env file if present
+load_dotenv()
+
+# Required environment variables
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 BASE_URL = os.getenv("BASE_URL")
 BOT_ID = os.getenv("BOT_ID")
+
+if not TELEGRAM_TOKEN or not BASE_URL or not BOT_ID:
+    raise RuntimeError(
+        "❌ Missing required environment variables: TELEGRAM_TOKEN, BASE_URL or BOT_ID"
+    )
+
+# Optional environment variables
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN")
+VIP_CHANNEL_ID = os.getenv("VIP_CHANNEL_ID")
+LIFE_CHANNEL_ID = os.getenv("LIFE_CHANNEL_ID")
+LUXURY_CHANNEL_ID = os.getenv("LUXURY_CHANNEL_ID")
+POST_PLAN_GROUP_ID = os.getenv("POST_PLAN_GROUP_ID")
+CHAT_GROUP_ID = os.getenv("CHAT_GROUP_ID")
+HISTORY_GROUP_ID = os.getenv("HISTORY_GROUP_ID")
+LOG_CHANNEL_ID = os.getenv("LOG_CHANNEL_ID")
+VIP_URL = os.getenv("VIP_URL")
+LIFE_URL = os.getenv("LIFE_URL")
+NORTHFLANK_API_TOKEN = os.getenv("NORTHFLANK_API_TOKEN")
+NORTHFLANK_PROJECT_ID = os.getenv("NORTHFLANK_PROJECT_ID")
+NORTHFLANK_SERVICE_ID = os.getenv("NORTHFLANK_SERVICE_ID")
 
 app = FastAPI()
 bot = Bot(token=TELEGRAM_TOKEN)
