@@ -42,6 +42,7 @@ from router_posting import router as router_posting
 from router_history import router as router_history
 
 from modules.ui_membership.handlers import router as router_ui
+from modules.ui_membership.keyboards import chat_plan_kb, vip_currency_kb
 
 from router_relay import router as router_relay
 
@@ -777,100 +778,6 @@ async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
         reply_markup=kb.as_markup(),
     )
     await state.clear()
-
-
-# ---------------- Main menu / live ------------------------
-
-from router_ui import router as router_ui
-
-
-@router_ui.message(Command('start'))
-async def cmd_start(message: Message, state: FSMContext):
-    log.info("/start handler called for user %s", message.from_user.id)
-    if await state.get_state():
-        await state.clear()
-    lang = message.from_user.language_code
-    reply_kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="SEE YOU MY CHAT💬")],
-            [
-                KeyboardButton(text="💎 Luxury Room – 15$"),
-                KeyboardButton(text="❤️‍🔥 VIP Secret – 35$")
-            ]
-        ],
-        resize_keyboard=True
-    )
-
-    kb = build_tip_menu(lang)
-
-    await message.answer_photo(
-        photo="https://files.catbox.moe/cqckle.jpg",
-        caption=tr(lang, 'menu', name=message.from_user.first_name)
-    )
-
-
-    await message.answer(
-        text=tr(lang, 'my_channel', link=LIFE_URL),
-        reply_markup=reply_kb
-    )
-
-@router_ui.callback_query(F.data == 'life')
-async def life_link(cq: CallbackQuery):
-    kb = InlineKeyboardBuilder()
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(1)
-    await cq.message.edit_text(
-        tr(cq.from_user.language_code, 'life', my_channel=LIFE_URL),
-        reply_markup=kb.as_markup()
-    )
-
-@router_ui.callback_query(F.data == 'back')
-async def back_to_main(cq: CallbackQuery):
-    lang = cq.from_user.language_code
-    kb = build_tip_menu(lang)
-    await cq.message.edit_text(
-        tr(lang, 'choose_action'),
-        reply_markup=kb.as_markup()
-    )
-
-@router_ui.callback_query(F.data == 'tip_menu')
-async def tip_menu(cq: CallbackQuery):
-    lang = cq.from_user.language_code
-    kb = build_tip_menu(lang)
-    await cq.message.answer(tr(lang, 'choose_action'), reply_markup=kb.as_markup())
-
-@dp.message(lambda msg: msg.text == "SEE YOU MY CHAT💬")
-async def handle_chat_btn(msg: Message, state: FSMContext):
-    lang = msg.from_user.language_code
-    await state.set_state(ChatGift.plan)
-    await msg.answer(
-        tr(lang, 'chat_access'),
-        reply_markup=chat_plan_kb(lang)
-    )
-
-
-
-
-@dp.message(lambda msg: msg.text == "💎 Luxury Room – 15$")
-async def luxury_room_reply(msg: Message):
-    lang = msg.from_user.language_code
-    kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f'payc:club:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(2)
-    await msg.answer(tr(lang, 'luxury_room_desc'), reply_markup=kb.as_markup())
-@dp.message(lambda msg: msg.text == "❤️‍🔥 VIP Secret – 35$")
-async def vip_secret_reply(msg: Message):
-    lang = msg.from_user.language_code
-    await msg.answer(
-        tr(lang, 'vip_secret_desc'),
-        reply_markup=vip_currency_kb()
-    )
-
-
-
-
 
 
 # ---------------- Relay private ↔ group -------------------
