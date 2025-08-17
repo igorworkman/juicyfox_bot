@@ -1,4 +1,4 @@
-FROM python:3.11-slim-buster
+FROM python:3.11-slim-bookworm
 WORKDIR /app
 
 # Устанавливаем системные зависимости
@@ -16,14 +16,14 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем зависимости Python
+# Устанавливаем Python зависимости
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Создаём папку для данных
 RUN mkdir -p /app/data && chmod 777 /app/data
 
-# Копируем весь проект
+# Копируем проект
 COPY . .
 
 EXPOSE 8000
