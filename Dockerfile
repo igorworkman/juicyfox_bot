@@ -1,12 +1,17 @@
 FROM python:3.11-slim-buster
 WORKDIR /app
 
+# Установка зависимостей Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 👇 Вот эта строка — создаёт и даёт права на папку!
+# Установка curl и bash (для дебага)
+RUN apt-get update && apt-get install -y curl bash && rm -rf /var/lib/apt/lists/*
+
+# Создание папки с правами
 RUN mkdir -p /app/data && chmod 777 /app/data
 
+# Копируем весь проект
 COPY . .
 
 EXPOSE 8000
