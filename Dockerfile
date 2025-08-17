@@ -31,6 +31,9 @@ COPY . .
 COPY check_token.sh /app/check_token.sh
 RUN chmod +x /app/check_token.sh
 
+COPY check_webhook.sh /app/check_webhook.sh
+RUN chmod +x /app/check_webhook.sh
+
 EXPOSE 8000
 CMD ["gunicorn", "api.main:app", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
 VOLUME /data
