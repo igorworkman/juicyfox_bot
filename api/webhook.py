@@ -10,5 +10,5 @@ async def telegram_webhook(bot_id: str, request: Request):
 
     data = await request.json()
     update = Update.model_validate(data, context={"bot": bot})
-    await dp.feed_update(bot, update)
+    await dp.feed_webhook_update(bot, update)
     return {"ok": True}
