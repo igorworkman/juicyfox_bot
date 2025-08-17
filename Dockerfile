@@ -1,9 +1,6 @@
 FROM python:3.11-slim-bookworm
 WORKDIR /app
 
-# Добавляем скрипт
-COPY check_token.sh /app/check_token.sh
-RUN chmod +x /app/check_token.sh
 
 # Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y \
@@ -29,6 +26,10 @@ RUN mkdir -p /app/data && chmod 777 /app/data
 
 # Копируем проект
 COPY . .
+
+# Добавляем скрипт
+COPY check_token.sh /app/check_token.sh
+RUN chmod +x /app/check_token.sh
 
 EXPOSE 8000
 CMD ["gunicorn", "api.main:app", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
