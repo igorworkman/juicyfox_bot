@@ -45,6 +45,19 @@ async def telegram_webhook(bot_id: str, request: Request):
     await dp.feed_update(bot_pool[bot_id], update)
     return {"ok": True}
 
+
+# 🔥 Новый эндпоинт для совместимости с Telegram
+@app.post("/webhook/bot/{bot_id}/webhook")
+async def telegram_webhook_compat(bot_id: str, request: Request):
+    """
+    Этот роут нужен, потому что Telegram реально вызывает BASE_URL + /webhook/bot/{BOT_ID}/webhook
+    """
+    data = await request.json()
+    log.info("Incoming update for bot %s: %s", bot_id, data)
+    update = Update.model_validate(data, context={"bot": bot_pool[bot_id]})
+    await dp.feed_update(bot_pool[bot_id], update)
+    return {"ok": True}
+
 @app.get("/")
 async def root():
     return {"message": "FastAPI работает! 🎉"}
