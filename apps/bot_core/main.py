@@ -54,6 +54,18 @@ async def on_startup():
         await bot.set_webhook(webhook_url, drop_pending_updates=True)
     logging.info(f"Webhook set to {webhook_url}")
 
+# 🔥 Новый эндпоинт для совместимости с Telegram
+@app.post("/webhook/bot/{bot_id}/webhook")
+async def telegram_webhook_compat(bot_id: str, request: Request):
+    """
+    Этот роут добавлен для того, чтобы соответствовать формату URL,
+    который Telegram реально вызывает (через BASE_URL + BOT_ID).
+    Логика полностью совпадает с /bot/{bot_id}/webhook.
+    """
+    update = await request.json()
+    await dp.feed_webhook_update(bot, update)
+    return {"ok": True}
+
 from api.webhook import router as webhook_router
 
 app.include_router(webhook_router)
