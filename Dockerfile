@@ -1,6 +1,10 @@
 FROM python:3.11-slim-bookworm
 WORKDIR /app
 
+# Добавляем скрипт
+COPY check_token.sh /app/check_token.sh
+RUN chmod +x /app/check_token.sh
+
 # Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y \
     curl \
