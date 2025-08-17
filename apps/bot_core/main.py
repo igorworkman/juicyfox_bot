@@ -1,7 +1,6 @@
 import os
 import asyncio
 import logging
-from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher
 from fastapi import FastAPI
@@ -10,9 +9,6 @@ from modules.ui_membership.handlers import router as router_ui
 from router_pay import router as router_pay
 from router_posting import router as router_posting
 from router_relay import router as router_relay
-
-# Load environment variables from a local .env file if present
-load_dotenv()
 
 # Required environment variables
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")

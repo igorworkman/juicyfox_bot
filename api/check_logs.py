@@ -1,9 +1,6 @@
 import os
 import httpx
-from dotenv import load_dotenv
 import aiofiles
-
-load_dotenv()
 
 NORTHFLANK_API_TOKEN = os.getenv("NORTHFLANK_API_TOKEN")
 NORTHFLANK_PROJECT_ID = os.getenv("NORTHFLANK_PROJECT_ID")
