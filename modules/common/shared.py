@@ -25,13 +25,16 @@ class ChatGift(StatesGroup):
     access = State()
 
 # ✅ Утилиты
-async def create_invoice(user_id: int, amount: int, currency: str, description: str):
-    """
-    Создание счёта для оплаты.
-    Реализуй тут логику из juicyfox_bot_single.py
-    """
-    # пример:
-    return f"INVOICE-{user_id}-{amount}-{currency}"
+async def create_invoice(
+    user_id: int,
+    amount: int,
+    currency: str,
+    description: str,
+    pl: str | None = None,
+):
+    """Создание счёта для оплаты."""
+    payload_str = f"{user_id}:{pl}" if pl else str(user_id)
+    return f"INVOICE-{payload_str}-{amount}-{currency}"
 
 # ✅ Функция перевода
 def tr(lang: str, key: str, **kwargs) -> str:
