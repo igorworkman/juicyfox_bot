@@ -6,7 +6,14 @@ from aiogram.fsm.state import StatesGroup, State
 # которые нужны и боту, и UI-модулям.
 
 # ✅ Константы
-CURRENCIES = ["USD", "EUR", "RUB"]
+# Список валют используется клавиатурами и хендлерами, поэтому
+# каждая запись содержит отображаемый текст и код валюты.
+CURRENCIES = [
+    ("TON", "ton"),
+    ("BTC", "btc"),
+    ("USDT", "usdt"),
+    ("ETH", "eth"),
+]
 
 # LIFE_URL теперь берётся из переменных окружения
 # (если не задано в ENV, используется дефолтная ссылка)
@@ -27,13 +34,13 @@ async def create_invoice(user_id: int, amount: int, currency: str, description: 
     return f"INVOICE-{user_id}-{amount}-{currency}"
 
 # ✅ Функция перевода
-def tr(lang: str, key: str) -> str:
+def tr(lang: str, key: str, **kwargs) -> str:
     """
-    Простая функция перевода.
-    Возьми оригинал из juicyfox_bot_single.py
+    Простая функция перевода с поддержкой подстановки параметров.
     """
     translations = {
         "en": {"choose_action": "Choose action"},
         "ru": {"choose_action": "Выберите действие"},
     }
-    return translations.get(lang, {}).get(key, key)
+    text = translations.get(lang, {}).get(key, key)
+    return text.format(**kwargs) if kwargs else text
