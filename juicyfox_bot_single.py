@@ -256,7 +256,7 @@ CHAT_GROUP_ID = int(CHAT_GROUP_ID_ENV)
 HISTORY_GROUP_ID = int(getenv("HISTORY_GROUP_ID"))
 ADMINS = [7893194894]
 LIFE_CHANNEL_ID = int(os.getenv("LIFE_CHANNEL_ID"))
-LIFE_URL = os.getenv('LIFE_URL', 'https://t.me/JuisyFoxOfficialLife')
+
 API_BASE        = 'https://pay.crypt.bot/api'
 VIP_URL = os.getenv("VIP_URL")
 LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "0"))
