@@ -1,15 +1,18 @@
-# modules/common/shared.py
+
+import os
+from aiogram.fsm.state import StatesGroup, State
 
 # Здесь будут все общие константы, классы и функции,
 # которые нужны и боту, и UI-модулям.
 
 # ✅ Константы
-CURRENCIES = ["USD", "EUR", "RUB"]  # примеры, возьми реальные из juicyfox_bot_single.py
-LIFE_URL = "https://example.com/life"  # замени на актуальное
+CURRENCIES = ["USD", "EUR", "RUB"]
+
+# LIFE_URL теперь берётся из переменных окружения
+# (если не задано в ENV, используется дефолтная ссылка)
+LIFE_URL = os.getenv("LIFE_URL", "https://t.me/JuicyFoxOfficialLife")
 
 # ✅ FSM-класс
-from aiogram.fsm.state import StatesGroup, State
-
 class ChatGift(StatesGroup):
     plan = State()
     access = State()
@@ -34,4 +37,3 @@ def tr(lang: str, key: str) -> str:
         "ru": {"choose_action": "Выберите действие"},
     }
     return translations.get(lang, {}).get(key, key)
-
