@@ -665,15 +665,6 @@ Solo tú y yo... Acércate un poquito más 💋
 'done_label':'✅ Listo',
   }
 }
-
-def tr(code: Optional[str], key: str, **kw):
-    lang = 'ru'  # fallback по умолчанию
-    if code and code.startswith('en'):
-        lang = 'en'
-    elif code and code.startswith('es'):
-        lang = 'es'
-    return L10N[lang][key].format(**kw)
-
 # ----- CryptoBot helpers -----
 async def _api(m:str,ep:str,p:dict|None=None)->Optional[Dict[str,Any]]:
     hdr={'Crypto-Pay-API-Token':CRYPTOBOT_TOKEN}
@@ -686,27 +677,10 @@ async def exchange_rates()->Dict[str,float]:
     res=await _api('GET','/getExchangeRates') or []
     return {i['source'].upper():float(i['rate']) for i in res if i.get('is_crypto') and i.get('target')=='USD'}
 
-async def create_invoice(uid:int,usd:float,asset:str,desc:str,pl:str|None=None)->Optional[str]:
-    """Создаём счёт и прокидываем payload user_id:plan"""
-    rates=await exchange_rates(); asset=asset.upper()
-    if asset not in rates: return None
-    amt=round(usd/rates[asset],6)
-    payload_str=f"{uid}:{pl}" if pl else str(uid)
-    body={
-        'asset':asset,
-        'amount':str(amt),
-        'description':desc,
-        'payload':payload_str,
-        'paid_btn_name':'openBot',
-        'paid_btn_url':f'https://t.me/{(await bot.get_me()).username}'
-    }
-    inv=await _api('POST','/createInvoice',body); return inv.get('pay_url') if inv else None
-
 # ----- Data -----
 relay: dict[int, int] = {}  # group_msg_id -> user_id
 TARIFFS={'club':15.00,'vip':35.00}
 CHAT_TIERS={7:5.0,15:9.0,30:15.0}
-CURRENCIES=[('TON','ton'),('BTC','btc'),('USDT','usdt'),('ETH','eth'),('BNB','bnb'),('TRX','trx'),('DAI','dai'),('USDC','usdc')]
 @router_pay.callback_query(F.data.startswith('pay:'))
 async def choose_cur(cq: CallbackQuery, state: FSMContext):
     plan = cq.data.split(':')[1]
@@ -767,10 +741,6 @@ async def handle_vip_currency(cq: CallbackQuery):
         await cq.message.edit_text(f"Счёт на оплату (VIP): {url}")
     else:
         await cq.answer(tr(cq.from_user.language_code,'inv_err'), show_alert=True)
-
-class ChatGift(StatesGroup):
-    plan = State()
-    choose_tier = State()
 
 @router_pay.callback_query(F.data.startswith('chatgift:'), ChatGift.choose_tier)
 async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
