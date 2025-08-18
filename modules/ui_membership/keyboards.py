@@ -1,7 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from juicyfox_bot_single import CURRENCIES, tr
-
+from modules.common.shared import CURRENCIES, tr
 
 def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
