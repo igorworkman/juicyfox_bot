@@ -235,7 +235,10 @@ TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 
 BASE_URL = os.getenv("BASE_URL")
-BOT_ID = int(os.getenv("BOT_ID"))
+BOT_ID_ENV = os.getenv("BOT_ID")
+if not BOT_ID_ENV:
+    raise RuntimeError("BOT_ID environment variable is required")
+BOT_ID = int(BOT_ID_ENV)
 WEBHOOK_URL = f"{BASE_URL}/webhook/bot/{BOT_ID}/webhook"
 
 # --- Codex-hack: TEMPORARY DISABLE env checks for Codex PR ---
