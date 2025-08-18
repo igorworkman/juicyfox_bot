@@ -42,7 +42,8 @@ from router_posting import router as router_posting
 from router_history import router as router_history
 
 from modules.ui_membership.handlers import router as router_ui
-from modules.ui_membership.keyboards import chat_plan_kb, vip_currency_kb
+from modules.common.shared import CURRENCIES, LIFE_URL, ChatGift, create_invoice, tr
+
 
 from router_relay import router as router_relay
 
