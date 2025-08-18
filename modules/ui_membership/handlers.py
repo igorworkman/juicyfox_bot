@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from juicyfox_bot_single import CURRENCIES, LIFE_URL, ChatGift, create_invoice, tr
+from modules.common.shared import CURRENCIES, LIFE_URL, ChatGift, create_invoice, tr
 from .keyboards import (
     chat_plan_kb,
     donate_back_kb,
