@@ -33,7 +33,7 @@ def migrate_add_ts_column():
 from typing import Dict, Any, Optional, Tuple, List
 from aiogram import Dispatcher, Router, F, BaseMiddleware
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, Update
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from router_pay import router as router_pay
@@ -290,7 +290,7 @@ log.info(
 )
 
 # --- Startup ------------------------------------------------
-async def on_startup(bot: Bot):
+async def bot_startup(bot: Bot):
     log.info("on_startup called")
     await _db_exec(
         "CREATE TABLE IF NOT EXISTS reply_links (reply_msg_id INTEGER PRIMARY KEY, user_id INTEGER)"
@@ -302,7 +302,7 @@ bot: Optional[Bot] = None
 bot_pool: Dict[str, Bot] = {}
 dp  = Dispatcher(storage=MemoryStorage())
 dp.update.outer_middleware(UpdateLogger())
-dp.startup.register(on_startup)
+dp.startup.register(bot_startup)
 
 # ---------------- Channel helpers ----------------
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
@@ -1496,8 +1496,23 @@ dp.include_router(router_ui)
 log.info("router_ui registered")
 
 
-# ---------------- Webhook server (CryptoBot) --------------
+# ---------------- Webhook server --------------------------
 from aiohttp import web, ClientSession, ClientConnectorError, ClientTimeout
+
+async def telegram_webhook_handler(request: web.Request):
+    data = await request.json()
+    update = Update.model_validate(data)
+    await dp.feed_webhook_update(bot, update)
+    return web.Response()
+
+
+async def on_startup(app):
+    await dp.emit_startup(bot)
+
+
+async def on_shutdown(app):
+    await dp.emit_shutdown(bot)
+
 
 async def cryptobot_hook(request: web.Request):
     """Принимаем invoice_paid от CryptoBot и выдаём доступ"""
@@ -1636,17 +1651,18 @@ async def main():
 
     log.info("Webhook installed at %s", WEBHOOK_URL)
 
-    await dp.emit_startup(bot)
-
     # aiohttp web‑server
     app = web.Application()
-    app.router.add_post('/cryptobot/webhook', cryptobot_hook)
+    app.router.add_post(f"/webhook/bot/{BOT_ID}/webhook", telegram_webhook_handler)
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
-    log.info('Webhook server started on 0.0.0.0:8080 /cryptobot/webhook')
+    log.info('Webhook server started on 0.0.0.0:8080 /webhook/bot/%s/webhook', BOT_ID)
     log.info('JuicyFox Bot ready for webhooks')
+    await asyncio.Event().wait()
 
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
