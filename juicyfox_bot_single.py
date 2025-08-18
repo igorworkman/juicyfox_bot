@@ -234,6 +234,10 @@ async def get_last_messages(uid: int, limit: int):
 TELEGRAM_TOKEN  = os.getenv('TELEGRAM_TOKEN')
 CRYPTOBOT_TOKEN = os.getenv('CRYPTOBOT_TOKEN') or os.getenv('CRYPTO_BOT_TOKEN')
 
+BASE_URL = os.getenv("BASE_URL")
+BOT_ID = int(os.getenv("BOT_ID"))
+WEBHOOK_URL = f"{BASE_URL}/webhook/bot/{BOT_ID}/webhook"
+
 # --- Codex-hack: TEMPORARY DISABLE env checks for Codex PR ---
 # if not TELEGRAM_TOKEN or not CRYPTOBOT_TOKEN:
 #     raise RuntimeError('Set TELEGRAM_TOKEN and CRYPTOBOT_TOKEN env vars')
@@ -1645,19 +1649,18 @@ async def main():
         log.error("Проверьте BOT_TOKEN: %s", e)
         return
     bot_pool[str(me.id)] = bot
-    webhook_base = getenv("WEBHOOK_URL")
     allowed_updates = dp.resolve_used_update_types()
     if "callback_query" not in allowed_updates:
         allowed_updates.append("callback_query")
     await bot.set_webhook(
-        f"{webhook_base}/bot/{me.id}/webhook",
+        WEBHOOK_URL,
         drop_pending_updates=True,
         allowed_updates=allowed_updates,
     )
 
     log.info("Webhook set successfully")
 
-    log.info("Webhook installed at %s/bot/%s/webhook", webhook_base, me.id)
+    log.info("Webhook installed at %s", WEBHOOK_URL)
 
     await dp.emit_startup(bot)
 
