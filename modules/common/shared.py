@@ -55,14 +55,14 @@ async def create_invoice(
             resp = await client.post(
                 url,
                 headers={"Authorization": f"Bearer {CRYPTOBOT_TOKEN}"},
-                data={
+                json={
                     "asset": currency.upper(),
                     "amount": amount,
                     "description": description,
                     "payload": payload_str,
                 },
             )
-        data = resp.json()
+        data = await resp.json()
     except Exception as e:
         log.exception("CryptoBot request failed: %s", e)
         return None
@@ -71,6 +71,7 @@ async def create_invoice(
         log.error("CryptoBot error: %s", data)
         return None
 
+    log.info("Invoice created for user %s: %s %s", user_id, amount, currency)
     return data["result"]["pay_url"]
 
 # ✅ Функция перевода
