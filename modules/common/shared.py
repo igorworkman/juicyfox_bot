@@ -1,5 +1,6 @@
 
 import os
+import json
 from aiogram.fsm.state import StatesGroup, State
 
 # Здесь будут все общие константы, классы и функции,
@@ -37,13 +38,15 @@ async def create_invoice(
     return f"INVOICE-{payload_str}-{amount}-{currency}"
 
 # ✅ Функция перевода
+LOCALES = {}
+for lang in ["ru", "en", "es"]:
+    try:
+        with open(f"locales/{lang}.json", "r", encoding="utf-8") as f:
+            LOCALES[lang] = json.load(f)
+    except FileNotFoundError:
+        LOCALES[lang] = {}
+
+
 def tr(lang: str, key: str, **kwargs) -> str:
-    """
-    Простая функция перевода с поддержкой подстановки параметров.
-    """
-    translations = {
-        "en": {"choose_action": "Choose action"},
-        "ru": {"choose_action": "Выберите действие"},
-    }
-    text = translations.get(lang, {}).get(key, key)
+    text = LOCALES.get(lang, {}).get(key, key)
     return text.format(**kwargs) if kwargs else text

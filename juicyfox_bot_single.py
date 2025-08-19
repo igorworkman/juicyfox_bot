@@ -50,12 +50,14 @@ from router_relay import router as router_relay
 
 @router_relay.message(Command("relay_test"))
 async def relay_stub(message: Message):
-    await message.answer("🔄 Relay модуль временно недоступен.")
+    lang = message.from_user.language_code
+    await message.answer(tr(lang, "relay_unavailable"))
 
 
 @router_history.message(Command("history_test"))
 async def history_stub(message: Message):
-    await message.answer("📜 История временно недоступна.")
+    lang = message.from_user.language_code
+    await message.answer(tr(lang, "history_unavailable"))
 
 
 def get_post_plan_kb():
@@ -197,7 +199,7 @@ async def send_to_history(bot, chat_id, msg):
         elif caption:
             await bot.send_message(chat_id, caption)
         else:
-            await bot.send_message(chat_id, "📩 Ответ от оператора (без текста)")
+            await bot.send_message(chat_id, tr("ru", "operator_reply_no_text"))
     except Exception as e:
         log.error("[ERROR] Не удалось отправить в историю: %s", e)
 
@@ -271,9 +273,9 @@ CHANNELS = {
 
 # Default tariff description for each posting channel
 CHANNEL_TARIFFS = {
-    "life": "100 Stars⭐️",
-    "vip": "Подписка 35 $",
-    "luxury": "Подписка 15 $",
+    "life": "channel_tariff_life",
+    "vip": "channel_tariff_vip",
+    "luxury": "channel_tariff_luxury",
 }
 
 PAID_CHANNELS = {"vip", "luxury"}
@@ -315,7 +317,12 @@ async def give_vip_channel(user_id:int):
         # бот не админ – пробуем разовую ссылку
         try:
             link = await bot.create_chat_invite_link(CHANNELS["vip"], member_limit=1, expire_date=int(time.time())+3600)
-            await bot.send_message(user_id, f'🔑 Ваш доступ к VIP каналу: {link.invite_link}')
+            try:
+                chat = await bot.get_chat(user_id)
+                lang = chat.language_code or 'ru'
+            except Exception:
+                lang = 'ru'
+            await bot.send_message(user_id, tr(lang, 'vip_access_link', link=link.invite_link))
         except TelegramBadRequest as e:
             log.warning('Cannot give VIP link: %s', e)
 
@@ -325,7 +332,12 @@ async def give_club_channel(user_id: int):
     except TelegramForbiddenError:
         try:
             link = await bot.create_chat_invite_link(CHANNELS["luxury"], member_limit=1, expire_date=int(time.time())+3600)
-            await bot.send_message(user_id, f'🔑 Доступ к Luxury Room: {link.invite_link}')
+            try:
+                chat = await bot.get_chat(user_id)
+                lang = chat.language_code or 'ru'
+            except Exception:
+                lang = 'ru'
+            await bot.send_message(user_id, tr(lang, 'luxury_access_link', link=link.invite_link))
         except TelegramBadRequest as e:
             log.warning('Cannot give CLUB link: %s', e)
 
@@ -454,7 +466,7 @@ async def expire_date_str(user_id:int)->str:
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute('SELECT expires FROM paid_users WHERE user_id=?',(user_id,)) as cur:
             row=await cur.fetchone();
-            if not row: return 'нет доступа'
+            if not row: return tr('ru', 'no_access')
             return time.strftime('%d.%m.%Y', time.localtime(row[0]))
 
 # ----------- User message tracking -----------------
@@ -483,188 +495,6 @@ async def reset_msg(uid:int):
     # Message history itself resets the counter. Kept for compatibility.
     return
 
-# ---------------- i18n -------------------
-L10N={
- 'ru':{
-  'menu': """Привет, {name} 😘 Я Juicy Fox 🦊
-Мои 2 ПРИВАТНЫХ канала сведут тебя с ума! 🔞💦🔥
-Хочешь поболтать со мной лично - открывай Juicy Сhat 💬💐
-И я отвечу тебе уже сегодня 💌
-Не забудь подписаться на мой бесплатный канал 👇🏼👇🏼👇🏼""",
-  'btn_life':'👀 Juicy life - 0 $',
-  'btn_club':'💎 Luxury Room - 15 $',
-  'btn_vip':'❤️‍🔥 VIP Secret - 35 $',
-  'btn_chat':'💬 Juicy Chat',
-  'btn_donate':'🎁 Custom',
-  'tip_menu': '🛍 Tip Menu',
-  'activate_chat':'See you my chaT 💬', 'life_link':'👀 Мой канал: {url}', 'my_channel': '👀 Мой бесплатный канал: {link}',
-  'choose_action': 'Выбери действие ниже:',
-  'choose_cur':'🧁 Готов побаловать меня? Выбери валюту 🛍️ ({amount}$)',
-  'don_enter':'💸 Введи сумму в USD (5/10/25/50/100/200)',
-  'don_num':'💸 Введи сумму доната в USD',
- 'inv_err':'⚠️ Не удалось создать счёт. Попробуй другую валюту, милый 😉',
- 'access_denied':'💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘',
-  'life': """💎 Добро пожаловать в мой мир 💋
-{my_channel}""",
-  'pay_conf':'✅ Всё получилось. Ты со мной на 30 дней 😘',
-  'cancel':'❌ Тогда в другой раз…😔',
-  'nothing_cancel':'Нечего отменять.',
-  'consecutive_limit': 'Вы не можете отправлять больше 3-х сообщений подряд, подождите 10 минут или дождитесь ответа от Juicy Fox',
-  'chat_choose_plan': '💬 На сколько дней активировать чат?',
-  'chat_flower_q': 'Какие цветы хотите подарить Juicy Fox?',
-  'chat_flower_1': '🌷 — 5$ / 7 дней',
-  'chat_flower_2': '🌹 — 9$ / 15 дней',
-  'chat_flower_3': '💐 — 15$ / 30 дней',
-  'chat_flower_desc': """💬 Juicy Chat — твоя личная связь с Juicy Fox 😘
-Здесь начинается настоящий приват 💋
-💌 Я отвечаю видео-кружками и голосовыми
-📸 Иногда присылаю эксклюзивные селфи 😉
-🤗 Я открою чат как только увижу твои цветы 💐🌷🌹""",
-  'chat_access': (
-    "Доступ в Chat 💬 — это твоя личная связь с Juicy Fox 😘\n"
-    "Здесь начинается настоящий Private 💋\n"
-    "Часто отвечаю видео-кружками и голосовыми 💌\n"
-    "Иногда присылаю эксклюзивные селфи 📸😉\n"
-    "НО… без цветов 💐 — не пущу тебя! 😜☺️"
-  ),
-'desc_club': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры 24/7×30 дней 😈',
- 'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 Моя премиальная коллекция эротики создана для ценителей женской роскоши! 🔥 За символические 15 $ ты получишь контент без цензуры на 30 дней😈',
- 'vip_secret_desc': (
-    "Твой личный доступ в VIP Secret от Juicy Fox 😈\n"
-    "🔥Тут всё, о чём ты фантазировал:\n"
-    "📸 больше HD фото нюдс крупным планом 🙈\n"
-    "🎥 Видео, где я играю со своей киской 💦\n"
-    "💬 Juicy Chat — где я отвечаю тебе лично, кружочками 😘\n"
-    "📅 Период: 30 дней\n"
-    "💵 Стоимость: 35,\n"
-    "💳💸 — выбери, как тебе удобнее"
- ),
-'not_allowed_channel': '🚫 Неизвестный канал назначения.',
-'error_post_not_found': 'Пост не найден',
-'post_deleted':'Пост удалён',
-'post_scheduled':'✅ Пост запланирован! {channel} | {date} | {time} | {tariff}',
-'dt_prompt':'Выберите дату и время','dt_ok':'✅ Подтвердить','dt_cancel':'❌ Отмена',
-'choose_time': '{time}',
-'ask_stars':'Укажи количество Stars:',
-'ask_content':'Пришли текст поста или медиа.',
-'set_price_prompt':'Укажи цену поста:',
-'free_label':'FREE',
-'done_label':'✅ Готово',
-},
- 'en':{
-  'menu': """Hey, {name} 😘 I’m your Juicy Fox tonight 🦊
-My 2 PRIVATE channels will drive you wild… 🔞💦🔥
-Just you and me… Ready for some late-night fun? 💋
-Open Juicy Chat 💬 — and I’ll be waiting inside 💌
-Don’t forget to follow my free channel 👇🏼👇🏼👇🏼""",
-  'btn_life':'👀 Juicy life - 0 $',
-  'btn_club':'💎 Luxury Room - 15 $',
-  'btn_vip':'❤️‍🔥  VIP Secret - 35 $',
-  'btn_chat':'💬 Juicy Chat',
-  'btn_donate':'🎁 Custom',
-  'tip_menu': '🛍 Tip Menu',
-  'activate_chat':'See you my chaT 💬', 'life_link':'👀 My channel: {url}', 'my_channel': '👀 My free channel: {link}',
-  'choose_action': 'Choose an action below:',
-  'choose_cur':'🧁 Ready to spoil me? Pick a currency 🛍️ ({amount}$)',
-  'don_enter':'💸 Enter amount in USD (5/10/25/50/100/200)',
-  'don_num':'💸 Enter a donation amount in USD',
-  'inv_err':'⚠️ Failed to create invoice. Try another currency, sweetheart 😉',
-  'access_denied':'💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘',
-  'life': """💎 Welcome to my world 💋
-{my_channel}""",
-  'pay_conf':'✅ Done! You’re with me for 30 days 😘',
-  'cancel':'❌ Maybe next time…😔',
-  'nothing_cancel':'Nothing to cancel.',
-  'consecutive_limit':'(3 of 3) — waiting for Juicy Fox\'s reply. You can continue in 10 minutes or after she answers.',
-  'chat_choose_plan': '💬 Choose chat duration',
-  'chat_flower_q': 'What flowers would you like to gift Juicy Fox?',
-  'chat_flower_1': '🌷 — $5 / 7 days',
-  'chat_flower_2': '🌹 — $9 / 15 days',
-  'chat_flower_3': '💐 — $15 / 30 days',
-  'chat_flower_desc': """💬 Juicy Chat — your personal connection with Juicy Fox 😘
-Just you and me... Let’s get a little closer 💋
-💌 I love sending video rolls and voice replies
-📸 I like sending private selfies... when you’ve been sweet 😉
-🤗 I open the chat once I see your flowers 💐🌷🌹""",
-  'chat_access': (
-    "Access to Chat 💬 is your personal connection with Juicy Fox 😘\n"
-    "This is where the real Private 💋 begins\n"
-    "I often reply with video messages and voice notes 💌\n"
-    "Sometimes I send you exclusive selfies 📸😉\n"
-    "BUT… no flowers 💐 — no entry! 😜☺️"
-  ),
-  'back': '🔙 Back',
- 'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 My premium erotica collection is made for connoisseurs of feminine luxury! 🔥 For just $15 you’ll get uncensored content for 30 days 😈',
-'not_allowed_channel': '🚫 Unknown target channel.',
-'error_post_not_found': 'Post not found',
-'post_deleted':'Post deleted',
-'post_scheduled':'✅ Post scheduled! {channel} | {date} | {time} | {tariff}',
-'dt_prompt':'Choose date & time','dt_ok':'✅ Confirm','dt_cancel':'❌ Cancel',
-'choose_time': '{time}',
-'ask_stars':'Specify the number of Stars:',
-'ask_content':'Send the post text or media.',
-'set_price_prompt':'Set the post price:',
-'free_label':'FREE',
-'done_label':'✅ Done',
-  "vip_secret_desc": "Your personal access to Juicy Fox’s VIP Secret 😈\n🔥 Everything you've been fantasizing about:\n📸 More HD Photo close-up nudes 🙈\n🎥 Videos where I play with my pussy 💦\n💬 Juicy Chat — where I reply to you personally, with video-rols 😘\n📆 Duration: 30 days\n💸 Price: $35\n💳💵💱 — choose your preferred payment method"
- },
-'es': {
-  'menu': """Hola, {name} 😘 Esta noche soy tu Juicy Fox 🦊
-Mis 2 canales PRIVADOS te van a enloquecer… 🔞💦🔥
-Solo tú y yo… ¿Listo para jugar esta noche? 💋
-Haz clic en Juicy Chat 💬 — y te espero adentro 💌
-No olvides suscribirte a mi canal gratis 👇🏼👇🏼👇🏼""",
-  'btn_life': '👀 Juicy life - 0 $',
-  'btn_club': '💎 Luxury Room - 15 $',
-  'btn_vip': '❤️‍🔥 VIP Secret - 35 $',
-  'btn_chat': '💬 Juicy Chat',
-  'btn_donate': '🎁 Custom',
-  'tip_menu': '🛍 Tip Menu',
-  'activate_chat':'See you my chaT 💬', 'life_link':'👀 Mi canal: {url}', 'my_channel': '👀 Mi canal gratuito: {link}',
-  'choose_action': 'Elige una acción abajo:',
-  'choose_cur': '🧁 ¿Listo para consentirme? Elige una moneda 🛍️ ({amount}$)',
-  'don_enter': '💸 Introduce el monto en USD (5/10/25/50/100/200)',
-  'don_num': '💸 Introduce una cantidad válida en USD',
-  'inv_err': '⚠️ No se pudo crear la factura. Intenta con otra moneda, cariño 😉',
-  'access_denied': '💬 Activa el “Chat” y vuelve a escribirme. Te estaré esperando 😘',
-  'life': "💎 Bienvenido a mi mundo 💋\n{my_channel}",
-  'pay_conf': '✅ Todo listo. Estás conmigo durante 30 días 😘',
-  'cancel': '❌ Quizás en otro momento… 😔',
-  'nothing_cancel': 'No hay nada que cancelar.',
-  'consecutive_limit': '(3 de 3) — esperando la respuesta de Juicy Fox. Podrás continuar la conversación en 10 minutos o cuando responda.',
-  'chat_choose_plan': '💬 ¿Por cuántos días activar el chat?',
-  'chat_flower_q': '¿Qué flores deseas regalar a Juicy Fox?',
-  'chat_flower_1': '🌷 — $5 / 7 días',
-  'chat_flower_2': '🌹 — $9 / 15 días',
-  'chat_flower_3': '💐 — $15 / 30 días',
-  'chat_flower_desc': """💬 Juicy Chat — tu conexión personal con Juicy Fox 😘
-Solo tú y yo... Acércate un poquito más 💋
-💌 Me encanta enviarte videomensajes y notas de voz
-📸 Me gusta mandarte selfies privados... si te portas bien 😉
-🤗 Abro el chat en cuanto vea tus flores 💐🌷🌹""",
-  'chat_access': (
-    "El acceso al Chat 💬 es tu conexión personal con Juicy Fox 😘\n"
-    "Aquí empieza lo verdaderamente Privado 💋\n"
-    "A menudo respondo con videomensajes y audios 💌\n"
-    "A veces te mando selfies exclusivos 📸😉\n"
-    "PERO… ¡sin flores 💐 no entras! 😜☺️"
-  ),
-  'back': '🔙 Back',
-  'luxury_room_desc': 'Luxury Room – Juicy Fox\n💎 ¡Mi colección de erotismo premium está creada para los amantes del lujo femenino! 🔥 Por solo 15 $ obtendrás contenido sin censura 30 días 😈',
- 'vip_secret_desc': "Tu acceso personal al VIP Secret de Juicy Fox 😈\n🔥 Todo lo que has estado fantaseando:\n📸 Más fotos HD de mis partes íntimas en primer plano 🙈\n🎥 Videos donde juego con mi Coño 💦\n💬 Juicy Chat — donde te respondo personalmente con videomensajes 😘\n📆 Duración: 30 días\n💸 Precio: 35$\n💳💵💱 — elige tu forma de pago preferida",
-'not_allowed_channel': '🚫 Canal de destino desconocido.',
-'error_post_not_found': 'Publicación no encontrada',
-'post_deleted':'Post eliminado',
-'post_scheduled':'✅ Publicación programada! {channel} | {date} | {time} | {tariff}',
-'dt_prompt':'Elige fecha y hora','dt_ok':'✅ Confirmar','dt_cancel':'❌ Cancelar',
-'choose_time': '{time}',
-'ask_stars':'Indica la cantidad de Stars:',
-'ask_content':'Envía el texto o media del post.',
-'set_price_prompt':'Indica el precio del post:',
-'free_label':'FREE',
-'done_label':'✅ Listo',
-  }
-}
 # ----- CryptoBot helpers -----
 async def _api(m:str,ep:str,p:dict|None=None)->Optional[Dict[str,Any]]:
     hdr={'Crypto-Pay-API-Token':CRYPTOBOT_TOKEN}
@@ -704,10 +534,10 @@ async def choose_cur(cq: CallbackQuery, state: FSMContext):
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
         kb.button(text=t, callback_data=f'payc:{plan}:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.button(text=tr(lang, 'back'), callback_data="back")
     kb.adjust(2)
     if plan == 'club':
-        text = L10N.get(lang, L10N['en'])['luxury_room_desc']
+        text = tr(lang, 'luxury_room_desc')
     else:
         text = tr(lang, 'choose_cur', amount=amt)
     await cq.message.edit_text(text, reply_markup=kb.as_markup())
@@ -727,7 +557,8 @@ async def pay_make(cq: CallbackQuery):
         payload = plan
     url = await create_invoice(cq.from_user.id, amt, cur, 'JuicyFox Subscription', pl=payload)
     if url:
-        await cq.message.edit_text(f"Счёт на оплату ({plan.upper()}): {url}")
+        lang = cq.from_user.language_code
+        await cq.message.edit_text(tr(lang, 'invoice_message', plan=plan.upper(), url=url))
         
     else:
         await cq.answer(tr(cq.from_user.language_code,'inv_err'),show_alert=True)
@@ -738,7 +569,8 @@ async def handle_vip_currency(cq: CallbackQuery):
     amt = TARIFFS['vip']
     url = await create_invoice(cq.from_user.id, amt, cur, 'JuicyFox Subscription', pl='vip')
     if url:
-        await cq.message.edit_text(f"Счёт на оплату (VIP): {url}")
+        lang = cq.from_user.language_code
+        await cq.message.edit_text(tr(lang, 'invoice_message', plan='VIP', url=url))
     else:
         await cq.answer(tr(cq.from_user.language_code,'inv_err'), show_alert=True)
 
@@ -749,7 +581,7 @@ async def chatgift_currency(cq: CallbackQuery, state: FSMContext):
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
         kb.button(text=t, callback_data=f'payc:chat:{days}:{c}')
-    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.button(text=tr(cq.from_user.language_code, 'back'), callback_data="back")
     kb.adjust(2)
     await cq.message.edit_text(
         tr(cq.from_user.language_code, 'choose_cur', amount=amt),
@@ -897,15 +729,16 @@ async def relay_group(msg: Message, state: FSMContext, **kwargs):
 async def _unused_cmd_history_2(msg: Message):
     print(f"Received /history in chat: {msg.chat.id}, text: {msg.text}")
     print(f"[DEBUG] /history called, chat_id={msg.chat.id}, text={msg.text}")
+    lang = msg.from_user.language_code
     if msg.chat.id != HISTORY_GROUP_ID:
         print(f"[ERROR] /history used outside history group: chat_id={msg.chat.id}")
-        await msg.reply("Команда доступна только в чате истории")
+        await msg.reply(tr(lang, 'history_only_chat'))
         return
 
     args = msg.text.split()
     if len(args) != 3:
         print(f"[ERROR] /history invalid args count: {msg.text}")
-        await msg.reply("неверный синтаксис")
+        await msg.reply(tr(lang, 'invalid_syntax'))
         return
 
     try:
@@ -913,7 +746,7 @@ async def _unused_cmd_history_2(msg: Message):
         limit = int(args[2])
     except ValueError:
         print(f"[ERROR] /history invalid uid/limit: {msg.text}")
-        await msg.reply("неверный синтаксис")
+        await msg.reply(tr(lang, 'invalid_syntax'))
         return
 
     async with aiosqlite.connect(DB_PATH) as db:
@@ -923,7 +756,7 @@ async def _unused_cmd_history_2(msg: Message):
         )
 
     if not rows:
-        await msg.reply("Нет сообщений")
+        await msg.reply(tr(lang, 'history_no_messages'))
         return
 
     for sender, text, file_id, media_type in rows:
@@ -942,9 +775,10 @@ async def _unused_cmd_history_2(msg: Message):
             print(f"Ошибка при отправке истории: {e}")
 # legacy history handler for group
 async def _unused_cmd_history_3(msg: Message):
+    lang = msg.from_user.language_code
     parts = msg.text.strip().split()
     if len(parts) != 3:
-        return await msg.answer("⚠️ Формат: /history user_id limit")
+        return await msg.answer(tr(lang, 'history_format'))
 
     user_id, limit = parts[1], int(parts[2])
     async with aiosqlite.connect(DB_PATH) as db:
@@ -954,7 +788,7 @@ async def _unused_cmd_history_3(msg: Message):
         )
         rows = await cursor.fetchall()
 
-    await msg.answer(f"📂 История с user_id {user_id} (последние {limit} сообщений)")
+    await msg.answer(tr(lang, 'history_header', user_id=user_id, limit=limit))
     for sender, text, file_id, media_type in reversed(rows):
         caption = text if sender == 'user' else f"📬 Ответ от оператора\n{text or ''}"
         try:
@@ -1001,7 +835,7 @@ async def add_post_plan_button(msg: Message):
     try:
         await bot.send_message(
             msg.chat.id,
-            f"Пост №{cnt:03d}",
+            tr(msg.from_user.language_code, 'post_number', num=cnt),
             reply_markup=kb,
             reply_to_message_id=msg.message_id,
         )
@@ -1014,15 +848,16 @@ async def add_post_plan_button(msg: Message):
 @dp.callback_query(F.data.startswith("start_post_plan:"))
 async def start_post_plan(cq: CallbackQuery, state: FSMContext):
     log.info(f"[POST_PLAN] Запуск планирования от {cq.from_user.id} в {cq.message.chat.id}")
+    lang = cq.from_user.language_code
 
     # Проверка чата
     if cq.message.chat.id != POST_PLAN_GROUP_ID:
-        await cq.answer("⛔ Доступно только в постинг-группе", show_alert=True)
+        await cq.answer(tr(lang, 'posting_only_group'), show_alert=True)
         return
 
     # Проверка на админа
     if cq.from_user.id not in ADMINS:
-        await cq.answer("⛔ Только админы могут планировать посты", show_alert=True)
+        await cq.answer(tr(lang, 'posting_admin_only'), show_alert=True)
         return
 
     # Сохраняем ID исходного медиа
@@ -1035,7 +870,7 @@ async def start_post_plan(cq: CallbackQuery, state: FSMContext):
 
     # Не очищаем state здесь, чтобы не потерять source_message_id
     await state.set_state(Post.wait_channel)
-    await cq.message.answer("Куда постить?", reply_markup=post_plan_kb)
+    await cq.message.answer(tr(lang, 'where_post'), reply_markup=post_plan_kb)
 
 
 def kb_days(d: Dict[str, int], lang: str):
@@ -1119,9 +954,11 @@ def done_kb(lang: str) -> InlineKeyboardMarkup:
 async def post_choose_channel(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
     channel = cq.data.split(":")[1]
+    lang = cq.from_user.language_code
     data_update = {"channel": channel}
     if channel != "life":
-        data_update["tariff"] = CHANNEL_TARIFFS.get(channel, "")
+        tariff_key = CHANNEL_TARIFFS.get(channel, "")
+        data_update["tariff"] = tr(lang, tariff_key) if tariff_key else ""
     await state.update_data(**data_update)
     now = datetime.now()
     data = {
@@ -1197,7 +1034,8 @@ async def dt_callback(callback_query: CallbackQuery, state: FSMContext):
             log.info(f"[POST_PLAN] Transition to Post.select_stars (channel={channel})")
             await callback_query.message.edit_text(tr(lang, 'ask_stars'), reply_markup=stars_kb(lang))
         else:
-            tariff = CHANNEL_TARIFFS.get(channel, "")
+            tariff_key = CHANNEL_TARIFFS.get(channel, "")
+            tariff = tr(lang, tariff_key) if tariff_key else ""
             await state.update_data(tariff=tariff)
             await state.set_state(Post.wait_content)
             log.info(f"[POST_PLAN] Transition to Post.wait_content (channel={channel})")
@@ -1253,7 +1091,7 @@ async def post_content(msg: Message, state: FSMContext):
     channel = data.get("channel")
     if not channel:
         log.error("[POST_PLAN] Ошибка: канал не выбран")
-        await msg.reply("Ошибка: не выбран канал.")
+        await msg.reply(tr(msg.from_user.language_code, 'post_channel_not_selected'))
         return
 
     if msg.photo or msg.video or msg.animation:
@@ -1271,11 +1109,11 @@ async def post_content(msg: Message, state: FSMContext):
         await state.update_data(media_ids=ids)
         if msg.caption:
             await state.update_data(text=msg.caption)
-        await msg.reply("Медиа добавлено")
+        await msg.reply(tr(msg.from_user.language_code, 'media_added'))
         log.info(f"[POST_PLAN] Добавлено медиа: {file_id}")
     elif msg.text:
         await state.update_data(text=msg.text)
-        await msg.reply("Текст сохранён")
+        await msg.reply(tr(msg.from_user.language_code, 'text_saved'))
         log.info("[POST_PLAN] Сохранён текст поста")
     else:
         log.info("[POST_PLAN] Игнор: неподдерживаемый тип контента")
@@ -1579,18 +1417,18 @@ async def cmd_history(msg: Message):
     print(f"[DEBUG] Получена команда history из чата {msg.chat.id}, ожидается {HISTORY_GROUP_ID}")
     parts = msg.text.strip().split()
     if len(parts) not in (2, 3):
-        await msg.reply("⚠️ Используй /history <user_id> [limit]")
+        await msg.reply(tr(msg.from_user.language_code, 'history_usage'))
         return
     try:
         uid = int(parts[1])
         limit = int(parts[2]) if len(parts) == 3 else 5
     except ValueError:
-        await msg.reply("⚠️ Используй /history <user_id> [limit]")
+        await msg.reply(tr(msg.from_user.language_code, 'history_usage'))
         return
 
     messages = await get_last_messages(uid, limit)
     if not messages:
-        await msg.reply("📭 Нет сообщений")
+        await msg.reply(tr(msg.from_user.language_code, 'history_no_messages'))
         return
 
     for item in messages:
@@ -1667,11 +1505,11 @@ async def main():
 @dp.message(Command("test_vip"))
 async def test_vip_post(msg: Message):
     if msg.from_user.id not in ADMINS:
-        await msg.reply("⛔️ Нет доступа.")
+        await msg.reply(tr(msg.from_user.language_code, 'no_access'))
         return
     try:
-        await bot.send_message(CHANNELS["vip"], "✅ Проверка: бот может писать в VIP")
-        await msg.reply("✅ Успешно отправлено в VIP-канал")
+        await bot.send_message(CHANNELS["vip"], tr("ru", "vip_send_check"))
+        await msg.reply(tr(msg.from_user.language_code, 'sent_to_vip'))
     except Exception as e:
         print(f"❌ Ошибка при отправке в VIP: {e}")
 
@@ -1679,12 +1517,12 @@ async def test_vip_post(msg: Message):
 async def delete_post_cmd(msg: Message):
     lang = msg.from_user.language_code
     if msg.from_user.id not in ADMINS:
-        await msg.reply("⛔️ Только админ может удалять посты.")
+        await msg.reply(tr(lang, 'admin_delete_only'))
         return
 
     parts = msg.text.strip().split()
     if len(parts) != 2 or not parts[1].isdigit():
-        await msg.reply("❌ Используй /delete_post <id>")
+        await msg.reply(tr(lang, 'delete_usage'))
         return
 
     msg_id = int(parts[1])
