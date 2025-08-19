@@ -1,6 +1,8 @@
 
 import os
 import json
+import logging
+import httpx
 from aiogram.fsm.state import StatesGroup, State
 
 # Здесь будут все общие константы, классы и функции,
@@ -20,6 +22,9 @@ CURRENCIES = [
 # (если не задано в ENV, используется дефолтная ссылка)
 LIFE_URL = os.getenv("LIFE_URL", "https://t.me/JuicyFoxOfficialLife")
 
+CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN", "")
+log = logging.getLogger(__name__)
+
 # ✅ FSM-класс
 class ChatGift(StatesGroup):
     plan = State()
@@ -33,9 +38,40 @@ async def create_invoice(
     description: str,
     pl: str | None = None,
 ):
-    """Создание счёта для оплаты."""
+    """Создание инвойса через CryptoBot API."""
+    if currency.lower() not in [code for _, code in CURRENCIES]:
+        log.error("Unsupported currency: %s", currency)
+        return None
+
+    if not CRYPTOBOT_TOKEN:
+        log.error("CRYPTOBOT_TOKEN is not set")
+        return None
+
     payload_str = f"{user_id}:{pl}" if pl else str(user_id)
-    return f"INVOICE-{payload_str}-{amount}-{currency}"
+    url = "https://pay.crypt.bot/api/createInvoice"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                url,
+                headers={"Authorization": f"Bearer {CRYPTOBOT_TOKEN}"},
+                data={
+                    "asset": currency.upper(),
+                    "amount": amount,
+                    "description": description,
+                    "payload": payload_str,
+                },
+            )
+        data = resp.json()
+    except Exception as e:
+        log.exception("CryptoBot request failed: %s", e)
+        return None
+
+    if not data.get("ok"):
+        log.error("CryptoBot error: %s", data)
+        return None
+
+    return data["result"]["pay_url"]
 
 # ✅ Функция перевода
 LOCALES = {}
