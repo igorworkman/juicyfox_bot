@@ -29,6 +29,7 @@ log = logging.getLogger(__name__)
 class ChatGift(StatesGroup):
     plan = State()
     access = State()
+    choose_tier = State()
 
 # ✅ Утилиты
 async def create_invoice(
