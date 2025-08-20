@@ -1,45 +1,32 @@
-name: Validate .env.template Keys
+name: Validate .env.example Keys
 
 on:
   pull_request:
+    branches: [ main ]
     paths:
-      - ".env.template"
+      - ".env.example"
       - ".github/workflows/env-validator.yml"
+  workflow_dispatch:
 
 jobs:
   check-env:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Validate .env.template
+      - uses: actions/checkout@v4
+      - name: Validate keys
+        shell: bash
         run: |
-          required_keys=(
-            TELEGRAM_TOKEN
-            CRYPTOBOT_TOKEN
-            WEBHOOK_URL
-            VIP_CHANNEL_ID
-            CHAT_GROUP_ID
-            LIFE_CHANNEL_ID
-            LOG_CHANNEL_ID
-            LUXURY_CHANNEL_ID
-            LIFE_URL
-            HISTORY_GROUP_ID
-            POST_PLAN_GROUP_ID
-          )
-
-          missing=0
-          for key in "${required_keys[@]}"; do
-            if ! grep -q "^$key=" .env.template; then
-              echo "❌ Missing key: $key"
-              missing=1
+          required=( TELEGRAM_TOKEN CRYPTOBOT_TOKEN WEBHOOK_URL VIP_CHANNEL_ID CHAT_GROUP_ID LIFE_CHANNEL_ID LOG_CHANNEL_ID LUXURY_CHANNEL_ID LIFE_URL HISTORY_GROUP_ID POST_PLAN_GROUP_ID )
+          miss=0
+          for k in "${required[@]}"; do
+            if ! grep -Eq "^${k}=" .env.example; then
+              echo "::error title=Missing env key::${k}"
+              miss=1
             fi
           done
-
-          if [ $missing -eq 1 ]; then
-            echo "Environment validation failed. Please update .env.template."
-            exit 1
+          if [ $miss -eq 1 ]; then
+            echo "Environment validation failed."
+          else
+            echo "All required env keys are present."
           fi
-
-          echo "✅ All required environment keys are present."
+          exit $miss
