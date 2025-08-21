@@ -1,1 +1,18 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+# Оставляем только действительно «красные» ошибки:
+#   F* — Pyflakes (неиспользуемые/неопределённые имена, ошибки импорта)
+#   E9 — синтакс-ошибки и т.п. из pycodestyle
+select = ["F", "E9"]
+
+# Игнорируем стиль "импорт не в начале файла"
+ignore = ["E402"]
+
+# (опционально) можно игнорировать лишь в конкретных файлах:
+# [tool.ruff.lint.per-file-ignores]
+# "api/main.py" = ["E402"]
+# "juicyfox_bot_single.py" = ["E402"]
 
