@@ -5,32 +5,49 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   lint_and_tests:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install deps
+
+      - name: Upgrade pip and install deps
         run: |
           python -m pip install --upgrade pip
+          # project deps (если есть файл — ставим, если нет — не падаем)
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install ruff pytest
+          # tools for CI
+          pip install "ruff==0.5.6" "pytest>=7"
+
       - name: Lint (ruff)
-        run: ruff . --output-format=github
+        # Важно: у ruff команда check, а не "ruff ."
+        run: ruff check . --output-format=github
+
       - name: Tests (optional)
+        # если тестов нет/падают — не блокируем PR
         run: pytest -q || true
 
   pr_size_guard:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Count changed blocks
         id: count
         run: |
@@ -39,6 +56,7 @@ jobs:
           blocks=$(git diff --unified=0 "$base" "$head" | grep '^@@' | wc -l)
           echo "blocks=$blocks" >> "$GITHUB_OUTPUT"
           echo "Changed blocks: $blocks"
+
       - name: Fail if PR too large
         if: ${{ fromJSON(steps.count.outputs.blocks) > 30 }}
         run: |
