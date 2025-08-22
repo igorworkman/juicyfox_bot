@@ -11,9 +11,11 @@ import logging
 log = logging.getLogger(__name__)
 
 from .check_logs import get_logs_clean, get_logs_full
+from .payments import router as payments_router
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 app = FastAPI(default_response_class=JSONResponse)
+app.include_router(payments_router)
 
 @app.get("/logs")
 async def full_logs():
