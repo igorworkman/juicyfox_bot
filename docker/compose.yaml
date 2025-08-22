@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: prod
+      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN}"   # задать в .env или секретах CI
+      BOT_ID: "sample"
+      DB_PATH: "/app/data/sample.sqlite"
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  # пример воркера постинга (если нужен отдельный процесс)
+  worker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: ["python", "worker_posting.py"]
+    environment:
+      APP_ENV: prod
+      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN}"
+      BOT_ID: "sample"
+      DB_PATH: "/app/data/sample.sqlite"
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+    restart: unless-stopped
