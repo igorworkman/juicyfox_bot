@@ -3,27 +3,29 @@ from __future__ import annotations
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 
-from modules.common.shared import CURRENCIES, tr
+from modules.common.i18n import tr
+from modules.constants.currencies import CURRENCIES
 
 
 # ---------- INLINE КНОПКИ (стабильные callback'и) ----------
 
 def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
-    """Главное меню: VIP, Chat, Life, Donate."""
+    """Главное меню: Life, Luxury, VIP, Donate, Chat."""
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang, "btn_vip") or "❤️‍🔥 VIP Secret", callback_data="ui:vip")
-    b.button(text=tr(lang, "btn_chat") or "💬 Chat", callback_data="ui:chat")
-    b.button(text=tr(lang, "btn_life") or "⭐️ Life", callback_data="ui:life")
-    b.button(text=tr(lang, "btn_donate") or "💸 Donate", callback_data="donate")
-    b.adjust(2, 2)
+    b.button(text=tr(lang, "btn_life"), callback_data="ui:life")
+    b.button(text=tr(lang, "btn_luxury"), callback_data="ui:luxury")
+    b.button(text=tr(lang, "btn_vip"), callback_data="ui:vip")
+    b.button(text=tr(lang, "btn_donate"), callback_data="donate")
+    b.button(text=tr(lang, "btn_chat"), callback_data="ui:chat")
+    b.adjust(2, 2, 1)
     return b.as_markup()
 
 
 def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Экран VIP: даём кнопку оплаты (pay:vip) и Назад."""
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang or "en", "btn_pay_vip") or "Pay VIP", callback_data="pay:vip")
-    b.button(text=tr(lang or "en", "btn_back") or "⬅️ Back", callback_data="ui:back")
+    b.button(text=tr(lang or "en", "btn_pay_vip"), callback_data="pay:vip")
+    b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(1)
     return b.as_markup()
 
@@ -31,8 +33,8 @@ def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
 def chat_plan_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Экран Chat: кнопка оплаты (pay:chat) и Назад."""
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang or "en", "btn_pay_chat") or "Pay Chat", callback_data="pay:chat")
-    b.button(text=tr(lang or "en", "btn_back") or "⬅️ Back", callback_data="ui:back")
+    b.button(text=tr(lang or "en", "btn_pay_chat"), callback_data="pay:chat")
+    b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(1)
     return b.as_markup()
 
@@ -42,14 +44,14 @@ def donate_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
         b.button(text=title, callback_data=f"donate:cur:{code}")
-    b.button(text=tr(lang or "en", "btn_back") or "⬅️ Back", callback_data="donate:back")
+    b.button(text=tr(lang or "en", "btn_back"), callback_data="donate:back")
     b.adjust(3, 1)
     return b.as_markup()
 
 
 def donate_back_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang or "en", "btn_back") or "⬅️ Back", callback_data="donate:back")
+    b.button(text=tr(lang or "en", "btn_back"), callback_data="donate:back")
     return b.as_markup()
 
 
@@ -60,41 +62,18 @@ def reply_menu(lang: str) -> ReplyKeyboardMarkup:
     Лёгкое reply-меню на старый манер (тексты — из локалей).
     Можно показывать всегда — это не ломает inline-сценарии.
     """
-    chat_label = tr(lang, "reply_chat_btn") or "SEE YOU MY CHAT💬"
-    luxury_label = tr(lang, "reply_luxury_btn") or "💎 Luxury Room – 15$"
-    vip_label = tr(lang, "reply_vip_btn") or "❤️‍🔥 VIP Secret – 35$"
+    chat_label = tr(lang, "btn_see_chat")
+    luxury_label = tr(lang, "btn_luxury")
+    vip_label = tr(lang, "btn_vip")
 
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=chat_label)],
-            [KeyboardButton(text=luxury_label)],
-            [KeyboardButton(text=vip_label)],
+            [KeyboardButton(text=luxury_label), KeyboardButton(text=vip_label)],
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
-        input_field_placeholder=tr(lang, "reply_placeholder") or "",
+        input_field_placeholder=tr(lang, "reply_placeholder"),
     )
-    kb.adjust(1)
-    return kb.as_markup()
 
 
-def vip_currency_kb() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f"vipay:{c}")
-    kb.button(text="⬅️ Назад", callback_data="back")
-    kb.adjust(2)
-    return kb.as_markup()
-
-
-def reply_menu() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="SEE YOU MY CHAT💬")],
-            [
-                KeyboardButton(text="💎 Luxury Room – 15$"),
-                KeyboardButton(text="❤️‍🔥 VIP Secret – 35$")
-            ],
-        ],
-        resize_keyboard=True,
-    )
