@@ -79,6 +79,12 @@ async def telegram_webhook_compat(bot_id: str, request: Request):
 # ---------- Webhook lifecycle ----------
 @app.on_event("startup")
 async def on_startup():
+    # 0) Инициализируем БД (персистентный volume /app/data)
+    with suppress(Exception):
+        from shared.db.repo import init_db
+        await init_db()
+
+    # 1) Ставим webhook (если указан URL)
     url = WEBHOOK_URL or (f"{BASE_URL}/bot/{BOT_ID}/webhook" if BASE_URL else None)
     if not url:
         log.warning("BASE_URL/WEBHOOK_URL is not set — webhook will not be installed.")
