@@ -1,0 +1,26 @@
+"""Configuration package for JuicyFox bots (Plan A).
+
+This package centralizes environment and YAML configuration for the bot.
+Importing from ``shared.config`` will expose the ``config`` object as well
+as helper functions ``load_config`` and ``reload_config`` from the
+``env`` submodule.
+
+Usage::
+
+    from shared.config import config
+    token = config.telegram_token
+
+    # or reload configuration
+    from shared.config import reload_config
+    reload_config()
+
+If loading the environment fails for any reason, importing this
+module will raise the underlying exception immediately.  See
+``shared.config.env`` for full details.
+"""
+
+from __future__ import annotations
+
+from .env import config, load_config, reload_config  # noqa: F401
+
+__all__ = ["config", "load_config", "reload_config"]
