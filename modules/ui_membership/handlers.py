@@ -10,15 +10,10 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-# текст/локализация и валюты берём из общего модуля
-from modules.common.shared import CURRENCIES, tr
-
-# create_invoice по Плану A живёт в payments.service,
-# но поддержим обратную совместимость с монолитом.
-try:  # pragma: no cover - мягкий fallback
-    from modules.payments.service import create_invoice  # type: ignore
-except Exception:  # старый путь
-    from modules.common.shared import create_invoice  # type: ignore
+# текст/локализация и валюты берём из актуальных модулей
+from modules.common.i18n import tr
+from modules.constants.currencies import CURRENCIES
+from modules.payments.cryptobot import create_invoice
 
 # Клавиатуры текущего модуля
 from .keyboards import (
