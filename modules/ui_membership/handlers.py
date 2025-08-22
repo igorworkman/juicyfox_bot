@@ -32,8 +32,202 @@ from .keyboards import (
 
 router = Router()
 
-# --- Конфиг, который пока читаем из ENV (позже переедет в shared.config.env) ---
+# --- Конфиг из ENV (позже переедет в shared.config.env) ---
+BOT_ID = os.getenv("BOT_ID", "sample")
 VIP_URL = os.getenv("VIP_URL")
+LIFE_URL = os.getenv("LIFE_URL")
+VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
+CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
+
+# Удобный набор кодов валют: {"USD","EUR",...}
+CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
+
+
+# --- FSM для донатов (оставляем в UI-модуле) ---
+class Donate(StatesGroup):
+    choosing_currency = State()
+    entering_amount = State()
+    confirm = State()
+
+
+# =======================
+# /start и главное меню
+# =======================
+@router.message(Command("start"))
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    lang = message.from_user.language_code
+    await message.answer_photo(
+        "https://files.catbox.moe/cqckle.jpg",
+        caption=tr(lang, "menu", name=message.from_user.first_name),
+    )
+    if LIFE_URL:
+        await message.answer(tr(lang, "my_channel", link=LIFE_URL), reply_markup=reply_menu(lang))
+    await message.answer(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+
+
+@router.callback_query(F.data.in_({"ui:back", "back_to_main", "back"}))
+async def back_to_main(cq: CallbackQuery) -> None:
+    lang = cq.from_user.language_code
+    await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+
+
+# =======================
+# VIP / Chat / Life
+# =======================
+@router.callback_query(F.data.in_({"ui:vip", "vip"}))
+async def show_vip(cq: CallbackQuery) -> None:
+    lang = cq.from_user.language_code
+    await cq.message.edit_text(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
+
+
+@router.callback_query(F.data.in_({"ui:chat", "chat"}))
+async def show_chat(cq: CallbackQuery) -> None:
+    lang = cq.from_user.language_code
+    await cq.message.edit_text(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
+
+
+@router.callback_query(F.data.in_({"ui:life", "life"}))
+async def show_life_link(cq: CallbackQuery) -> None:
+    lang = cq.from_user.language_code
+    if not LIFE_URL:
+        await cq.answer(tr(lang, "link_is_missing"), show_alert=True)
+        return
+    await cq.message.answer(tr(lang, "life_room_link"))
+    await cq.message.answer(LIFE_URL)
+
+
+# =======================
+# Оплата подписок (VIP/Chat)
+# =======================
+def _build_meta(user_id: int, plan_code: str, currency: str) -> Dict[str, Any]:
+    return {"user_id": user_id, "plan_code": plan_code, "currency": currency, "bot_id": BOT_ID}
+
+def _invoice_url(inv: Any) -> Optional[str]:
+    """Поддерживаем и dict с 'pay_url', и просто строку-URL."""
+    if isinstance(inv, dict):
+        return inv.get("pay_url") or inv.get("url")
+    if isinstance(inv, str):
+        return inv
+    return None
+
+@router.callback_query(F.data == "pay:vip")
+async def pay_vip(cq: CallbackQuery) -> None:
+    lang = cq.from_user.language_code
+    currency = "USD"
+    amount = VIP_PRICE_USD
+    inv = await create_invoice(
+        user_id=cq.from_user.id,
+        plan_code="vip_30d",
+        amount_usd=float(amount),
+        meta=_build_meta(cq.from_user.id, "vip_30d", currency),
+    )
+    url = _invoice_url(inv)
+    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
+    if url:
+        await cq.message.answer(url)
+
+@router.callback_query(F.data == "pay:chat")
+async def pay_chat(cq: CallbackQuery) -> None:
+    lang = cq.from_user.language_code
+    currency = "USD"
+    amount = CHAT_PRICE_USD
+    inv = await create_invoice(
+        user_id=cq.from_user.id,
+        plan_code="chat_30d",
+        amount_usd=float(amount),
+        meta=_build_meta(cq.from_user.id, "chat_30d", currency),
+    )
+    url = _invoice_url(inv)
+    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
+    if url:
+        await cq.message.answer(url)
+
+
+# =======================
+# Донаты
+# =======================
+@router.callback_query(F.data.in_({"donate", "ui:tip"}))
+async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Donate.choosing_currency)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, "choose_cur", amount="donate"),
+        reply_markup=donate_kb(),
+    )
+
+@router.callback_query(F.data.startswith("donate:cur:"), Donate.choosing_currency)
+async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
+    # ожидаем формат donate:cur:USD
+    _, _, cur = cq.data.partition("donate:cur:")
+    cur = cur.strip().upper()
+    if cur not in CURRENCY_CODES:
+        await cq.answer("Unsupported currency", show_alert=True)
+        return
+    await state.update_data(currency=cur)
+    await state.set_state(Donate.entering_amount)
+    await cq.message.edit_text(
+        tr(cq.from_user.language_code, "enter_amount", cur=cur),
+        reply_markup=donate_back_kb(cq.from_user.language_code),
+    )
+
+@router.message(Donate.entering_amount, F.text.regexp(r"^\d+([.,]\d{1,2})?$"))
+async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
+    lang = msg.from_user.language_code
+    data = await state.get_data()
+    cur = (data.get("currency") or "USD").upper()
+    raw = (msg.text or "0").replace(",", ".")
+    amount = float(raw)
+
+    amount_usd = amount if cur == "USD" else amount  # TODO: конверсия при необходимости
+    inv = await create_invoice(
+        user_id=msg.from_user.id,
+        plan_code="donation",
+        amount_usd=amount_usd,
+        meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
+    )
+    url = _invoice_url(inv)
+    await msg.answer(tr(lang, "invoice_created"))
+    if url:
+        await msg.answer(url)
+    await state.clear()
+
+@router.callback_query(F.data == "donate:back")
+async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    lang = cq.from_user.language_code
+    await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+
+
+# --- Legacy reply-кнопки (на переходный период) ---
+
+def _norm(s: Optional[str]) -> str:
+    return (s or "").strip()
+
+@router.message(lambda m: _norm(m.text) in {
+    _norm(tr(getattr(m.from_user, "language_code", "en"), "reply_chat_btn")) or "SEE YOU MY CHAT💬"
+})
+async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
+    await state.clear()
+    lang = msg.from_user.language_code
+    await msg.answer(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
+
+@router.message(lambda m: _norm(m.text) in {
+    _norm(tr(getattr(m.from_user, "language_code", "en"), "reply_luxury_btn")) or "💎 Luxury Room – 15$"
+})
+async def legacy_reply_luxury(msg: Message) -> None:
+    lang = msg.from_user.language_code
+    kb = InlineKeyboardBuilder()
+    for title, code in CURRENCIES:
+        kb.button(text=title, callback_data="pay:chat")  # при желании сделай отдельный plan_code
+    kb.adjust(2)
+    await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
+
+@router.message(lambda m: _norm(m.text) in {
+    _norm(tr(getattr(m.from_user, "language_code", "en"), "reply_vip_btn")) or "❤️‍🔥 VIP Secret – 35$"
+})
+async def legacy_reply_vip(msg: Message) -> None:
+    lang = msg.from_user.language_code
+    await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
 LIFE_URL = os.getenv("LIFE_URL")
 VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
 CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
