@@ -1,0 +1,46 @@
+# Sample per‑bot configuration for JuicyFox (Plan A).
+#
+# This YAML file overrides or supplements environment variables for a
+# specific bot instance.  The file name (`sample_bot.yaml`) should
+# match your bot's ID.  Settings defined here take precedence over
+# defaults and can be used to enable/disable optional modules, set
+# pricing, and configure group/channel identifiers.  Secrets such as
+# TELEGRAM_TOKEN are typically supplied via environment variables rather
+# than stored in YAML.
+
+# Unique identifier of the bot (used by load_config if BOT_ID is not set).
+bot_id: sample
+
+model_name: "Juicy Fox"
+
+# Feature flags for optional modules.  Set to true/false to enable or
+# disable specific functionality.  If a key is omitted, a sensible
+# default is used (see shared/config/env.py).
+features:
+  posting_enabled: true    # enable the post scheduler module
+  chat_enabled: true       # enable the chat relay module
+  history_enabled: false   # enable the history/archive module (experimental)
+
+# Pricing configuration.  If omitted, default values are used.
+vip_price_usd: 35
+chat_price_usd: 15
+
+# Identifiers for groups/channels used by the bot.  These should be
+# integers corresponding to Telegram chat IDs.  Negative values indicate
+# supergroups or channels.  Omit or set to null to disable the
+# corresponding feature.
+chat_group_id: null          # ID of the chat where /post and relay are allowed
+history_group_id: null       # ID of the chat where /history is allowed
+post_plan_group_id: null     # ID of the chat used for post planning
+life_channel_id: null        # ID of the Life channel
+vip_channel_id: null         # ID of the VIP channel
+log_channel_id: null         # ID of the channel for logging
+
+# API endpoint for Cryptobot.  Override only if you need to point to a
+# custom API endpoint (e.g. for testing).
+cryptobot_api: "https://pay.crypt.bot/api"
+
+# Additional arbitrary settings.  Contents of this mapping are stored
+# under ``config.extra`` and are not interpreted by the core.
+extra:
+  example_setting: "value"
