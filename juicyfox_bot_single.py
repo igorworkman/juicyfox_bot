@@ -36,7 +36,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, Update
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from router_pay import router as router_pay
+
 from router_access import router as router_access
 from router_posting import router as router_posting
 from router_history import router as router_history
