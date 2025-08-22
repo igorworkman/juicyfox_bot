@@ -1,39 +1,46 @@
-FROM python:3.11-slim-bookworm
+# ---------- deps (build stage) ----------
+FROM python:3.11-slim-bookworm AS deps
+ENV PIP_NO_CACHE_DIR=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 WORKDIR /app
 
+# системные заголовки только на этапе сборки
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc curl git \
+    libffi-dev libssl-dev zlib1g-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем системные зависимости
-RUN apt-get update && apt-get install -y \
-    curl \
-    bash \
-    build-essential \
-    gcc \
-    git \
-    libffi-dev \
-    libssl-dev \
-    libsqlite3-dev \
-    libpq-dev \
-    zlib1g-dev \
-    libjpeg-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Устанавливаем Python зависимости
+# ставим зависимости в отдельный префикс, чтобы потом скопировать только его
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip \
+ && python -m pip install --prefix=/install -r requirements.txt
 
-# Создаём папку для данных
-RUN mkdir -p /app/data && chmod 777 /app/data
+# ---------- runtime ----------
+FROM python:3.11-slim-bookworm AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    APP_ENV=prod \
+    TZ=UTC
+WORKDIR /app
 
-# Копируем проект
-COPY . .
+# создаём не-root пользователя
+RUN useradd -m -u 10001 appuser
 
-# Добавляем скрипт
-COPY check_token.sh /app/check_token.sh
-RUN chmod +x /app/check_token.sh
+# переносим только установленное из deps
+COPY --from=deps /install /usr/local
 
-COPY check_webhook.sh /app/check_webhook.sh
-RUN chmod +x /app/check_webhook.sh
+# код приложения
+COPY . /app
 
+# директория для данных/логов
+RUN mkdir -p /app/data /app/logs \
+ && chown -R appuser:appuser /app
+USER appuser
+
+# порт API (uvicorn)
 EXPOSE 8000
-CMD ["gunicorn", "api.main:app", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
-VOLUME /data
+
+# по умолчанию запускаем FastAPI (можно переопределить CMD в compose/CI)
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
