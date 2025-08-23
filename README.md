@@ -23,7 +23,8 @@ docker compose build
 docker compose up -d
 Или локально:
 # API (FastAPI + aiogram webhook)
-uvicorn apps.bot_core.main:app --host 0.0.0.0 --port 8000
+CMD ["uvicorn", "apps.bot_core.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
 
 # Worker для постинга
 python worker_posting.py
