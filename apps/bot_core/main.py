@@ -27,6 +27,19 @@ BOT_ID = os.getenv("BOT_ID", "sample")
 BASE_URL = os.getenv("BASE_URL")         # например, https://your.domain
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")   # приоритет над BASE_URL
 
+@app.post("/bot/{bot_id}/webhook")
+async def telegram_webhook(bot_id: str, request: Request):
+    try:
+        data = await request.json()
+        update = Update.model_validate(data, context={"bot": bot})
+        await dp.feed_webhook_update(bot, update)
+        return {"ok": True}
+    except Exception as e:
+        log.exception("webhook error: %s", e)
+        return {"ok": False}
+
+
+
 if not TELEGRAM_TOKEN or not BOT_ID:
     raise RuntimeError("Missing required env: TELEGRAM_TOKEN or BOT_ID")
 
