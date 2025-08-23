@@ -1,29 +1,37 @@
-# api/webhook.py
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, Response, status
 from aiogram.types import Update
-import os
 
 router = APIRouter()
 
-# Общая функция обработки: парсим апдейт и скармливаем диспетчеру
-async def _process_update(request: Request):
-    from apps.bot_core.main import bot, dp  # импортируем актуальные инстансы
-    data = await request.json()
-    update = Update.model_validate(data, context={"bot": bot})
-    await dp.feed_webhook_update(bot, update)
-    return {"ok": True}
-
-# 1) Новый путь — на него сейчас выставлен вебхук
 @router.post("/webhook")
-async def webhook_plain(request: Request):
-    return await _process_update(request)
+async def telegram_webhook(request: Request) -> Response:
+    """
+    Принимаем апдейты от Telegram на /webhook.
+    - Всегда стараемся вернуть 200/204, чтобы Telegram не копил ошибки.
+    - Любые ошибки парсинга логируем, но не роняем обработчик.
+    """
+    try:
+        # Telegram шлёт JSON; если тело пустое/битое — вернём 204
+        data = await request.json()
+        if not data or not isinstance(data, dict):
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-# 2) Совместимость со старым путём
-@router.post("/bot/{bot_id}/webhook")
-async def webhook_with_bot_id(bot_id: str, request: Request):
-    # (опциональная защита) можно проверять соответствие BOT_ID из окружения
-    env_bot_id = os.getenv("BOT_ID")
-    if env_bot_id and env_bot_id != bot_id:
-        # если хотите просто игнорировать, верните 200; если хотите жёстко — 403
-        raise HTTPException(status_code=403, detail="BOT_ID mismatch")
-    return await _process_update(request)
+        # Ленивый импорт, чтобы не ловить циклические зависимости
+        from apps.bot_core.main import bot, dp
+
+        # Валидируем и прокармливаем апдейт диспетчеру
+        update = Update.model_validate(data, context={"bot": bot})
+        await dp.feed_webhook_update(bot, update)
+
+        # Всё ок — можно вернуть 200
+        return Response(status_code=status.HTTP_200_OK)
+
+    except Exception as e:
+        # Не роняем 500 — Telegram будет ретраить и копить last_error_message.
+        # Лучше проглотить и вернуть 200/204, а в своих логах посмотреть причину.
+        try:
+            # Минимальная попытка журналирования в stdout/stderr
+            print(f"[webhook] error: {e}")
+        except Exception:
+            pass
+        return Response(status_code=status.HTTP_200_OK)
