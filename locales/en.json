@@ -70,5 +70,6 @@
   "no_access": "⛔️ No access.",
   "sent_to_vip": "✅ Successfully sent to VIP channel",
   "admin_delete_only": "⛔️ Only admin can delete posts.",
-  "delete_usage": "❌ Use /delete_post <id>"
+  "delete_usage": "❌ Use /delete_post <id>",
+  "start_message": "Welcome to JuicyFox 🦊"
 }

@@ -9,6 +9,20 @@
 from contextlib import suppress
 from typing import Any
 
+from aiogram import Router
+from aiogram.filters import CommandStart
+from aiogram.types import Message
+
+from shared.utils.l10n import tr
+
+
+router = Router()
+
+
+@router.message(CommandStart())
+async def cmd_start(message: Message, lang: str):
+    await message.answer(tr(lang, "start_message"))
+
 
 def _get_feature(cfg: Any, name: str, default: bool) -> bool:
     """Безопасно получить флаг features.<name> из cfg (dataclass | dict | obj)."""
@@ -41,6 +55,8 @@ def register(dp, cfg: Any = None) -> None:
     Всегда: ui_membership.
     По флагам (по умолчанию True/True/False): posting/chat_relay/history.
     """
+    dp.include_router(router)
+
     # UI / меню / донаты / VIP / чат — базовый модуль
     with suppress(Exception):
         from modules.ui_membership.handlers import router as ui_router
