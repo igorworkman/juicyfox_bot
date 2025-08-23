@@ -36,19 +36,3 @@ async def clean_logs():
     except Exception as exc:
         return {"error": f"Cannot clean log file: {exc}"}
     return {"status": "cleaned"}
-Здесь путь к файлу можно переопределить через LOG_FILE_PATH, но по умолчанию используется /app/logs/bot.log, как в Docker‑образах.
-api/main.py нужно поправить импорт лог‑роутера. Сейчас файл делает from api.check_logs import logs_router, но в новом варианте роутер называется просто router. Импорт можно унифицировать, как у остальных роутеров:
-# api/main.py
-from fastapi import FastAPI
-
-from api.webhook import router as webhook_router
-from api.payments import router as payments_router
-from api.health import router as health_router
-from api.check_logs import router as logs_router  # обновленный импорт
-
-app = FastAPI(title="JuicyFox API", version="1.0.0")
-
-app.include_router(webhook_router,  prefix="/bot")
-app.include_router(payments_router, prefix="/payments")
-app.include_router(health_router)
-app.include_router(logs_router)
