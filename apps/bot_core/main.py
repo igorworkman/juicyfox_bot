@@ -17,6 +17,7 @@ from aiogram.types import Update
 
 from apps.bot_core.middleware import register_middlewares
 from apps.bot_core.routers import register as register_routers
+from api.main import logs_router
 
 # ---------- Обязательные ENV ----------
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -44,6 +45,7 @@ register_routers(dp, cfg=None)
 
 # ---------- FastAPI ----------
 app = FastAPI(title="JuicyFox (Plan A)")
+app.include_router(logs_router)
 
 # Подключаем внешние API-роутеры (если есть)
 with suppress(Exception):
