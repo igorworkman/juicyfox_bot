@@ -63,9 +63,17 @@ with suppress(Exception):
 async def telegram_webhook(bot_id: str, request: Request):
     try:
         data = await request.json()
+        log.info("📩 Incoming update for %s: %s", bot_id, data)  # 👈 логируем апдейт
         update = Update.model_validate(data, context={"bot": bot})
         await dp.feed_webhook_update(bot, update)
         return {"ok": True}
     except Exception as e:
-        log.exception("webhook error: %s", e)
+        log.exception("❌ Webhook error: %s", e)
         return {"ok": False}
+
+# ---------- Webhook lifecycle ----------
+@app.on_event("startup")
+async def on_startup():
+    url = WEBHOOK_URL or (f"{BASE_URL}/bot/{BOT_ID}/webhook" if BASE_URL else None)
+    if not url:
+        log
