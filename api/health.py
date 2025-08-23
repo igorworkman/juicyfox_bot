@@ -1,12 +1,9 @@
-# api/health.py
 from fastapi import APIRouter
 import os
-from contextlib import suppress
 
-# Берём общие объекты из ядра (если доступны)
-with suppress(Exception):
+try:
     from apps.bot_core.main import bot, dp, BOT_ID  # type: ignore
-else:
+except Exception:
     bot = None
     dp = None
     BOT_ID = os.getenv("BOT_ID", "unknown")
@@ -19,10 +16,8 @@ async def healthz():
 
 @router.get("/readyz")
 async def readyz():
-    # Простой критерий "готовности": инициализированы bot и dp
     return {"ready": bool(bot and dp), "bot_id": BOT_ID}
 
 @router.get("/livez")
 async def livez():
-    # Лайвнесс обычно просто "живое приложение"
     return {"alive": True}
