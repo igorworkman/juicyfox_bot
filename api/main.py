@@ -1,18 +1,16 @@
-from fastapi import APIRouter
-import os
+# api/main.py
+from fastapi import FastAPI
 
-logs_router = APIRouter()
+# единообразные импорты роутеров
+from api.webhook import router as webhook_router      # POST /bot/{bot_id}/webhook
+from api.payments import router as payments_router    # POST /payments/<provider>
+from api.health import router as health_router        # /healthz, /readyz
+from api.check_logs import logs_router                # /logs, /logs/clean
 
-@logs_router.get("/logs")
-async def get_logs():
-    path = "/app/logs/bot.log"
-    if not os.path.exists(path):
-        return {"logs": ""}
-    with open(path, "r") as f:
-        return {"logs": f.read().splitlines()[-100:]}
+app = FastAPI(title="JuicyFox API", version="1.0.0")
 
-@logs_router.post("/logs/clean")
-async def clean_logs():
-    path = "/app/logs/bot.log"
-    open(path, "w").close()
-    return {"status": "cleaned"}
+# регистрация маршрутов
+app.include_router(webhook_router,  prefix="/bot")
+app.include_router(payments_router, prefix="/payments")
+app.include_router(health_router)
+app.include_router(logs_router)
