@@ -56,3 +56,48 @@ RUN_MODE=worker python juicyfox_bot_single.py
 🛠️ План A vs Монолит
 Plan A (модульный режим): каждый модуль работает как сервис, используется Docker Compose.
 Монолит: всё собрано в juicyfox_bot_single.py, удобно для хостингов с ограниченными возможностями.
+
+## 🧩 Архитектура и модули
+
+- **ui_membership** — меню, платёжные кнопки, управление доступами.
+- **payments** — сервис инвойсов и нормализация вебхуков.
+- **posting** — планировщик и воркер отложенных постов.
+- **chat_relay** — пересылка сообщений в рабочую группу и ответы.
+- **history** — хранение и просмотр истории сообщений.
+
+### 📂 Полная структура проекта
+
+```plaintext
+juicyfox/
+├─ api/
+│  ├─ webhook.py           # POST /bot/{bot_id}/webhook → aiogram Dispatcher
+│  ├─ payments.py          # POST /payments/<provider> → normalize → events
+│  └─ health.py            # /healthz, /readyz (и опц. /metrics)
+│
+├─ apps/
+│  └─ bot_core/
+│      ├─ main.py          # запуск FastAPI/uvicorn, инициализация Bot/DP
+│      ├─ routers.py       # include_router(ui, posting, chat_relay, …)
+│      ├─ state.py         # FSM: Post, Donate, ChatGift
+│      └─ middleware.py    # логирование, rate-limit, error handler, tracing
+│
+├─ modules/
+│  ├─ ui_membership/       # /start, меню, донат, VIP/чат
+│  ├─ payments/            # сервис инвойсов, идемпотентность, провайдеры
+│  ├─ posting/             # планировщик и worker для постинга
+│  ├─ chat_relay/          # пересылка сообщений в группу
+│  └─ history/             # архив/лог контента
+│
+├─ shared/
+│  ├─ config/              # .env + YAML, алиасы, валидация
+│  ├─ db/                  # repo, migrations (Alembic)
+│  └─ utils/               # logging, time, idempotency, metrics
+│
+├─ configs/                # sample_bot.yaml
+├─ scripts/                # provisioner.py, build_single.py, seed_demo.py
+├─ worker_posting.py       # entrypoint: posting.worker
+├─ docker/                 # Dockerfile, compose.yaml
+├─ .env.example
+├─ requirements.txt
+├─ README.md
+└─ alembic.ini
