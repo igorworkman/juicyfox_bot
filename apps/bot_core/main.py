@@ -6,6 +6,8 @@ Plan A — единый entrypoint:
 - Модули подключаются централизованно
 - Webhook ставится на старте
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 import os
 import logging
