@@ -1,5 +1,13 @@
 from aiogram import Dispatcher
-from .routers import start   # импортируем start.py из папки routers
+
 
 def register(dp: Dispatcher, cfg=None):
-    dp.include_router(start.router)
+    """Placeholder for registering core routers.
+
+    The previous implementation attempted to import a non-existent
+    ``start`` module from ``apps.bot_core.routers`` which raised an
+    ``ImportError`` during application start-up.  The explicit import has
+    been removed to avoid this failure; router registration can be
+    extended here when new modules are added.
+    """
+    return None
