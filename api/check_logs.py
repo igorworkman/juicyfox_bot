@@ -1,43 +1,54 @@
+# api/check_logs.py
+from fastapi import APIRouter
 import os
-import httpx
-import aiofiles
 
-NORTHFLANK_API_TOKEN = os.getenv("NORTHFLANK_API_TOKEN")
-NORTHFLANK_PROJECT_ID = os.getenv("NORTHFLANK_PROJECT_ID")
-NORTHFLANK_SERVICE_ID = os.getenv("NORTHFLANK_SERVICE_ID")
+# Используем переменную окружения LOG_FILE_PATH или путь по умолчанию
+def _log_file_path() -> str:
+    return os.getenv("LOG_FILE_PATH", "/app/logs/bot.log")
 
-HEADERS = {"Authorization": f"Bearer {NORTHFLANK_API_TOKEN}"}
+router = APIRouter()
 
-BASE_URL = (
-    f"https://api.northflank.com/v1/projects/"
-    f"{NORTHFLANK_PROJECT_ID}/services/{NORTHFLANK_SERVICE_ID}/logs"
-)
-
-async def get_logs_clean():
+@router.get("/logs")
+async def get_logs():
+    """
+    Возвращает последние 100 строк из лог-файла.
+    Если файл не найден, возвращает пустой список.
+    """
+    path = _log_file_path()
+    if not os.path.exists(path):
+        return {"logs": []}
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BASE_URL}?tailLines=20", headers=HEADERS)
-            response.raise_for_status()
-            data = response.json()
-            logs = [entry.get("log", "") for entry in data.get("logs", [])]
-            return {"logs": logs}
-    except httpx.HTTPStatusError as e:
-        return {
-            "error": f"HTTP ошибка Northflank: {e.response.status_code}",
-            "detail": e.response.text
-        }
-    except Exception as e:
-        return {
-            "error": "Ошибка при получении логов",
-            "detail": str(e)
-        }
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.read().splitlines()[-100:]
+    except Exception as exc:
+        return {"error": f"Cannot read log file: {exc}"}
+    return {"logs": lines}
 
-async def get_logs_full():
+@router.post("/logs/clean")
+async def clean_logs():
+    """
+    Очищает лог-файл (обрезает содержимое).
+    """
+    path = _log_file_path()
     try:
-        async with aiofiles.open("logs/runtime.log", mode="r") as f:
-            content = await f.read()
-        lines = content.strip().splitlines()[-50:]
-        return {"lines": lines}
-    except Exception as e:
-        return {"error": str(e)}
+        with open(path, "w", encoding="utf-8"):
+            pass
+    except Exception as exc:
+        return {"error": f"Cannot clean log file: {exc}"}
+    return {"status": "cleaned"}
+Здесь путь к файлу можно переопределить через LOG_FILE_PATH, но по умолчанию используется /app/logs/bot.log, как в Docker‑образах.
+api/main.py нужно поправить импорт лог‑роутера. Сейчас файл делает from api.check_logs import logs_router, но в новом варианте роутер называется просто router. Импорт можно унифицировать, как у остальных роутеров:
+# api/main.py
+from fastapi import FastAPI
 
+from api.webhook import router as webhook_router
+from api.payments import router as payments_router
+from api.health import router as health_router
+from api.check_logs import router as logs_router  # обновленный импорт
+
+app = FastAPI(title="JuicyFox API", version="1.0.0")
+
+app.include_router(webhook_router,  prefix="/bot")
+app.include_router(payments_router, prefix="/payments")
+app.include_router(health_router)
+app.include_router(logs_router)
