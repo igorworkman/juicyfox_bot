@@ -45,7 +45,20 @@ register_routers(dp, cfg=None)
 app = FastAPI(title="JuicyFox (Plan A)")
 app.include_router(logs_router)
 
-# ---------- Роуты ----------
+# Подключаем внешние API-роутеры (если есть)
+with suppress(Exception):
+    from api.webhook import router as webhook_router
+    app.include_router(webhook_router)
+
+with suppress(Exception):
+    from api.payments import router as payments_router
+    app.include_router(payments_router)
+
+with suppress(Exception):
+    from api.health import router as health_router
+    app.include_router(health_router)
+
+# ---------- Webhook (основной роут) ----------
 @app.post("/bot/{bot_id}/webhook")
 async def telegram_webhook(bot_id: str, request: Request):
     try:
