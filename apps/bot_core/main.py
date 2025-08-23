@@ -47,4 +47,12 @@ app.include_router(logs_router)
 
 # ---------- Роуты ----------
 @app.post("/bot/{bot_id}/webhook")
-async def telegram_webhook(bot_id: str,
+async def telegram_webhook(bot_id: str, request: Request):
+    try:
+        data = await request.json()
+        update = Update.model_validate(data, context={"bot": bot})
+        await dp.feed_webhook_update(bot, update)
+        return {"ok": True}
+    except Exception as e:
+        log.exception("webhook error: %s", e)
+        return {"ok": False}
