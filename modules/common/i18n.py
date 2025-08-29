@@ -12,7 +12,7 @@ for lang in ("ru", "en", "es"):
 
 BUTTONS = {
     "btn_life": "👀 Juicy Life — Free",
-    "btn_luxury": "💎 Luxury Room — 15$",
+    "btn_club": "💎 Luxury Room - 15 $",
     "btn_vip": "❤️‍🔥 VIP Secret — 35$",
     "btn_chat": "💬 Juicy Chat",
     "btn_donate": "🎁 Custom",
@@ -24,6 +24,7 @@ BUTTONS = {
 }
 for lang in ("ru", "en", "es"):
     L10N.setdefault(lang, {}).update(BUTTONS)
+
 
 def tr(lang: str, key: str, **kwargs) -> str:
     text = L10N.get(lang, {}).get(key, key)
