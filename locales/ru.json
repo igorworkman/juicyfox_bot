@@ -72,5 +72,9 @@
   "sent_to_vip": "✅ Успешно отправлено в VIP-канал",
   "admin_delete_only": "⛔️ Только админ может удалять посты.",
   "delete_usage": "❌ Используй /delete_post <id>",
-  "start_message": "Добро пожаловать в JuicyFox 🦊"
+  "start_message": "Добро пожаловать в JuicyFox 🦊",
+
+  "reply_chat_btn": "💬 Juicy Chat",
+  "reply_luxury_btn": "💎 Luxury Room - 15 $",
+  "reply_vip_btn": "❤️‍🔥 VIP Secret - 35 $"
 }
