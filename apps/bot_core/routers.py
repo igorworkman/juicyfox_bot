@@ -10,18 +10,9 @@ from contextlib import suppress
 from typing import Any
 
 from aiogram import Router
-from aiogram.filters import CommandStart
-from aiogram.types import Message
-
-from shared.utils.l10n import tr
 
 
 router = Router()
-
-
-@router.message(CommandStart())
-async def cmd_start(message: Message, lang: str):
-    await message.answer(tr(lang, "start_message"))
 
 
 def _get_feature(cfg: Any, name: str, default: bool) -> bool:
