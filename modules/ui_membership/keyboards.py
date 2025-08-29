@@ -62,9 +62,9 @@ def reply_menu(lang: str) -> ReplyKeyboardMarkup:
     Лёгкое reply-меню на старый манер (тексты — из локалей).
     Можно показывать всегда — это не ломает inline-сценарии.
     """
-    chat_label = tr(lang, "reply_chat_btn")
+    chat_label = tr(lang, "btn_chat")
     luxury_label = tr(lang, "btn_club")
-    vip_label = tr(lang, "reply_vip_btn")
+    vip_label = tr(lang, "btn_vip")
 
     return ReplyKeyboardMarkup(
         keyboard=[
