@@ -49,22 +49,30 @@ class Donate(StatesGroup):
 # /start и главное меню
 # =======================
 @router.message(Command("start"))
-async def cmd_start(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    lang = message.from_user.language_code
+async def cmd_start(message: Message) -> None:
+    lang = (message.from_user.language_code or "en").split("-")[0]
     await message.answer_photo(
         "https://files.catbox.moe/cqckle.jpg",
         caption=tr(lang, "menu", name=message.from_user.first_name),
     )
     if LIFE_URL:
-        await message.answer(tr(lang, "my_channel", link=LIFE_URL), reply_markup=reply_menu(lang))
-    await message.answer(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+        await message.answer(
+            tr(lang, "my_channel", link=LIFE_URL),
+            reply_markup=reply_menu(lang)
+        )
+    await message.answer(
+        tr(lang, "choose_action"),
+        reply_markup=main_menu_kb(lang)
+    )
 
 
 @router.callback_query(F.data.in_({"ui:back", "back_to_main", "back"}))
 async def back_to_main(cq: CallbackQuery) -> None:
-    lang = cq.from_user.language_code
-    await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+    lang = (cq.from_user.language_code or "en").split("-")[0]
+    await cq.message.edit_text(
+        tr(lang, "choose_action"),
+        reply_markup=main_menu_kb(lang)
+    )
 
 
 # =======================
