@@ -216,7 +216,7 @@ async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
     await msg.answer(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(get_lang(m.from_user), "reply_luxury_btn")) or "💎 Luxury Room – 15$"
+    _norm(tr(get_lang(m.from_user), "btn_club")) or "💎 Luxury Room - 15 $"
 })
 async def legacy_reply_luxury(msg: Message) -> None:
     lang = get_lang(msg.from_user)

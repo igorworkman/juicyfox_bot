@@ -13,7 +13,7 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     """Главное меню: Life, Luxury, VIP, Donate, Chat."""
     b = InlineKeyboardBuilder()
     b.button(text=tr(lang, "btn_life"), callback_data="ui:life")
-    b.button(text=tr(lang, "btn_luxury"), callback_data="ui:luxury")
+    b.button(text=tr(lang, "btn_club"), callback_data="ui:luxury")
     b.button(text=tr(lang, "btn_vip"), callback_data="ui:vip")
     b.button(text=tr(lang, "btn_donate"), callback_data="donate")
     b.button(text=tr(lang, "btn_chat"), callback_data="ui:chat")
@@ -63,7 +63,7 @@ def reply_menu(lang: str) -> ReplyKeyboardMarkup:
     Можно показывать всегда — это не ломает inline-сценарии.
     """
     chat_label = tr(lang, "reply_chat_btn")
-    luxury_label = tr(lang, "reply_luxury_btn")
+    luxury_label = tr(lang, "btn_club")
     vip_label = tr(lang, "reply_vip_btn")
 
     return ReplyKeyboardMarkup(
