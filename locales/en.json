@@ -71,5 +71,9 @@
   "sent_to_vip": "✅ Successfully sent to VIP channel",
   "admin_delete_only": "⛔️ Only admin can delete posts.",
   "delete_usage": "❌ Use /delete_post <id>",
-  "start_message": "Welcome to JuicyFox 🦊"
+  "start_message": "Welcome to JuicyFox 🦊",
+
+  "reply_chat_btn": "💬 Juicy Chat",
+  "reply_luxury_btn": "💎 Luxury Room - 15 $",
+  "reply_vip_btn": "❤️‍🔥 VIP Secret - 35 $"
 }
