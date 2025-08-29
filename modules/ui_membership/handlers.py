@@ -14,6 +14,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
 from modules.payments.cryptobot import create_invoice
+from shared.utils.lang import get_lang
 
 # Клавиатуры текущего модуля
 from .keyboards import (
@@ -50,7 +51,7 @@ class Donate(StatesGroup):
 # =======================
 @router.message(Command("start"))
 async def cmd_start(message: Message) -> None:
-    lang = (message.from_user.language_code or "en").split("-")[0]
+    lang = get_lang(message.from_user)
     await message.answer_photo(
         "https://files.catbox.moe/cqckle.jpg",
         caption=tr(lang, "menu", name=message.from_user.first_name),
@@ -68,7 +69,7 @@ async def cmd_start(message: Message) -> None:
 
 @router.callback_query(F.data.in_({"ui:back", "back_to_main", "back"}))
 async def back_to_main(cq: CallbackQuery) -> None:
-    lang = (cq.from_user.language_code or "en").split("-")[0]
+    lang = get_lang(cq.from_user)
     await cq.message.edit_text(
         tr(lang, "choose_action"),
         reply_markup=main_menu_kb(lang)
@@ -80,19 +81,19 @@ async def back_to_main(cq: CallbackQuery) -> None:
 # =======================
 @router.callback_query(F.data.in_({"ui:vip", "vip"}))
 async def show_vip(cq: CallbackQuery) -> None:
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
 
 
 @router.callback_query(F.data.in_({"ui:chat", "chat"}))
 async def show_chat(cq: CallbackQuery) -> None:
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
 
 
 @router.callback_query(F.data.in_({"ui:life", "life"}))
 async def show_life_link(cq: CallbackQuery) -> None:
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     if not LIFE_URL:
         await cq.answer(tr(lang, "link_is_missing"), show_alert=True)
         return
@@ -116,7 +117,7 @@ def _invoice_url(inv: Any) -> Optional[str]:
 
 @router.callback_query(F.data == "pay:vip")
 async def pay_vip(cq: CallbackQuery) -> None:
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     currency = "USD"
     amount = VIP_PRICE_USD
     inv = await create_invoice(
@@ -132,7 +133,7 @@ async def pay_vip(cq: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "pay:chat")
 async def pay_chat(cq: CallbackQuery) -> None:
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     currency = "USD"
     amount = CHAT_PRICE_USD
     inv = await create_invoice(
@@ -154,7 +155,7 @@ async def pay_chat(cq: CallbackQuery) -> None:
 async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Donate.choosing_currency)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, "choose_cur", amount="donate"),
+        tr(get_lang(cq.from_user), "choose_cur", amount="donate"),
         reply_markup=donate_kb(),
     )
 
@@ -169,13 +170,13 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(currency=cur)
     await state.set_state(Donate.entering_amount)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, "enter_amount", cur=cur),
-        reply_markup=donate_back_kb(cq.from_user.language_code),
+        tr(get_lang(cq.from_user), "enter_amount", cur=cur),
+        reply_markup=donate_back_kb(get_lang(cq.from_user)),
     )
 
 @router.message(Donate.entering_amount, F.text.regexp(r"^\d+([.,]\d{1,2})?$"))
 async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     data = await state.get_data()
     cur = (data.get("currency") or "USD").upper()
     raw = (msg.text or "0").replace(",", ".")
@@ -197,7 +198,7 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "donate:back")
 async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
 
 
@@ -207,18 +208,18 @@ def _norm(s: Optional[str]) -> str:
     return (s or "").strip()
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(getattr(m.from_user, "language_code", "en"), "reply_chat_btn")) or "SEE YOU MY CHAT💬"
+    _norm(tr(get_lang(m.from_user), "reply_chat_btn")) or "SEE YOU MY CHAT💬"
 })
 async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
     await state.clear()
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     await msg.answer(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(getattr(m.from_user, "language_code", "en"), "reply_luxury_btn")) or "💎 Luxury Room – 15$"
+    _norm(tr(get_lang(m.from_user), "reply_luxury_btn")) or "💎 Luxury Room – 15$"
 })
 async def legacy_reply_luxury(msg: Message) -> None:
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
         kb.button(text=title, callback_data="pay:chat")  # при желании сделай отдельный plan_code
@@ -226,15 +227,15 @@ async def legacy_reply_luxury(msg: Message) -> None:
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(getattr(m.from_user, "language_code", "en"), "reply_vip_btn")) or "❤️‍🔥 VIP Secret – 35$"
+    _norm(tr(get_lang(m.from_user), "reply_vip_btn")) or "❤️‍🔥 VIP Secret – 35$"
 })
 async def legacy_reply_vip(msg: Message) -> None:
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
 
 @router.callback_query(F.data == "life")
 async def life_link(cq: CallbackQuery):
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     kb = InlineKeyboardBuilder()
     kb.button(text="⬅️ Назад", callback_data="back")
     await cq.message.edit_text(tr(lang, "life", my_channel=LIFE_URL), reply_markup=kb.as_markup())
@@ -242,14 +243,14 @@ async def life_link(cq: CallbackQuery):
 
 @router.callback_query(F.data == "back")
 async def back_to_main(cq: CallbackQuery):
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
 
 
 @router.callback_query(F.data == "donate")
 async def donate_currency(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, "choose_cur", amount="donate"),
+        tr(get_lang(cq.from_user), "choose_cur", amount="donate"),
         reply_markup=donate_kb(),
     )
     await state.set_state(Donate.choosing_currency)
@@ -259,7 +260,7 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext):
 async def donate_amount(cq: CallbackQuery, state: FSMContext):
     await state.update_data(currency=cq.data.split(":")[1])
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, "don_enter"),
+        tr(get_lang(cq.from_user), "don_enter"),
         reply_markup=donate_back_kb(),
     )
     await state.set_state(Donate.entering_amount)
@@ -269,7 +270,7 @@ async def donate_amount(cq: CallbackQuery, state: FSMContext):
 async def donate_back(cq: CallbackQuery, state: FSMContext):
     await state.set_state(Donate.choosing_currency)
     await cq.message.edit_text(
-        tr(cq.from_user.language_code, "choose_cur", amount="donate"),
+        tr(get_lang(cq.from_user), "choose_cur", amount="donate"),
         reply_markup=donate_kb(),
     )
 
@@ -278,7 +279,7 @@ async def donate_back(cq: CallbackQuery, state: FSMContext):
 async def donate_finish(msg: Message, state: FSMContext):
     text = msg.text.replace(",", ".")
     if not text.replace(".", "", 1).isdigit():
-        await msg.reply(tr(msg.from_user.language_code, "don_num"))
+        await msg.reply(tr(get_lang(msg.from_user), "don_num"))
         return
     usd = float(text)
     data = await state.get_data()
@@ -287,20 +288,20 @@ async def donate_finish(msg: Message, state: FSMContext):
     if url:
         await msg.answer(f"Счёт на оплату (Donate): {url}")
     else:
-        await msg.reply(tr(msg.from_user.language_code, "inv_err"))
+        await msg.reply(tr(get_lang(msg.from_user), "inv_err"))
     await state.clear()
 
 
 @router.message(F.text == "SEE YOU MY CHAT💬")
 async def handle_chat_btn(msg: Message, state: FSMContext):
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     await state.set_state(ChatGift.plan)
     await msg.answer(tr(lang, "chat_access"), reply_markup=chat_plan_kb(lang))
 
 
 @router.message(F.text == "💎 Luxury Room – 15$")
 async def luxury_room_reply(msg: Message):
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
     for t, c in CURRENCIES:
         kb.button(text=t, callback_data=f"payc:club:{c}")
@@ -311,11 +312,11 @@ async def luxury_room_reply(msg: Message):
 
 @router.message(F.text == "❤️‍🔥 VIP Secret – 35$")
 async def vip_secret_reply(msg: Message):
-    lang = msg.from_user.language_code
+    lang = get_lang(msg.from_user)
     await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
 
 
 @router.callback_query(F.data == "tip_menu")
 async def tip_menu(cq: CallbackQuery):
-    lang = cq.from_user.language_code
+    lang = get_lang(cq.from_user)
     await cq.message.answer(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
