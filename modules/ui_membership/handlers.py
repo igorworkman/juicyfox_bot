@@ -208,7 +208,7 @@ def _norm(s: Optional[str]) -> str:
     return (s or "").strip()
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(get_lang(m.from_user), "reply_chat_btn")) or "SEE YOU MY CHAT💬"
+    _norm(tr(get_lang(m.from_user), "btn_chat")) or "SEE YOU MY CHAT💬"
 })
 async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
     await state.clear()
@@ -227,7 +227,7 @@ async def legacy_reply_luxury(msg: Message) -> None:
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(get_lang(m.from_user), "reply_vip_btn")) or "❤️‍🔥 VIP Secret – 35$"
+    _norm(tr(get_lang(m.from_user), "btn_vip")) or "❤️‍🔥 VIP Secret - 35 $"
 })
 async def legacy_reply_vip(msg: Message) -> None:
     lang = get_lang(msg.from_user)
@@ -310,7 +310,7 @@ async def luxury_room_reply(msg: Message):
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
 
-@router.message(F.text == "❤️‍🔥 VIP Secret – 35$")
+@router.message(F.text == "❤️‍🔥 VIP Secret - 35 $")
 async def vip_secret_reply(msg: Message):
     lang = get_lang(msg.from_user)
     await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
