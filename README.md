@@ -9,7 +9,6 @@ Telegram-бот для проекта JuicyFox.
 
 ## 🚀 Установка и запуск (локально)
 
-```bash
 git clone https://github.com/your-org/juicyfox-bot.git
 cd juicyfox-bot
 
@@ -23,13 +22,6 @@ uvicorn api.main:app --reload --port ${PORT:-8080}  # Если PORT не зад�
 
 # Продакшн (Docker / Northflank)
 uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8080}  # Использует переменную PORT или 8080 по умолчанию
-
-
-🐳 Docker
-Сборка и запуск:
-docker build -t juicyfox-bot .
-docker run --rm -p ${PORT:-8080}:${PORT:-8080} juicyfox-bot  # Если PORT не задан, будет использоваться 8080
-
 
 
 🐳 Docker
