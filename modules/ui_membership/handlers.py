@@ -37,7 +37,7 @@ VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
 CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
 
 # Удобный набор кодов валют: {"USD","EUR",...}
-CURRENCY_CODES = {code.upper() for code in CURRENCIES}
+CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
 
 # --- FSM для донатов (оставляем в UI-модуле) ---
@@ -227,8 +227,8 @@ async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
 async def legacy_reply_luxury(msg: Message) -> None:
     lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
-    for code in CURRENCIES:
-        kb.button(text=code, callback_data="pay:chat")  # при желании сделай отдельный plan_code
+    for title, code in CURRENCIES:
+        kb.button(text=title, callback_data="pay:chat")  # при желании сделай отдельный plan_code
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
@@ -316,8 +316,8 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 async def luxury_room_reply(msg: Message):
     lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
-    for code in CURRENCIES:
-        kb.button(text=code, callback_data=f"payc:club:{code}")
+    for title, code in CURRENCIES:
+        kb.button(text=title, callback_data=f"payc:club:{code}")
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())

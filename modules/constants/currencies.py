@@ -2,11 +2,21 @@
 
 """
 Список поддерживаемых валют для платежей.
-В монолите этот список был захардкожен, теперь вынесен в constants.
+Каждая запись содержит отображаемый заголовок и код валюты.
 """
 
 CURRENCIES = [
-    "USD", "EUR", "RUB", "UAH", "KZT",
-    "USDT", "BTC", "ETH", "BNB", "TRX",
-    "TON", "LTC", "DOGE"
+    ("USD", "USD"),
+    ("EUR", "EUR"),
+    ("RUB", "RUB"),
+    ("UAH", "UAH"),
+    ("KZT", "KZT"),
+    ("USDT", "USDT"),
+    ("BTC", "BTC"),
+    ("ETH", "ETH"),
+    ("BNB", "BNB"),
+    ("TRX", "TRX"),
+    ("TON", "TON"),
+    ("LTC", "LTC"),
+    ("DOGE", "DOGE"),
 ]
