@@ -36,7 +36,7 @@ LIFE_URL = os.getenv("LIFE_URL")
 VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
 CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
 
-# Удобный набор кодов валют: {"USD","EUR",...}
+# Набор доступных кодов активов (например, "USDT", "BTC")
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
 
@@ -134,14 +134,13 @@ def _invoice_url(inv: Any) -> Optional[str]:
 @router.callback_query(F.data == "pay:vip")
 async def pay_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
-    currency = "USD"
+    currency = "USDT"
     amount = VIP_PRICE_USD
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code="vip_30d",
         amount_usd=float(amount),
         meta=_build_meta(cq.from_user.id, "vip_30d", currency),
-        currency=currency,
         asset=currency,
     )
     url = _invoice_url(inv)
@@ -165,7 +164,6 @@ async def vipay_currency(cq: CallbackQuery) -> None:
         plan_code="vip_30d",
         amount_usd=float(VIP_PRICE_USD),
         meta=_build_meta(cq.from_user.id, "vip_30d", cur),
-        currency=cur,
         asset=cur,
     )
     url = _invoice_url(inv)
@@ -176,14 +174,13 @@ async def vipay_currency(cq: CallbackQuery) -> None:
 @router.callback_query(F.data == "pay:chat")
 async def pay_chat(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
-    currency = "USD"
+    currency = "USDT"
     amount = CHAT_PRICE_USD
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code="chat_30d",
         amount_usd=float(amount),
         meta=_build_meta(cq.from_user.id, "chat_30d", currency),
-        currency=currency,
         asset=currency,
     )
     url = _invoice_url(inv)
@@ -205,7 +202,7 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data.startswith("donate:cur:"), Donate.choosing_currency)
 async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
-    # ожидаем формат donate:cur:USD
+    # ожидаем формат donate:cur:<ASSET>, например donate:cur:USDT
     _, _, cur = cq.data.partition("donate:cur:")
     cur = cur.strip().upper()
     if cur not in CURRENCY_CODES:
@@ -222,17 +219,16 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
 async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
     lang = get_lang(msg.from_user)
     data = await state.get_data()
-    cur = (data.get("currency") or "USD").upper()
+    cur = (data.get("currency") or "USDT").upper()
     raw = (msg.text or "0").replace(",", ".")
     amount = float(raw)
 
-    amount_usd = amount if cur == "USD" else amount  # TODO: конверсия при необходимости
+    amount_usd = amount  # TODO: конверсия при необходимости
     inv = await create_invoice(
         user_id=msg.from_user.id,
         plan_code="donation",
         amount_usd=amount_usd,
         meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
-        currency=cur,
         asset=cur,
     )
     url = _invoice_url(inv)
@@ -327,16 +323,15 @@ async def donate_finish(msg: Message, state: FSMContext):
     if not text.replace(".", "", 1).isdigit():
         await msg.reply(tr(get_lang(msg.from_user), "don_num"))
         return
-    usd = float(text)
+    amount = float(text)
     data = await state.get_data()
     cur = data["currency"]
-    amount_usd = usd if cur == "USD" else usd  # TODO: конверсия при необходимости
+    amount_usd = amount  # TODO: конверсия при необходимости
     inv = await create_invoice(
         user_id=msg.from_user.id,
         plan_code="donation",
         amount_usd=amount_usd,
         meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
-        currency=cur,
         asset=cur,
     )
     url = _invoice_url(inv)
