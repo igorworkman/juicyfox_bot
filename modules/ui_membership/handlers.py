@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from typing import Any, Dict, Optional
 
 from aiogram import F, Router
@@ -16,6 +17,8 @@ from modules.constants.currencies import CURRENCIES
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
 from shared.utils.lang import get_lang
+
+log = logging.getLogger("juicyfox.ui_membership.handlers")
 
 # Клавиатуры текущего модуля
 from .keyboards import (
@@ -136,6 +139,12 @@ async def pay_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     currency = "USDT"
     amount = VIP_PRICE_USD
+    log.info(
+        "pay_vip: user=%s currency=%s amount=%s",
+        cq.from_user.id,
+        currency,
+        amount,
+    )
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code="vip_30d",
@@ -159,6 +168,12 @@ async def vipay_currency(cq: CallbackQuery) -> None:
         await cq.answer("Unsupported currency", show_alert=True)
         return
 
+    log.info(
+        "vipay_currency: user=%s currency=%s amount=%s",
+        cq.from_user.id,
+        cur,
+        VIP_PRICE_USD,
+    )
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code="vip_30d",
@@ -176,6 +191,12 @@ async def pay_chat(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     currency = "USDT"
     amount = CHAT_PRICE_USD
+    log.info(
+        "pay_chat: user=%s currency=%s amount=%s",
+        cq.from_user.id,
+        currency,
+        amount,
+    )
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code="chat_30d",
@@ -224,6 +245,12 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
     amount = float(raw)
 
     amount_usd = amount  # TODO: конверсия при необходимости
+    log.info(
+        "donate_make_invoice: user=%s currency=%s amount=%s",
+        msg.from_user.id,
+        cur,
+        amount_usd,
+    )
     inv = await create_invoice(
         user_id=msg.from_user.id,
         plan_code="donation",
@@ -327,6 +354,12 @@ async def donate_finish(msg: Message, state: FSMContext):
     data = await state.get_data()
     cur = data["currency"]
     amount_usd = amount  # TODO: конверсия при необходимости
+    log.info(
+        "donate_finish: user=%s currency=%s amount=%s",
+        msg.from_user.id,
+        cur,
+        amount_usd,
+    )
     inv = await create_invoice(
         user_id=msg.from_user.id,
         plan_code="donation",
