@@ -1,7 +1,10 @@
+import logging
+
 from fastapi import APIRouter, Request, Response, status
 from aiogram.types import Update
 
 router = APIRouter()
+log = logging.getLogger("juicyfox.api.webhook")
 
 @router.post("/webhook")
 async def telegram_webhook(request: Request) -> Response:
@@ -31,7 +34,7 @@ async def telegram_webhook(request: Request) -> Response:
         # Лучше проглотить и вернуть 200/204, а в своих логах посмотреть причину.
         try:
             # Минимальная попытка журналирования в stdout/stderr
-            print(f"[webhook] error: {e}")
+            log.exception("webhook error: %s", e)
         except Exception:
             pass
         return Response(status_code=status.HTTP_200_OK)
