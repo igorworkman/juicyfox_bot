@@ -50,7 +50,7 @@ def register(dp, cfg: Any = None) -> None:
 
     # UI / меню / донаты / VIP / чат — базовый модуль
     with suppress(Exception):
-        from modules.ui_membership.handlers import router as ui_router
+        from modules.ui_membership import router as ui_router
         dp.include_router(ui_router)
 
     # Планирование и постинг

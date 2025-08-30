@@ -17,6 +17,7 @@ from modules.constants.currencies import CURRENCIES
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
 from shared.utils.lang import get_lang
+from modules.common.shared import ChatGift
 
 log = logging.getLogger("juicyfox.ui_membership.handlers")
 
@@ -29,6 +30,7 @@ from .keyboards import (
     reply_menu,
     vip_currency_kb,
 )
+from .chat_keyboards import chat_tariffs_kb
 
 router = Router()
 
@@ -102,12 +104,6 @@ async def cmd_currency(message: Message) -> None:
         tr(lang, "choose_cur", amount=VIP_PRICE_USD),
         reply_markup=vip_currency_kb(lang),
     )
-
-
-@router.callback_query(F.data.in_({"ui:chat", "chat"}))
-async def show_chat(cq: CallbackQuery) -> None:
-    lang = get_lang(cq.from_user)
-    await cq.message.edit_text(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
 
 
 @router.callback_query(F.data.in_({"ui:life", "life"}))
@@ -382,7 +378,7 @@ async def donate_finish(msg: Message, state: FSMContext):
 async def handle_chat_btn(msg: Message, state: FSMContext):
     lang = get_lang(msg.from_user)
     await state.set_state(ChatGift.plan)
-    await msg.answer(tr(lang, "chat_access"), reply_markup=chat_plan_kb(lang))
+    await msg.answer(tr(lang, "chat_access"), reply_markup=chat_tariffs_kb(lang))
 
 
 @router.message(F.text == "💎 Luxury Room – 15$")
