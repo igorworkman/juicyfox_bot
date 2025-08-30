@@ -20,6 +20,7 @@ from aiogram.types import Update
 from apps.bot_core.middleware import register_middlewares
 from apps.bot_core.routers import register as register_routers
 from api.main import logs_router
+from shared.db.repo import init_db
 
 
 # ---------- Обязательные ENV ----------
@@ -74,6 +75,7 @@ async def telegram_webhook(bot_id: str, request: Request):
 # ---------- Webhook lifecycle ----------
 @app.on_event("startup")
 async def on_startup():
+    await init_db()
     url = WEBHOOK_URL or (f"{BASE_URL}/bot/{BOT_ID}/webhook" if BASE_URL else None)
     if not url:
         log
