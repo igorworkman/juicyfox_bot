@@ -202,9 +202,16 @@ async def _pay_membership_currency(
         asset=cur,
     )
     url = _invoice_url(inv)
+
     await cq.message.answer(tr(lang, "invoice_created"), reply_markup=kb_builder(lang))
+
+    await cq.message.answer(tr(lang, "invoice_created"))
+
     if url:
         await cq.message.answer(url)
+    kb = InlineKeyboardBuilder()
+    kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
+    await cq.message.answer(tr(lang, "back"), reply_markup=kb.as_markup())
 
 
 router.callback_query.register(

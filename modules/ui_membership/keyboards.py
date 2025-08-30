@@ -24,10 +24,12 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
 def _currency_kb(prefix: str, lang: str | None = None) -> InlineKeyboardMarkup:
     """Generic keyboard to choose a currency for a plan."""
     b = InlineKeyboardBuilder()
+    if len(CURRENCIES) != 8:
+        raise ValueError("CURRENCIES must contain exactly eight items")
     for title, code in CURRENCIES:
         b.button(text=title, callback_data=f"{prefix}:{code}")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
-    b.adjust(3, 1)
+    b.adjust(2, 2, 2, 2, 1)
     return b.as_markup()
 
 
