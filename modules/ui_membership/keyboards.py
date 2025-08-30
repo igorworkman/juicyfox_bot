@@ -39,7 +39,14 @@ def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Меню выбора валюты для Luxury-подписки."""
     b = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
+        b.button(text=title, callback_data=f"payc:club:{code}")
+
+
+    """Меню выбора валюты для Luxury-подписки."""
+    b = InlineKeyboardBuilder()
+    for title, code in CURRENCIES:
         b.button(text=title, callback_data=f"luxpay:{code}")
+
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(3, 1)
     return b.as_markup()
