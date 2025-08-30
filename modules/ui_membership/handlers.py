@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message, FSInputFile
+from aiogram.types import CallbackQuery, Message, FSInputFile, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # текст/локализация и валюты берём из актуальных модулей
@@ -28,6 +28,7 @@ from .keyboards import (
     main_menu_kb,
     reply_menu,
     vip_currency_kb,
+    luxury_currency_kb,
 )
 
 router = Router()
@@ -38,6 +39,12 @@ VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
 VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
 CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
+LUXURY_PRICE_USD = float(os.getenv("LUXURY_30D_USD", str(VIP_PRICE_USD)))
+
+PLAN_PRICES_USD = {
+    "vip_30d": VIP_PRICE_USD,
+    "luxury_30d": LUXURY_PRICE_USD,
+}
 
 # Набор доступных кодов активов (например, "USDT", "BTC")
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
@@ -92,6 +99,13 @@ async def back_to_main(cq: CallbackQuery) -> None:
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb(lang))
+
+
+@router.callback_query(F.data.in_({"ui:luxury", "luxury"}))
+async def show_luxury(cq: CallbackQuery) -> None:
+    """Display Luxury Room description and currency options."""
+    lang = get_lang(cq.from_user)
+    await cq.message.edit_text(tr(lang, "luxury_room_desc"), reply_markup=luxury_currency_kb(lang))
 
 
 @router.message(Command("currency"))
@@ -158,33 +172,56 @@ async def pay_vip(cq: CallbackQuery) -> None:
         await cq.message.answer(url)
 
 
-@router.callback_query(F.data.startswith("vipay:"))
-async def vipay_currency(cq: CallbackQuery) -> None:
-    """Handle currency-specific VIP payments."""
+async def _pay_membership_currency(
+    cq: CallbackQuery,
+    plan_code: str,
+    cb_prefix: str,
+    kb_builder: Callable[[str | None], InlineKeyboardMarkup],
+) -> None:
+    """Common handler for VIP and Luxury currency payments."""
     lang = get_lang(cq.from_user)
-    _, _, cur = cq.data.partition("vipay:")
+    _, _, cur = cq.data.partition(f"{cb_prefix}:")
     cur = cur.strip().upper()
     if cur not in CURRENCY_CODES:
         await cq.answer("Unsupported currency", show_alert=True)
         return
 
+    amount = PLAN_PRICES_USD.get(plan_code, VIP_PRICE_USD)
     log.info(
-        "vipay_currency: user=%s currency=%s amount=%s",
+        "pay_membership_currency: user=%s plan=%s currency=%s amount=%s",
         cq.from_user.id,
+        plan_code,
         cur,
-        VIP_PRICE_USD,
+        amount,
     )
     inv = await create_invoice(
         user_id=cq.from_user.id,
-        plan_code="vip_30d",
-        amount_usd=float(VIP_PRICE_USD),
-        meta=_build_meta(cq.from_user.id, "vip_30d", cur),
+        plan_code=plan_code,
+        amount_usd=float(amount),
+        meta=_build_meta(cq.from_user.id, plan_code, cur),
         asset=cur,
     )
     url = _invoice_url(inv)
-    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=vip_currency_kb(lang))
+    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=kb_builder(lang))
     if url:
         await cq.message.answer(url)
+
+
+router.callback_query.register(
+    _pay_membership_currency,
+    F.data.startswith("vipay:"),
+    plan_code="vip_30d",
+    cb_prefix="vipay",
+    kb_builder=vip_currency_kb,
+)
+
+router.callback_query.register(
+    _pay_membership_currency,
+    F.data.startswith("luxpay:"),
+    plan_code="luxury_30d",
+    cb_prefix="luxpay",
+    kb_builder=luxury_currency_kb,
+)
 
 @router.callback_query(F.data == "pay:chat")
 async def pay_chat(cq: CallbackQuery) -> None:

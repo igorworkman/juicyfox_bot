@@ -21,26 +21,24 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
-
-    """Меню выбора валюты для VIP-подписки."""
+def _currency_kb(prefix: str, lang: str | None = None) -> InlineKeyboardMarkup:
+    """Generic keyboard to choose a currency for a plan."""
     b = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
-        b.button(text=title, callback_data=f"vipay:{code}")
+        b.button(text=title, callback_data=f"{prefix}:{code}")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(3, 1)
     return b.as_markup()
+
+
+def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
+    """Меню выбора валюты для VIP-подписки."""
+    return _currency_kb("vipay", lang)
 
 
 def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
-
     """Меню выбора валюты для Luxury-подписки."""
-    b = InlineKeyboardBuilder()
-    for title, code in CURRENCIES:
-        b.button(text=title, callback_data=f"luxpay:{code}")
-    b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
-    b.adjust(3, 1)
-    return b.as_markup()
+    return _currency_kb("luxpay", lang)
 
 
 
