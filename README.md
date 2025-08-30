@@ -1,81 +1,143 @@
-JuicyFox Bot Platform 🦊
-JuicyFox — это white-label бот-платформа для NSFW-проектов и сообществ.
-Она реализует План A — модульную архитектуру с единым токеном и отдельными сервисами для платежей, подписок, истории и постинга.
-Платформа работает в многомодульном режиме и готова к продакшен-деплою через Docker Compose или запуск локально.
-🚀 Установка
-1. Клонирование репозитория
-git clone https://github.com/your-org/juicyfox_bot.git
-cd juicyfox_bot
-2. Настройка окружения
-Скопируйте шаблон .env.example:
-cp .env.example .env
-Заполните .env своими значениями:
-TELEGRAM_TOKEN — токен бота;
-VIP_CHANNEL_ID, CHAT_GROUP_ID, LIFE_CHANNEL_ID и др. — ID каналов и групп;
-CRYPTOBOT_TOKEN — токен платёжного провайдера (CryptoBot);
-DB_PATH — путь к SQLite базе (по умолчанию /app/data/juicyfox.sqlite).
-3. Установка зависимостей
-Локально:
-pip install -r requirements.txt
-Или сборка Docker-образа:
-docker compose build
-4. Запуск
-Запустить API и воркеры можно так:
-docker compose up -d
-Или локально:
-API (FastAPI + aiogram webhook)
-uvicorn apps.bot_core.main:app --host 0.0.0.0 --port 8080
-Worker для постинга
-python worker_posting.py
-🧩 Архитектура и модули
-ui_membership — /start, меню, платёжные кнопки, управление доступами.
-payments — сервис инвойсов и нормализация вебхуков.
-posting — планировщик и worker для отложенных постов.
-chat_relay — пересылка сообщений в рабочую группу и ответы.
-history — хранение и просмотр истории сообщений.
-⚙️ Использование
-Запуск возможен как локально, так и через Docker Compose.
-Все параметры задаются через .env.
-Для клонирования нового бота:
-создайте копию .env с новыми значениями (BOT_ID, TELEGRAM_TOKEN);
-используйте отдельный volume для базы данных.
-🗄️ База данных
-По умолчанию используется SQLite:
-/app/data/juicyfox.sqlite
-При необходимости можно перейти на PostgreSQL через Alembic-миграции (в будущем).
-📂 Полная структура проекта
+# JuicyFox Bot
 
+Telegram-бот для проекта JuicyFox.  
+Архитектура построена на **FastAPI + aiogram3 (webhook mode)**.  
+Сервис упакован в Docker, деплой на Northflank.  
+Основной режим работы — многомодульный (Plan A).
+
+---
+
+## 🚀 Установка и запуск (локально)
+
+```bash
+git clone https://github.com/your-org/juicyfox-bot.git
+cd juicyfox-bot
+
+python3.11 -m venv .venv
+source .venv/bin/activate
+
+pip install -r requirements.txt
+# Локальный запуск (dev)
+uvicorn api.main:app --reload --port 8000
+
+# Продакшн (Docker / Northflank)
+uvicorn api.main:app --host 0.0.0.0 --port 8080
+
+
+
+🐳 Docker
+Сборка и запуск:
+docker build -t juicyfox-bot .
+docker run --rm -p 8080:8080 juicyfox-bot
+
+📂 Структура проекта
 
 juicyfox/
-├─ api/
-│  ├─ webhook.py           # POST /bot/{bot_id}/webhook → aiogram Dispatcher
-│  ├─ payments.py          # POST /payments/<provider> → normalize → events
-│  └─ health.py            # /healthz, /readyz (и опц. /metrics)
+1├─ api/
+│  1.1├─ __init__.py
+│  1.2├─ webhook.py           # POST /bot/{bot_id}/webhook → aiogram Dispatcher
+│  1.3├─ payments.py          # POST /payments/<provider> → normalize → events
+│  1.4└─ health.py            # /healthz, /readyz (и опц. /metrics)
 │
-├─ apps/
-│  └─ bot_core/
-│      ├─ main.py          # запуск FastAPI/uvicorn, инициализация Bot/DP
-│      ├─ routers.py       # include_router(ui, posting, chat_relay, …)
-│      ├─ state.py         # FSM: Post, Donate, ChatGift
-│      └─ middleware.py    # логирование, rate-limit, error handler, tracing
+2├─ apps/
+│  2.1└─ bot_core/
+│      2.1.1├─ __init__.py
+│      2.1.2├─ main.py        # запуск FastAPI/uvicorn, инициализация Bot/DP
+│      2.1.3├─ routers.py     # include_router(ui, posting, chat_relay, …)
+│      2.1.4├─ state.py       # FSM: Post, Donate, ChatGift ——————————————————
+│      2.1.5└─ middleware.py  # логирование, rate-limit, error handler, tracing
 │
-├─ modules/
-│  ├─ ui_membership/       # /start, меню, донат, VIP/чат
-│  ├─ payments/            # сервис инвойсов, идемпотентность, провайдеры
-│  ├─ posting/             # планировщик и worker для постинга
-│  ├─ chat_relay/          # пересылка сообщений в группу
-│  └─ history/             # архив/лог контента
+3├─ modules/
+│  3.1├─ ui_membership/
+│  │   3.1.1├─ __init__.py
+│  │   3.1.2├─ handlers.py    # /start, меню, донат, VIP/чат, ссылки, “проверить доступ”
+│  │   3.1.3└─ keyboards.py   # inline/reply-кнопки, namespace: ui:*, vip:*, chat:*
+│  │
+│  3.2├─ payments/
+│  │   3.2.1├─ __init__.py
+│  │   3.2.2├─ service.py     # create_invoice(), normalize_webhook(), идемпотентность
+│  │   3.2.3└─ providers/
+│  │        3.2.3.1├─ __init__.py
+│  │        3.2.3.2└─ cryptobot.py
+│  │
+│  3.3├─ posting/
+│  │   3.3.1├─ __init__.py
+│  │   3.3.2├─ handlers.py    # планировщик → events(POST_SCHEDULED)
+│  │   3.3.3└─ worker.py      # send-only воркер (читает events, шлёт, ретраи/backoff)
+│  │
+│  3.4├─ chat_relay/          # (опционально)
+│  │   3.4.1├─ __init__.py
+│  │   3.4.2└─ handlers.py    # пересылка в группу и обратно, модерация
+│  │
+│  3.5└─ history/             # (опционально)
+│      3.5.1├─ __init__.py
+│      3.5.2└─ handlers.py    # архив/лог контента, “последние N”
 │
-├─ shared/
-│  ├─ config/              # .env + YAML, алиасы, валидация
-│  ├─ db/                  # repo, migrations (Alembic)
-│  └─ utils/               # logging, time, idempotency, metrics
+4├─ shared/
+│  4.1├─ config/
+│  │   4.1.1├─ __init__.py
+│  │   4.1.2└─ env.py         # загрузка .env + YAML бота, алиасы, валидация
+│  │
+│  4.2├─ db/
+│  │   4.2.1├─ __init__.py
+│  │   4.2.2├─ repo.py        # Postgres/Redis, CRUD, events API (SKIP LOCKED)
+│  │   4.2.3└─ migrations/    # Alembic (users, payments, subscriptions, memberships, posts, events)
+│  │
+│  4.3└─ utils/
+│      4.3.1├─ __init__.py
+│      4.3.2├─ logging.py     # логи: bot_id, module, corr_id
+│      4.3.3├─ time.py
+│      4.3.4├─ idempotency.py # ключи: provider:ext_id / post_id:run_at / user_id:channel
+│      4.3.5└─ metrics.py     # (если нужны прометей-метрики)
 │
-├─ configs/                # sample_bot.yaml
-├─ scripts/                # provisioner.py, seed_demo.py
-├─ worker_posting.py       # entrypoint: posting.worker
-├─ docker/                 # Dockerfile, compose.yaml
-├─ .env.example
-├─ requirements.txt
-├─ README.md
-└─ alembic.ini
+5├─ configs/
+│  5.1└─ bots/
+│      5.1.1└─ sample_bot.yaml
+│
+6├─ scripts/
+│  6.1├─ provisioner.py       # new-bot --bot-id bella --token ...
+│  6.2├─ build_single.py      # склейка → juicyfox_bot_single.py
+│  6.3└─ seed_demo.py
+│
+7├─ worker_posting.py         # entrypoint: from modules.posting.worker import main; main()
+│
+8├─ .github/
+│  8.1└─ workflows/
+│      8.1.1├─ ci.yml
+│      8.1.2└─ deploy.yml
+│
+9├─ docker/
+│  9.1├─ Dockerfile
+│  9.2└─ compose.yaml
+│
+10├─ .env.example
+11├─ requirements.txt
+12├─ README.md
+13└─ alembic.ini
+
+🌐 Архитектура
+FastAPI — HTTP API, точки входа /webhook, /payments, /healthz.
+Aiogram 3 — обработка апдейтов Telegram.
+Postgres / Redis (опционально) — для хранения состояния и кеша.
+Docker — упаковка и деплой.
+Northflank — хостинг и CI/CD.
+
+🔧 Переменные окружения
+Пример .env:
+
+TELEGRAM_TOKEN=...
+CRYPTO_BOT_TOKEN=...
+BOT_ID=7248774167
+BASE_URL=https://site--juicyfox-bot--fl4vz2vflbbx.code.run
+WEBHOOK_URL=${BASE_URL}/webhook
+
+📌 TODO / Roadmap
+ Подключение Stripe / PayPal
+ Расширение FSM (donate/chat gift)
+ UI/UX оптимизация для membership
+ Автоматизация логов и метрик
+
+
+
+
+
