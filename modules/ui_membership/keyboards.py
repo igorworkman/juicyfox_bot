@@ -22,11 +22,12 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
 
 
 def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
-    """Экран VIP: даём кнопку оплаты (pay:vip) и Назад."""
+    """Меню выбора валюты для VIP-подписки."""
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang or "en", "btn_pay_vip"), callback_data="pay:vip")
+    for title, code in CURRENCIES:
+        b.button(text=title, callback_data=f"vipay:{code}")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
-    b.adjust(1)
+    b.adjust(3, 1)
     return b.as_markup()
 
 
