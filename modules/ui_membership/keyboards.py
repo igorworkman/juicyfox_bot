@@ -22,6 +22,7 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
 
 
 def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
+
     """Меню выбора валюты для VIP-подписки."""
     b = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
@@ -29,6 +30,15 @@ def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(3, 1)
     return b.as_markup()
+
+    """Выбор валюты для оплаты VIP: vipay:<CODE> + Назад."""
+    kb = InlineKeyboardBuilder()
+    for code in CURRENCIES:
+        kb.button(text=code, callback_data=f"vipay:{code}")
+    kb.button(text="⬅️ Назад", callback_data="ui:back")
+    kb.adjust(2)
+    return kb.as_markup()
+
 
 
 def chat_plan_kb(lang: str | None = None) -> InlineKeyboardMarkup:
