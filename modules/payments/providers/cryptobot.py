@@ -25,13 +25,15 @@ STATUS_MAP = {
 
 
 class CryptobotProvider:
-    async def create_invoice(self, amount_usd: float, title: str, meta: Dict[str, Any]) -> InvoiceResponse:
+    async def create_invoice(
+        self, amount_usd: float, title: str, meta: Dict[str, Any], currency: str = "USD"
+    ) -> InvoiceResponse:
         if not CRYPTOBOT_TOKEN:
             raise ProviderError("CRYPTOBOT_TOKEN is not set")
 
         payload = {
             "amount": f"{amount_usd:.2f}",
-            "currency": "USD",
+            "currency": currency.upper(),
             "description": title[:200],
             "payload": json.dumps(meta, ensure_ascii=False),
         }

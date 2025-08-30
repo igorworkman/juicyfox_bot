@@ -26,6 +26,7 @@ class InvoiceRequest(TypedDict, total=False):
     plan_code: str
     amount_usd: float
     meta: Dict[str, Any]
+    currency: str
 
 
 class ProviderError(Exception):

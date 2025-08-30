@@ -31,13 +31,14 @@ async def _cryptobot_create_invoice(
     amount_usd: float,
     title: str,
     meta: Dict[str, Any],
+    currency: str,
 ) -> InvoiceResponse:
     if not CRYPTOBOT_TOKEN:
         raise ProviderError("CRYPTOBOT_TOKEN is not set")
 
     payload = {
         "amount": f"{amount_usd:.2f}",
-        "currency": "USD",
+        "currency": currency.upper(),
         "description": title[:200],
         "payload": json.dumps(meta, ensure_ascii=False),
     }
@@ -73,16 +74,23 @@ async def create_invoice(
     plan_code: str,
     amount_usd: float,
     meta: Dict[str, Any],
+    currency: str = "USD",
 ) -> InvoiceResponse:
     """
     Создаёт счёт через выбранного провайдера (ENV PAYMENT_PROVIDER, по умолчанию cryptobot).
     Возвращает dict: {pay_url, provider, invoice_id}.
+    Параметр ``currency`` передаётся напрямую провайдеру (например, ``USD``).
     """
     title = f"{plan_code} for user {user_id}"
     merged_meta = {**meta, "user_id": user_id, "plan_code": plan_code}
 
     if PAYMENT_PROVIDER == "cryptobot":
-        inv = await _cryptobot_create_invoice(amount_usd=amount_usd, title=title, meta=merged_meta)
+        inv = await _cryptobot_create_invoice(
+            amount_usd=amount_usd,
+            title=title,
+            meta=merged_meta,
+            currency=currency,
+        )
     else:
         raise ProviderError(f"unknown PAYMENT_PROVIDER={PAYMENT_PROVIDER}")
 
