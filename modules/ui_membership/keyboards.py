@@ -31,14 +31,6 @@ def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     b.adjust(3, 1)
     return b.as_markup()
 
-    """Выбор валюты для оплаты VIP: vipay:<CODE> + Назад."""
-    kb = InlineKeyboardBuilder()
-    for code in CURRENCIES:
-        kb.button(text=code, callback_data=f"vipay:{code}")
-    kb.button(text="⬅️ Назад", callback_data="ui:back")
-    kb.adjust(2)
-    return kb.as_markup()
-
 
 
 def chat_plan_kb(lang: str | None = None) -> InlineKeyboardMarkup:
