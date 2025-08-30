@@ -14,6 +14,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 # текст/локализация и валюты берём из актуальных модулей
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
+from modules.constants.prices import VIP_PRICE_USD, CHAT_PRICES_USD
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
 from shared.utils.lang import get_lang
@@ -31,15 +32,15 @@ from .keyboards import (
     vip_currency_kb,
 )
 from .chat_keyboards import chat_tariffs_kb
+from .chat_handlers import router as chat_router
 
 router = Router()
+router.include_router(chat_router)
 
 # --- Конфиг из ENV (позже переедет в shared.config.env) ---
 BOT_ID = os.getenv("BOT_ID", "sample")
 VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
-VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
-CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
 
 # Набор доступных кодов активов (например, "USDT", "BTC")
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
@@ -189,7 +190,7 @@ async def vipay_currency(cq: CallbackQuery) -> None:
 async def pay_chat(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     currency = "USDT"
-    amount = CHAT_PRICE_USD
+    amount = CHAT_PRICES_USD.get("chat_30", 15)
     log.info(
         "pay_chat: user=%s currency=%s amount=%s",
         cq.from_user.id,
@@ -198,9 +199,9 @@ async def pay_chat(cq: CallbackQuery) -> None:
     )
     inv = await create_invoice(
         user_id=cq.from_user.id,
-        plan_code="chat_30d",
+        plan_code="chat_30",
         amount_usd=float(amount),
-        meta=_build_meta(cq.from_user.id, "chat_30d", currency),
+        meta=_build_meta(cq.from_user.id, "chat_30", currency),
         asset=currency,
     )
     url = _invoice_url(inv)
