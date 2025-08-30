@@ -32,6 +32,10 @@ from .keyboards import (
 
 router = Router()
 
+from .chat_handlers import router as chat_router
+router.include_router(chat_router)
+
+
 # --- Конфиг из ENV (позже переедет в shared.config.env) ---
 BOT_ID = os.getenv("BOT_ID", "sample")
 VIP_URL = os.getenv("VIP_URL")
