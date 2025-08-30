@@ -78,4 +78,7 @@ async def on_startup():
     await init_db()
     url = WEBHOOK_URL or (f"{BASE_URL}/bot/{BOT_ID}/webhook" if BASE_URL else None)
     if not url:
-        log
+        log.warning("WEBHOOK_URL/BASE_URL not set; webhook skipped")
+        return
+    await bot.set_webhook(url)
+    log.info("Webhook set to %s", url)
