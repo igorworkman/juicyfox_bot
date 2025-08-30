@@ -36,6 +36,11 @@ async def _cryptobot_convert_amount(amount_usd: float, asset: str) -> float:
     headers = {"Crypto-Pay-API-Token": CRYPTOBOT_TOKEN}
     timeout = aiohttp.ClientTimeout(total=20)
     async with aiohttp.ClientSession(headers=headers, timeout=timeout) as sess:
+        log.info(
+            "cryptobot getExchangeRates: asset=%s amount_usd=%s",
+            asset,
+            amount_usd,
+        )
         async with sess.get(f"{CRYPTOBOT_API}/getExchangeRates") as resp:
             text = await resp.text()
             try:
@@ -90,6 +95,12 @@ async def _cryptobot_create_invoice(
 
     timeout = aiohttp.ClientTimeout(total=20)
     async with aiohttp.ClientSession(headers=headers, timeout=timeout) as sess:
+        log.info(
+            "cryptobot createInvoice: asset=%s amount=%s (usd=%s)",
+            asset,
+            payload["amount"],
+            amount_usd,
+        )
         async with sess.post(f"{CRYPTOBOT_API}/createInvoice", json=payload) as resp:
             # Диагностика на случай неожиданных ответов
             text = await resp.text()
