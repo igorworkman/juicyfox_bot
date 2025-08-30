@@ -28,7 +28,7 @@ def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     if len(CURRENCIES) != 8:
         raise ValueError("CURRENCIES must contain exactly eight items")
     for title, code in CURRENCIES:
-        b.button(text=title, callback_data=f"vipay:{code}")
+        b.button(text=title, callback_data=f"paymem:vip_30d:{code}")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(2, 2, 2, 2, 1)
     return b.as_markup()
@@ -47,9 +47,9 @@ def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
 
 
 def chat_plan_kb(lang: str | None = None) -> InlineKeyboardMarkup:
-    """Экран Chat: кнопка оплаты (pay:chat) и Назад."""
+    """Экран Chat: кнопка оплаты и Назад."""
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang or "en", "btn_pay_chat"), callback_data="pay:chat")
+    b.button(text=tr(lang or "en", "btn_pay_chat"), callback_data="paymem:chat_30d:USDT")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(1)
     return b.as_markup()

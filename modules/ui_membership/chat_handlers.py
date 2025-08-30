@@ -11,6 +11,10 @@ from .chat_keyboards import chat_tariffs_kb
 router = Router()
 
 
+# prices in USD for chat access plans
+CHAT_PRICES_USD = {"7d": 5, "15d": 9, "30d": 15}
+
+
 @router.callback_query(F.data.in_({"ui:chat", "chat"}))
 async def show_chat(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
