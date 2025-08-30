@@ -7,12 +7,13 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # текст/локализация и валюты берём из актуальных модулей
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
+from modules.constants.paths import START_PHOTO
 from modules.payments.cryptobot import create_invoice
 from shared.utils.lang import get_lang
 
@@ -52,8 +53,12 @@ class Donate(StatesGroup):
 @router.message(Command("start"))
 async def cmd_start(message: Message) -> None:
     lang = get_lang(message.from_user)
+    if START_PHOTO.exists():
+        photo = FSInputFile(START_PHOTO)
+    else:
+        photo = "https://files.catbox.moe/cqckle.jpg"
     await message.answer_photo(
-        "https://files.catbox.moe/cqckle.jpg",
+        photo,
         caption=tr(lang, "menu", name=message.from_user.first_name),
     )
     if LIFE_URL:
