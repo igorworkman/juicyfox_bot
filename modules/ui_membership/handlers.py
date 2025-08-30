@@ -28,6 +28,7 @@ from .keyboards import (
     main_menu_kb,
     reply_menu,
     vip_currency_kb,
+    luxury_currency_kb,
 )
 
 router = Router()
@@ -37,6 +38,7 @@ BOT_ID = os.getenv("BOT_ID", "sample")
 VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
 VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
+LUXURY_PRICE_USD = float(os.getenv("LUXURY_30D_USD", "15"))
 CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
 
 # Набор доступных кодов активов (например, "USDT", "BTC")
@@ -185,6 +187,37 @@ async def vipay_currency(cq: CallbackQuery) -> None:
     await cq.message.answer(tr(lang, "invoice_created"), reply_markup=vip_currency_kb(lang))
     if url:
         await cq.message.answer(url)
+
+
+@router.callback_query(F.data.startswith("luxpay:"))
+async def luxpay_currency(cq: CallbackQuery) -> None:
+    """Handle currency-specific Luxury Room payments."""
+    lang = get_lang(cq.from_user)
+    cur = cq.data.split(":", 1)[1].upper()
+    if cur not in CURRENCY_CODES:
+        await cq.answer("Unsupported currency", show_alert=True)
+        return
+
+    log.info(
+        "luxpay_currency: user=%s currency=%s amount=%s",
+        cq.from_user.id,
+        cur,
+        LUXURY_PRICE_USD,
+    )
+    inv = await create_invoice(
+        user_id=cq.from_user.id,
+        plan_code="club_30d",
+        amount_usd=LUXURY_PRICE_USD,
+        meta=_build_meta(cq.from_user.id, "club_30d", cur),
+        asset=cur,
+    )
+    url = _invoice_url(inv)
+    if url:
+        await cq.message.answer(url, reply_markup=luxury_currency_kb(lang))
+    else:
+        await cq.message.answer(
+            tr(lang, "invoice_created"), reply_markup=luxury_currency_kb(lang)
+        )
 
 @router.callback_query(F.data == "pay:chat")
 async def pay_chat(cq: CallbackQuery) -> None:
