@@ -88,7 +88,17 @@ async def back_to_main(cq: CallbackQuery) -> None:
 @router.callback_query(F.data.in_({"ui:vip", "vip"}))
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
-    await cq.message.edit_text(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
+    await cq.message.edit_text(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb(lang))
+
+
+@router.message(Command("currency"))
+async def cmd_currency(message: Message) -> None:
+    """Show currency menu for VIP subscription."""
+    lang = get_lang(message.from_user)
+    await message.answer(
+        tr(lang, "choose_cur", amount=VIP_PRICE_USD),
+        reply_markup=vip_currency_kb(lang),
+    )
 
 
 @router.callback_query(F.data.in_({"ui:chat", "chat"}))
@@ -133,7 +143,29 @@ async def pay_vip(cq: CallbackQuery) -> None:
         meta=_build_meta(cq.from_user.id, "vip_30d", currency),
     )
     url = _invoice_url(inv)
-    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
+    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=vip_currency_kb(lang))
+    if url:
+        await cq.message.answer(url)
+
+
+@router.callback_query(F.data.startswith("vipay:"))
+async def vipay_currency(cq: CallbackQuery) -> None:
+    """Handle currency-specific VIP payments."""
+    lang = get_lang(cq.from_user)
+    _, _, cur = cq.data.partition("vipay:")
+    cur = cur.strip().upper()
+    if cur not in CURRENCY_CODES:
+        await cq.answer("Unsupported currency", show_alert=True)
+        return
+
+    inv = await create_invoice(
+        user_id=cq.from_user.id,
+        plan_code="vip_30d",
+        amount_usd=float(VIP_PRICE_USD),
+        meta=_build_meta(cq.from_user.id, "vip_30d", cur),
+    )
+    url = _invoice_url(inv)
+    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=vip_currency_kb(lang))
     if url:
         await cq.message.answer(url)
 
