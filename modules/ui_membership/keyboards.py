@@ -33,7 +33,12 @@ def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
 
 
 def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
+
     """Меню выбора валюты для Luxury Room."""
+
+
+    """Меню выбора валюты для Luxury-подписки."""
+
     b = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
         b.button(text=title, callback_data=f"luxpay:{code}")
