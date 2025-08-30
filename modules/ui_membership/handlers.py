@@ -27,6 +27,7 @@ from .keyboards import (
     donate_kb,
     main_menu_kb,
     reply_menu,
+    luxury_currency_kb,
     vip_currency_kb,
 )
 
@@ -108,6 +109,15 @@ async def cmd_currency(message: Message) -> None:
 async def show_chat(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
+
+
+@router.callback_query(F.data.in_({"ui:luxury", "luxury"}))
+async def show_luxury(cq: CallbackQuery) -> None:
+    lang = get_lang(cq.from_user)
+    await cq.message.edit_text(
+        tr(lang, "luxury_room_desc"),
+        reply_markup=luxury_currency_kb(lang),
+    )
 
 
 @router.callback_query(F.data.in_({"ui:life", "life"}))
