@@ -42,10 +42,6 @@ BOT_ID = os.getenv("BOT_ID", "sample")
 VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
 
-VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
-
-
-
 # Набор доступных кодов активов (например, "USDT", "BTC")
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
@@ -159,8 +155,6 @@ async def pay_vip(cq: CallbackQuery) -> None:
         await cq.message.answer(url)
 
 
-
-
 @router.callback_query(F.data.startswith("vipay:"))
 async def vipay_currency(cq: CallbackQuery) -> None:
     """Handle currency-specific VIP payments."""
@@ -214,7 +208,6 @@ async def pay_chat(cq: CallbackQuery) -> None:
     await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
     if url:
         await cq.message.answer(url)
-
 
 
 # =======================
@@ -298,7 +291,7 @@ async def legacy_reply_luxury(msg: Message) -> None:
     lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
-        kb.button(text=title, callback_data=f"paymem:chat_30d:{code}")  # при желании сделай отдельный plan_code
+        kb.button(text=title, callback_data="pay:chat")  # при желании сделай отдельный plan_code
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
