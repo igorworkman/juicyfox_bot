@@ -1,3 +1,4 @@
+
 from aiogram import Router
 
 from .handlers import router as main_router
@@ -8,5 +9,8 @@ router = Router()
 router.include_router(main_router)
 router.include_router(chat_router)
 router.include_router(payments_router)
+
+from .handlers import router
+
 
 __all__ = ("router",)
