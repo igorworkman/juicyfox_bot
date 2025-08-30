@@ -43,6 +43,7 @@ USER appuser
 # порт API (uvicorn) — теперь 8080
 EXPOSE 8080
 
-# по умолчанию запускаем FastAPI; берём PORT из окружения (fallback 8080)
-CMD ["python", "-m", "uvicorn", "apps.bot_core.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
+# Для запуска FastAPI через Uvicorn
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
