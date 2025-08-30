@@ -19,10 +19,17 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # Локальный запуск (dev)
-uvicorn api.main:app --reload --port ${PORT:-8000}  # Если PORT не задан, будет использоваться 8000
+uvicorn api.main:app --reload --port ${PORT:-8080}  # Если PORT не задан, будет использоваться 8080
 
 # Продакшн (Docker / Northflank)
 uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8080}  # Использует переменную PORT или 8080 по умолчанию
+
+
+🐳 Docker
+Сборка и запуск:
+docker build -t juicyfox-bot .
+docker run --rm -p ${PORT:-8080}:${PORT:-8080} juicyfox-bot  # Если PORT не задан, будет использоваться 8080
+
 
 
 🐳 Docker
