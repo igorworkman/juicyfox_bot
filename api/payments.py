@@ -7,7 +7,7 @@ import logging
 log = logging.getLogger("juicyfox.api.payments")
 router = APIRouter()
 
-@router.post("/payments/cryptobot")
+@router.post("/cryptobot")
 async def cryptobot_webhook(request: Request):
     # 1) безопасно читаем JSON
     try:
