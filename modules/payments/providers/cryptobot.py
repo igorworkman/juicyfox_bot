@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import aiohttp
 
@@ -25,15 +25,60 @@ STATUS_MAP = {
 
 
 class CryptobotProvider:
+    async def _convert_amount(self, amount_usd: float, asset: str) -> float:
+        if asset.upper() == "USD":
+            return amount_usd
+        if not CRYPTOBOT_TOKEN:
+            raise ProviderError("CRYPTOBOT_TOKEN is not set")
+        headers = {"Crypto-Pay-API-Token": CRYPTOBOT_TOKEN}
+        timeout = aiohttp.ClientTimeout(total=20)
+        async with aiohttp.ClientSession(headers=headers, timeout=timeout) as sess:
+            async with sess.get(f"{CRYPTOBOT_API}/getExchangeRates") as resp:
+                text = await resp.text()
+                try:
+                    data = json.loads(text)
+                except Exception:
+                    log.error(
+                        "cryptobot getExchangeRates non-JSON response: %s %s",
+                        resp.status,
+                        text[:500],
+                    )
+                    raise ProviderError(
+                        f"cryptobot invalid response (status={resp.status})"
+                    )
+                if resp.status != 200 or not data or not data.get("ok"):
+                    log.error(
+                        "cryptobot getExchangeRates error resp=%s body=%s",
+                        resp.status,
+                        text[:500],
+                    )
+                    raise ProviderError(
+                        f"cryptobot error: status={resp.status}, body={text[:200]}"
+                    )
+                rate: Optional[float] = None
+                for item in data.get("result", []):
+                    if item.get("source") == asset.upper() and item.get("target") == "USD":
+                        try:
+                            rate = float(item.get("rate") or 0)
+                        except (TypeError, ValueError):
+                            rate = None
+                        break
+                if not rate:
+                    raise ProviderError(
+                        f"cryptobot exchange rate not found for {asset}"
+                    )
+                return amount_usd / rate
+
     async def create_invoice(
-        self, amount_usd: float, title: str, meta: Dict[str, Any], currency: str = "USD"
+        self, amount_usd: float, title: str, meta: Dict[str, Any], asset: str = "USD"
     ) -> InvoiceResponse:
         if not CRYPTOBOT_TOKEN:
             raise ProviderError("CRYPTOBOT_TOKEN is not set")
 
+        amount = await self._convert_amount(amount_usd, asset)
         payload = {
-            "amount": f"{amount_usd:.2f}",
-            "currency": currency.upper(),
+            "amount": f"{amount:.2f}",
+            "asset": asset.upper(),
             "description": title[:200],
             "payload": json.dumps(meta, ensure_ascii=False),
         }
@@ -79,6 +124,6 @@ class CryptobotProvider:
             "invoice_id": str(inv.get("invoice_id") or inv.get("id") or ""),
             "status": status,
             "amount": float(inv.get("amount") or 0),
-            "currency": inv.get("currency") or "USD",
+            "currency": inv.get("asset") or inv.get("currency") or "USD",
             "meta": meta,
         }
