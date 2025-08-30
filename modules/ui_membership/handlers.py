@@ -51,7 +51,8 @@ class Donate(StatesGroup):
 # /start и главное меню
 # =======================
 @router.message(Command("start"))
-async def cmd_start(message: Message) -> None:
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
     lang = get_lang(message.from_user)
     if START_PHOTO.exists():
         photo = FSInputFile(START_PHOTO)
