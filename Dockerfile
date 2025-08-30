@@ -44,4 +44,4 @@ USER appuser
 EXPOSE 8080
 
 # по умолчанию запускаем FastAPI; берём PORT из окружения (fallback 8080)
-CMD ["uvicorn", "apps.bot_core.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["sh", "-c", "uvicorn apps.bot_core.main:app --host 0.0.0.0 --port ${PORT}"]
