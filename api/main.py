@@ -14,6 +14,3 @@ app.include_router(payments_router, prefix="/payments")
 app.include_router(health_router)
 app.include_router(logs_router)
 
-@app.get("/healthz")
-def healthz():
-    return {"status": "ok"}
