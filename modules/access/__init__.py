@@ -13,7 +13,9 @@ log = logging.getLogger("juicyfox.access")
 # Карта планов → переменная окружения с chat_id и срок действия (дней)
 PLAN_MAP: Dict[str, Dict[str, Any]] = {
     "vip_30d":  {"env": "VIP_CHANNEL_ID",  "days": 30},
-    "chat_30d": {"env": "CHAT_GROUP_ID",   "days": 30},
+    "chat_7":  {"env": "CHAT_GROUP_ID", "days": 7},
+    "chat_15": {"env": "CHAT_GROUP_ID", "days": 15},
+    "chat_30": {"env": "CHAT_GROUP_ID", "days": 30},
     # при необходимости добавишь: "club_30d": {"env": "LUXURY_CHANNEL_ID", "days": 30}
 }
 
