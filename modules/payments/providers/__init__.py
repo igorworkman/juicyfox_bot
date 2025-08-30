@@ -10,7 +10,9 @@ PAYMENT_PROVIDER = os.getenv("PAYMENT_PROVIDER", "cryptobot").lower()
 
 
 class PaymentsProvider(Protocol):
-    async def create_invoice(self, amount_usd: float, title: str, meta: Dict[str, Any]) -> InvoiceResponse: ...
+    async def create_invoice(
+        self, amount_usd: float, title: str, meta: Dict[str, Any], currency: str = "USD"
+    ) -> InvoiceResponse: ...
     def normalize_webhook(self, payload: Dict[str, Any]) -> Dict[str, Any]: ...
 
 

@@ -131,6 +131,7 @@ async def pay_vip(cq: CallbackQuery) -> None:
         plan_code="vip_30d",
         amount_usd=float(amount),
         meta=_build_meta(cq.from_user.id, "vip_30d", currency),
+        currency=currency,
     )
     url = _invoice_url(inv)
     await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
@@ -147,6 +148,7 @@ async def pay_chat(cq: CallbackQuery) -> None:
         plan_code="chat_30d",
         amount_usd=float(amount),
         meta=_build_meta(cq.from_user.id, "chat_30d", currency),
+        currency=currency,
     )
     url = _invoice_url(inv)
     await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
@@ -194,6 +196,7 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
         plan_code="donation",
         amount_usd=amount_usd,
         meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
+        currency=cur,
     )
     url = _invoice_url(inv)
     await msg.answer(tr(lang, "invoice_created"))
@@ -296,6 +299,7 @@ async def donate_finish(msg: Message, state: FSMContext):
         plan_code="donation",
         amount_usd=amount_usd,
         meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
+        currency=cur,
     )
     url = _invoice_url(inv)
     if url:
