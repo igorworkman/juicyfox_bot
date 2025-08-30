@@ -7,21 +7,22 @@ services:
       dockerfile: Dockerfile
     environment:
       APP_ENV: prod
-      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN}"   # задать в .env или секретах CI
+      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN}"  # Задать в .env или секретах CI
       BOT_ID: "sample"
       DB_PATH: "/app/data/sample.sqlite"
     volumes:
       - ../data:/app/data
       - ../logs:/app/logs
     ports:
-      - "${PORT:-8080}:${PORT:-8080}"  # Используем переменную PORT
+      - "${PORT:-8080}:${PORT:-8080}"  # Используем переменную PORT (по умолчанию 8080)
     restart: unless-stopped
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]  # Добавлена точка входа
 
   worker:
     build:
       context: ..
       dockerfile: Dockerfile
-    command: ["python", "worker_posting.py"]
+    command: ["python", "worker_posting.py"]  # Запуск worker'а
     environment:
       APP_ENV: prod
       TELEGRAM_TOKEN: "${TELEGRAM_TOKEN}"
