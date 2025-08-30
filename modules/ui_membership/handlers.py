@@ -14,7 +14,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
 from modules.constants.paths import START_PHOTO
-from modules.payments.cryptobot import create_invoice
+from modules.payments import create_invoice
 from shared.utils.lang import get_lang
 
 # Клавиатуры текущего модуля
@@ -37,7 +37,7 @@ VIP_PRICE_USD = float(os.getenv("VIP_30D_USD", "25"))
 CHAT_PRICE_USD = float(os.getenv("CHAT_30D_USD", "15"))
 
 # Удобный набор кодов валют: {"USD","EUR",...}
-CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
+CURRENCY_CODES = {code.upper() for code in CURRENCIES}
 
 
 # --- FSM для донатов (оставляем в UI-модуле) ---
@@ -227,8 +227,8 @@ async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
 async def legacy_reply_luxury(msg: Message) -> None:
     lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
-    for title, code in CURRENCIES:
-        kb.button(text=title, callback_data="pay:chat")  # при желании сделай отдельный plan_code
+    for code in CURRENCIES:
+        kb.button(text=code, callback_data="pay:chat")  # при желании сделай отдельный plan_code
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
@@ -290,7 +290,14 @@ async def donate_finish(msg: Message, state: FSMContext):
     usd = float(text)
     data = await state.get_data()
     cur = data["currency"]
-    url = await create_invoice(msg.from_user.id, usd, cur, "JuicyFox Donation", pl="donate")
+    amount_usd = usd if cur == "USD" else usd  # TODO: конверсия при необходимости
+    inv = await create_invoice(
+        user_id=msg.from_user.id,
+        plan_code="donation",
+        amount_usd=amount_usd,
+        meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
+    )
+    url = _invoice_url(inv)
     if url:
         await msg.answer(f"Счёт на оплату (Donate): {url}")
     else:
@@ -309,8 +316,8 @@ async def handle_chat_btn(msg: Message, state: FSMContext):
 async def luxury_room_reply(msg: Message):
     lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
-    for t, c in CURRENCIES:
-        kb.button(text=t, callback_data=f"payc:club:{c}")
+    for code in CURRENCIES:
+        kb.button(text=code, callback_data=f"payc:club:{code}")
     kb.button(text="⬅️ Назад", callback_data="back")
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
