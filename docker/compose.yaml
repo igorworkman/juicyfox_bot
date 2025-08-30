@@ -14,10 +14,9 @@ services:
       - ../data:/app/data
       - ../logs:/app/logs
     ports:
-      - "8000:8000"
+      - "${PORT:-8080}:${PORT:-8080}"  # Используем переменную PORT
     restart: unless-stopped
 
-  # пример воркера постинга (если нужен отдельный процесс)
   worker:
     build:
       context: ..
