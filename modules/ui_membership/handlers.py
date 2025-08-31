@@ -216,10 +216,32 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 # Донаты
 # =======================
 @router.message(lambda m: (m.text or "").strip() == tr(get_lang(m.from_user), "btn_donate"))
-async def donate_currency(msg: Message, state: FSMContext) -> None:
-    await state.set_state(Donate.choosing_currency)
+async def donate_menu(msg: Message) -> None:
     lang = get_lang(msg.from_user)
+    for amount in [5, 10, 25, 50, 100, 200, 500]:
+        desc = tr(lang, f"donate_desc_{amount}")
+        await msg.answer(
+            desc,
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text=f"{amount}$", callback_data=f"donate_{amount}")]
+                ]
+            ),
+        )
     await msg.answer(
+        tr(lang, "btn_back"),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_back"), callback_data="donate_back")]]
+        ),
+    )
+
+@router.callback_query(F.data.startswith("donate_"))
+async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
+    amount = int(cq.data.split("_", 1)[1])
+    await state.update_data(amount=amount)
+    await state.set_state(Donate.choosing_currency)
+    lang = get_lang(cq.from_user)
+    await cq.message.answer(
         tr(lang, "donate_select_currency"),
         reply_markup=currency_menu(lang, "donate$"),
     )
@@ -232,33 +254,14 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     if cur not in CURRENCY_CODES:
         await cq.answer("Unsupported currency", show_alert=True)
         return
-    await state.update_data(currency=cur)
-    await state.set_state(Donate.entering_amount)
-    await cq.message.edit_text(
-        tr(get_lang(cq.from_user), "enter_amount", cur=cur),
-        reply_markup=donate_back_kb(get_lang(cq.from_user)),
-    )
-
-@router.message(Donate.entering_amount, F.text.regexp(r"^\d+([.,]\d{1,2})?$"))
-async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
-    lang = get_lang(msg.from_user)
     data = await state.get_data()
-    cur = (data.get("currency") or "USDT").upper()
-    raw = (msg.text or "0").replace(",", ".")
-    amount = float(raw)
-
-    amount_usd = amount  # TODO: конверсия при необходимости
-    log.info(
-        "donate_make_invoice: user=%s currency=%s amount=%s",
-        msg.from_user.id,
-        cur,
-        amount_usd,
-    )
+    amount = data.get("amount", 0)
+    lang = get_lang(cq.from_user)
     inv = await create_invoice(
-        user_id=msg.from_user.id,
+        user_id=cq.from_user.id,
         plan_code="donation",
-        amount_usd=amount_usd,
-        meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
+        amount_usd=amount,
+        meta={"user_id": cq.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
         asset=cur,
     )
     url = _invoice_url(inv)
@@ -266,15 +269,15 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
-        await msg.answer(
+        await cq.message.answer(
             tr(lang, "invoice_message", plan="Donate", url=url),
             reply_markup=kb,
         )
     else:
-        await msg.answer(tr(lang, "inv_err"))
+        await cq.message.answer(tr(lang, "inv_err"))
     await state.clear()
 
-@router.callback_query(F.data == "donate:back")
+@router.callback_query(F.data.in_({"donate:back", "donate_back"}))
 async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     lang = get_lang(cq.from_user)
