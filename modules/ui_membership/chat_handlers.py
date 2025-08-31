@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any, Optional
 
 from aiogram import F, Router
@@ -13,6 +11,7 @@ from modules.payments import create_invoice
 from shared.utils.lang import get_lang
 
 from .chat_keyboards import chat_tariffs_kb, chat_currency_kb
+from .utils import _build_meta
 
 router = Router()
 
@@ -77,8 +76,8 @@ async def paymem_currency(cq: CallbackQuery) -> None:
         user_id=cq.from_user.id,
         plan_code=plan_code,
         amount_usd=float(amount),
+        meta=_build_meta(cq.from_user.id, plan_code, asset),
         asset=asset,
-        meta={"plan": plan_code, "asset": asset},
     )
 
     url = _invoice_url(inv)

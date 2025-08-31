@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -31,12 +31,12 @@ from .keyboards import (
 )
 from .chat_keyboards import chat_tariffs_kb
 from .chat_handlers import router as chat_router
+from .utils import BOT_ID, _build_meta
 
 router = Router()
 router.include_router(chat_router)
 
 # --- Конфиг из ENV (позже переедет в shared.config.env) ---
-BOT_ID = os.getenv("BOT_ID", "sample")
 VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
 
@@ -118,8 +118,6 @@ async def show_life_link(cq: CallbackQuery) -> None:
 # =======================
 # Оплата подписок (VIP/Chat)
 # =======================
-def _build_meta(user_id: int, plan_code: str, currency: str) -> Dict[str, Any]:
-    return {"user_id": user_id, "plan_code": plan_code, "currency": currency, "bot_id": BOT_ID}
 
 def _invoice_url(inv: Any) -> Optional[str]:
     """Поддерживаем и dict с 'pay_url', и просто строку-URL."""
