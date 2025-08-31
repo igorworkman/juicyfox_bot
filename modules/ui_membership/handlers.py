@@ -210,11 +210,11 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 # =======================
 # Донаты
 # =======================
-@router.callback_query(F.data.in_({"donate", "ui:tip"}))
-async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
+@router.message(lambda m: (m.text or "").strip() == tr(get_lang(m.from_user), "btn_donate"))
+async def donate_currency(msg: Message, state: FSMContext) -> None:
     await state.set_state(Donate.choosing_currency)
-    await cq.message.edit_text(
-        tr(get_lang(cq.from_user), "choose_cur", amount="donate"),
+    await msg.answer(
+        tr(get_lang(msg.from_user), "choose_cur", amount="donate"),
         reply_markup=donate_kb(),
     )
 
@@ -312,7 +312,7 @@ async def back_to_main(cq: CallbackQuery):
     lang = get_lang(cq.from_user)
     await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
 
-
+"""
 @router.callback_query(F.data == "donate")
 async def donate_currency(cq: CallbackQuery, state: FSMContext):
     await cq.message.edit_text(
@@ -376,7 +376,7 @@ async def donate_finish(msg: Message, state: FSMContext):
     else:
         await msg.reply(tr(get_lang(msg.from_user), "inv_err"))
     await state.clear()
-
+"""
 
 @router.message(
     lambda m: _norm(m.text) == _norm(tr(get_lang(m.from_user), "btn_chat"))
