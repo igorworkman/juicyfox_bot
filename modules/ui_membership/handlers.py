@@ -154,14 +154,14 @@ async def pay_vip(cq: CallbackQuery, state: FSMContext) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
-        await cq.message.answer(
+        await cq.message.edit_text(
             tr(lang, "invoice_message", plan="VIP", url=url),
             reply_markup=kb,
         )
     else:
-        await cq.message.answer(tr(lang, "inv_err"))
+        await cq.message.edit_text(tr(lang, "inv_err"))
 
 
 @router.callback_query(F.data.startswith("vipay:"))
@@ -196,14 +196,14 @@ async def vipay_currency(cq: CallbackQuery, state: FSMContext) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
-        await cq.message.answer(
+        await cq.message.edit_text(
             tr(lang, "invoice_message", plan="VIP", url=url),
             reply_markup=kb,
         )
     else:
-        await cq.message.answer(tr(lang, "inv_err"))
+        await cq.message.edit_text(tr(lang, "inv_err"))
 
 
 
@@ -258,7 +258,7 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
         await msg.answer(
             tr(lang, "invoice_message", plan="Donate", url=url),
@@ -366,7 +366,7 @@ async def donate_finish(msg: Message, state: FSMContext):
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text=tr(get_lang(msg.from_user), "btn_cancel"), callback_data="cancel")]]
         )
         await msg.answer(
             tr(get_lang(msg.from_user), "invoice_message", plan="Donate", url=url),
