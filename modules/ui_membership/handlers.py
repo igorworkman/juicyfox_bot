@@ -128,8 +128,8 @@ def _invoice_url(inv: Any) -> Optional[str]:
     return None
 
 @router.callback_query(F.data == "pay:vip")
-async def pay_vip(cq: CallbackQuery, state: FSMContext) -> None:
-    lang = get_lang(cq.from_user)
+async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = get_lang(callback.from_user)
     currency = "USDT"
     amount = VIP_PRICE_USD
     await state.update_data(
@@ -140,15 +140,15 @@ async def pay_vip(cq: CallbackQuery, state: FSMContext) -> None:
     )
     log.info(
         "pay_vip: user=%s currency=%s amount=%s",
-        cq.from_user.id,
+        callback.from_user.id,
         currency,
         amount,
     )
     inv = await create_invoice(
-        user_id=cq.from_user.id,
+        user_id=callback.from_user.id,
         plan_code="vip_30d",
         amount_usd=float(amount),
-        meta=_build_meta(cq.from_user.id, "vip_30d", currency),
+        meta=_build_meta(callback.from_user.id, "vip_30d", currency),
         asset=currency,
     )
     url = _invoice_url(inv)
@@ -156,27 +156,27 @@ async def pay_vip(cq: CallbackQuery, state: FSMContext) -> None:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
-        await cq.message.edit_text(
+        await callback.message.edit_text(
             tr(lang, "invoice_message", plan="VIP", url=url),
             reply_markup=kb,
         )
     else:
-        await cq.message.edit_text(tr(lang, "inv_err"))
+        await callback.message.edit_text(tr(lang, "inv_err"))
 
 
 @router.callback_query(F.data.startswith("vipay:"))
-async def vipay_currency(cq: CallbackQuery, state: FSMContext) -> None:
+async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
     """Handle currency-specific VIP payments."""
-    lang = get_lang(cq.from_user)
-    _, _, cur = cq.data.partition("vipay:")
+    lang = get_lang(callback.from_user)
+    _, _, cur = callback.data.partition("vipay:")
     cur = cur.strip().upper()
     if cur not in CURRENCY_CODES:
-        await cq.answer("Unsupported currency", show_alert=True)
+        await callback.answer("Unsupported currency", show_alert=True)
         return
 
     log.info(
         "vipay_currency: user=%s currency=%s amount=%s",
-        cq.from_user.id,
+        callback.from_user.id,
         cur,
         VIP_PRICE_USD,
     )
@@ -187,10 +187,10 @@ async def vipay_currency(cq: CallbackQuery, state: FSMContext) -> None:
         plan_callback="vipay",
     )
     inv = await create_invoice(
-        user_id=cq.from_user.id,
+        user_id=callback.from_user.id,
         plan_code="vip_30d",
         amount_usd=float(VIP_PRICE_USD),
-        meta=_build_meta(cq.from_user.id, "vip_30d", cur),
+        meta=_build_meta(callback.from_user.id, "vip_30d", cur),
         asset=cur,
     )
     url = _invoice_url(inv)
@@ -198,12 +198,12 @@ async def vipay_currency(cq: CallbackQuery, state: FSMContext) -> None:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
-        await cq.message.edit_text(
+        await callback.message.edit_text(
             tr(lang, "invoice_message", plan="VIP", url=url),
             reply_markup=kb,
         )
     else:
-        await cq.message.edit_text(tr(lang, "inv_err"))
+        await callback.message.edit_text(tr(lang, "inv_err"))
 
 
 

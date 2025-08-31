@@ -57,20 +57,20 @@ async def choose_chat_currency(cq: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("paymem:"))
-async def paymem_currency(cq: CallbackQuery, state: FSMContext) -> None:
+async def paymem_currency(callback: CallbackQuery, state: FSMContext) -> None:
     """Handle chat membership payment with selected currency."""
-    lang = get_lang(cq.from_user)
-    _, _, payload = cq.data.partition("paymem:")
+    lang = get_lang(callback.from_user)
+    _, _, payload = callback.data.partition("paymem:")
     plan_code, _, asset = payload.partition(":")
     asset = asset.strip().upper()
 
     if asset not in CURRENCY_CODES:
-        await cq.answer("Unsupported currency", show_alert=True)
+        await callback.answer("Unsupported currency", show_alert=True)
         return
 
     amount = CHAT_PRICES_USD.get(plan_code)
     if amount is None:
-        await cq.answer("Unknown plan", show_alert=True)
+        await callback.answer("Unknown plan", show_alert=True)
         return
 
     await state.update_data(
@@ -81,10 +81,10 @@ async def paymem_currency(cq: CallbackQuery, state: FSMContext) -> None:
     )
 
     inv = await create_invoice(
-        user_id=cq.from_user.id,
+        user_id=callback.from_user.id,
         plan_code=plan_code,
         amount_usd=float(amount),
-        meta=_build_meta(cq.from_user.id, plan_code, asset),
+        meta=_build_meta(callback.from_user.id, plan_code, asset),
         asset=asset,
     )
 
@@ -94,9 +94,9 @@ async def paymem_currency(cq: CallbackQuery, state: FSMContext) -> None:
             inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
         plan_name = PLAN_TITLES.get(plan_code, plan_code)
-        await cq.message.edit_text(
+        await callback.message.edit_text(
             tr(lang, "invoice_message", plan=plan_name, url=url),
             reply_markup=kb,
         )
     else:
-        await cq.message.edit_text(tr(lang, "inv_err"))
+        await callback.message.edit_text(tr(lang, "inv_err"))
