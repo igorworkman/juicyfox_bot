@@ -8,7 +8,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message, FSInputFile
+from aiogram.types import CallbackQuery, Message, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # текст/локализация и валюты берём из актуальных модулей
@@ -146,9 +146,16 @@ async def pay_vip(cq: CallbackQuery) -> None:
         asset=currency,
     )
     url = _invoice_url(inv)
-    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=vip_currency_kb(lang))
     if url:
-        await cq.message.answer(url)
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+        )
+        await cq.message.answer(
+            tr(lang, "invoice_message", plan="VIP", url=url),
+            reply_markup=kb,
+        )
+    else:
+        await cq.message.answer(tr(lang, "inv_err"))
 
 
 @router.callback_query(F.data.startswith("vipay:"))
@@ -175,12 +182,16 @@ async def vipay_currency(cq: CallbackQuery) -> None:
         asset=cur,
     )
     url = _invoice_url(inv)
-    await cq.message.answer(tr(lang, "invoice_created"))
     if url:
-        await cq.message.answer(url)
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
-    await cq.message.answer(tr(lang, "back"), reply_markup=kb.as_markup())
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+        )
+        await cq.message.answer(
+            tr(lang, "invoice_message", plan="VIP", url=url),
+            reply_markup=kb,
+        )
+    else:
+        await cq.message.answer(tr(lang, "inv_err"))
 
 
 
@@ -233,9 +244,16 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
         asset=cur,
     )
     url = _invoice_url(inv)
-    await msg.answer(tr(lang, "invoice_created"))
     if url:
-        await msg.answer(url)
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+        )
+        await msg.answer(
+            tr(lang, "invoice_message", plan="Donate", url=url),
+            reply_markup=kb,
+        )
+    else:
+        await msg.answer(tr(lang, "inv_err"))
     await state.clear()
 
 @router.callback_query(F.data == "donate:back")
@@ -335,7 +353,13 @@ async def donate_finish(msg: Message, state: FSMContext):
     )
     url = _invoice_url(inv)
     if url:
-        await msg.answer(f"Счёт на оплату (Donate): {url}")
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+        )
+        await msg.answer(
+            tr(get_lang(msg.from_user), "invoice_message", plan="Donate", url=url),
+            reply_markup=kb,
+        )
     else:
         await msg.reply(tr(get_lang(msg.from_user), "inv_err"))
     await state.clear()
