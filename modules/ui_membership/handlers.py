@@ -128,10 +128,16 @@ def _invoice_url(inv: Any) -> Optional[str]:
     return None
 
 @router.callback_query(F.data == "pay:vip")
-async def pay_vip(cq: CallbackQuery) -> None:
+async def pay_vip(cq: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(cq.from_user)
     currency = "USDT"
     amount = VIP_PRICE_USD
+    await state.update_data(
+        plan_name="VIP",
+        price=float(amount),
+        period=30,
+        plan_callback="vipay",
+    )
     log.info(
         "pay_vip: user=%s currency=%s amount=%s",
         cq.from_user.id,
@@ -148,7 +154,7 @@ async def pay_vip(cq: CallbackQuery) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
         )
         await cq.message.answer(
             tr(lang, "invoice_message", plan="VIP", url=url),
@@ -159,7 +165,7 @@ async def pay_vip(cq: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("vipay:"))
-async def vipay_currency(cq: CallbackQuery) -> None:
+async def vipay_currency(cq: CallbackQuery, state: FSMContext) -> None:
     """Handle currency-specific VIP payments."""
     lang = get_lang(cq.from_user)
     _, _, cur = cq.data.partition("vipay:")
@@ -174,6 +180,12 @@ async def vipay_currency(cq: CallbackQuery) -> None:
         cur,
         VIP_PRICE_USD,
     )
+    await state.update_data(
+        plan_name="VIP",
+        price=float(VIP_PRICE_USD),
+        period=30,
+        plan_callback="vipay",
+    )
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code="vip_30d",
@@ -184,7 +196,7 @@ async def vipay_currency(cq: CallbackQuery) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
         )
         await cq.message.answer(
             tr(lang, "invoice_message", plan="VIP", url=url),
@@ -246,7 +258,7 @@ async def donate_make_invoice(msg: Message, state: FSMContext) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
         )
         await msg.answer(
             tr(lang, "invoice_message", plan="Donate", url=url),
@@ -354,7 +366,7 @@ async def donate_finish(msg: Message, state: FSMContext):
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
         )
         await msg.answer(
             tr(get_lang(msg.from_user), "invoice_message", plan="Donate", url=url),

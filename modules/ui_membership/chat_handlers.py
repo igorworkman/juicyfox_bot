@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from modules.common.i18n import tr
@@ -56,7 +57,7 @@ async def choose_chat_currency(cq: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("paymem:"))
-async def paymem_currency(cq: CallbackQuery) -> None:
+async def paymem_currency(cq: CallbackQuery, state: FSMContext) -> None:
     """Handle chat membership payment with selected currency."""
     lang = get_lang(cq.from_user)
     _, _, payload = cq.data.partition("paymem:")
@@ -72,6 +73,13 @@ async def paymem_currency(cq: CallbackQuery) -> None:
         await cq.answer("Unknown plan", show_alert=True)
         return
 
+    await state.update_data(
+        plan_name=PLAN_TITLES.get(plan_code, plan_code),
+        price=float(amount),
+        period=int(plan_code.split("_")[-1]) if plan_code.split("_")[-1].isdigit() else None,
+        plan_callback=f"paymem:{plan_code}",
+    )
+
     inv = await create_invoice(
         user_id=cq.from_user.id,
         plan_code=plan_code,
@@ -83,7 +91,7 @@ async def paymem_currency(cq: CallbackQuery) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
         )
         plan_name = PLAN_TITLES.get(plan_code, plan_code)
         await cq.message.answer(
