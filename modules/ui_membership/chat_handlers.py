@@ -1,8 +1,7 @@
 from typing import Any, Optional
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
@@ -18,6 +17,7 @@ router = Router()
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
 PLAN_ALIAS = {"7d": "chat_7", "15d": "chat_15", "30d": "chat_30"}
+PLAN_TITLES = {"chat_7": "Chat 7", "chat_15": "Chat 15", "chat_30": "Chat 30"}
 
 
 def _invoice_url(inv: Any) -> Optional[str]:
@@ -81,9 +81,14 @@ async def paymem_currency(cq: CallbackQuery) -> None:
     )
 
     url = _invoice_url(inv)
-    await cq.message.answer(tr(lang, "invoice_created"))
     if url:
-        await cq.message.answer(url)
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
-    await cq.message.answer(tr(lang, "back"), reply_markup=kb.as_markup())
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Back", callback_data="cancel")]]
+        )
+        plan_name = PLAN_TITLES.get(plan_code, plan_code)
+        await cq.message.answer(
+            tr(lang, "invoice_message", plan=plan_name, url=url),
+            reply_markup=kb,
+        )
+    else:
+        await cq.message.answer(tr(lang, "inv_err"))
