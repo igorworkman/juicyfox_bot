@@ -292,7 +292,7 @@ async def legacy_reply_luxury(msg: Message) -> None:
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(get_lang(m.from_user), "btn_vip")) or "❤️‍🔥 VIP Secret - 35 $"
+    _norm(tr(get_lang(m.from_user), "btn_vip")) or "VIP CLUB 🔞 - 19 $"
 })
 async def legacy_reply_vip(msg: Message) -> None:
     lang = get_lang(msg.from_user)
@@ -397,7 +397,7 @@ async def luxury_room_reply(msg: Message):
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
 
-@router.message(F.text == "❤️‍🔥 VIP Secret - 35 $")
+@router.message(F.text == "VIP CLUB 🔞 - 19 $")
 async def vip_secret_reply(msg: Message):
     lang = get_lang(msg.from_user)
     await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
