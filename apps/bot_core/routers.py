@@ -53,6 +53,10 @@ def register(dp, cfg: Any = None) -> None:
         from modules.ui_membership import router as ui_router
         dp.include_router(ui_router)
 
+    with suppress(Exception):
+        from modules.payments.handlers import router as payments_router
+        dp.include_router(payments_router)
+
     # Планирование и постинг
     if _get_feature(cfg, "posting_enabled", True):
         with suppress(Exception):
