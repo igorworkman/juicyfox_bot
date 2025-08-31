@@ -15,7 +15,7 @@ BUTTONS = {
     "btn_lux": "💎 Luxury Room - 15 $",
     "btn_vip": "❤️‍🔥 VIP Secret - 35 $",
     "btn_chat": "💬 Juicy Chat",
-    "btn_donate": "🎁 Custom",
+    "btn_donate": "DONATE 🎁",
     "btn_see_chat": "SEE YOU MY CHAT💬",
     "btn_back": "⬅️ Back",
     "btn_pay_vip": "💳 Pay VIP",

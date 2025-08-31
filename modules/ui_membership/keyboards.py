@@ -10,14 +10,13 @@ from modules.constants.currencies import CURRENCIES
 # ---------- INLINE КНОПКИ (стабильные callback'и) ----------
 
 def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
-    """Главное меню: Life, Luxury, VIP, Donate, Chat."""
+    """Главное меню: Life, Luxury, VIP, Chat."""
     b = InlineKeyboardBuilder()
     b.button(text=tr(lang, "btn_life"), callback_data="ui:life")
     # b.button(text=tr(lang, "btn_lux"), callback_data="ui:luxury")  # temporarily hidden
     b.button(text=tr(lang, "btn_vip"), callback_data="ui:vip")
-    b.button(text=tr(lang, "btn_donate"), callback_data="donate")
     b.button(text=tr(lang, "btn_chat"), callback_data="ui:chat")
-    b.adjust(2, 2)
+    b.adjust(2, 1)
     return b.as_markup()
 
 
@@ -70,12 +69,14 @@ def reply_menu(lang: str) -> ReplyKeyboardMarkup:
     chat_label = tr(lang, "btn_chat")
     # luxury_label = tr(lang, "btn_lux")  # temporarily hidden
     vip_label = tr(lang, "btn_vip")
+    donate_label = tr(lang, "btn_donate")
 
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=chat_label)],
             # [KeyboardButton(text=luxury_label), KeyboardButton(text=vip_label)],  # temporarily hidden
             [KeyboardButton(text=vip_label)],
+            [KeyboardButton(text=donate_label)],
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
