@@ -15,7 +15,7 @@ router = Router()
 
 @router.callback_query(F.data == "cancel")
 async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
-    """Handle invoice cancellation and return to currency menu."""
+    """Handle invoice cancellation and restore tariff description with currency menu."""
     lang = get_lang(callback.from_user)
     data = await state.get_data()
     plan_cb = data.get("plan_callback")
@@ -27,6 +27,7 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
 
+    # Rebuild currency keyboard so the user can pick another asset
     kb = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
         kb.button(text=title, callback_data=f"{plan_cb}:{code}")
@@ -41,5 +42,6 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         period=period,
     )
 
+    # Replace the invoice with the original tariff description and currency menu
     await callback.message.edit_text(text, reply_markup=kb.as_markup())
 
