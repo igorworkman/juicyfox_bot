@@ -91,12 +91,12 @@ async def paymem_currency(cq: CallbackQuery, state: FSMContext) -> None:
     url = _invoice_url(inv)
     if url:
         kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="⬅️ Cancel", callback_data="cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
         plan_name = PLAN_TITLES.get(plan_code, plan_code)
-        await cq.message.answer(
+        await cq.message.edit_text(
             tr(lang, "invoice_message", plan=plan_name, url=url),
             reply_markup=kb,
         )
     else:
-        await cq.message.answer(tr(lang, "inv_err"))
+        await cq.message.edit_text(tr(lang, "inv_err"))
