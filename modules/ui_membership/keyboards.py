@@ -44,17 +44,6 @@ def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     b.adjust(3, 1)
     return b.as_markup()
 
-
-
-def chat_plan_kb(lang: str | None = None) -> InlineKeyboardMarkup:
-    """Экран Chat: кнопка оплаты (pay:chat) и Назад."""
-    b = InlineKeyboardBuilder()
-    b.button(text=tr(lang or "en", "btn_pay_chat"), callback_data="pay:chat")
-    b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
-    b.adjust(1)
-    return b.as_markup()
-
-
 def donate_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Выбор валюты для доната: donate:cur:<CODE> + Назад."""
     b = InlineKeyboardBuilder()
