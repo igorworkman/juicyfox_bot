@@ -69,11 +69,16 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
     if LIFE_URL:
         await message.answer(
             tr(lang, "my_channel", link=LIFE_URL),
-            reply_markup=reply_menu(lang)
+            reply_markup=reply_menu(lang),
+        )
+    else:
+        await message.answer(
+            tr(lang, "choose_action"),
+            reply_markup=reply_menu(lang),
         )
     await message.answer(
         tr(lang, "choose_action"),
-        reply_markup=main_menu_kb(lang)
+        reply_markup=main_menu_kb(lang),
     )
 
 
