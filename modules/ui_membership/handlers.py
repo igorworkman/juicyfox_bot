@@ -14,17 +14,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 # текст/локализация и валюты берём из актуальных модулей
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
-from modules.constants.prices import VIP_PRICE_USD, CHAT_PRICES_USD
+from modules.constants.prices import VIP_PRICE_USD
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
 from shared.utils.lang import get_lang
-from modules.common.shared import ChatGift
 
 log = logging.getLogger("juicyfox.ui_membership.handlers")
 
 # Клавиатуры текущего модуля
 from .keyboards import (
-    chat_plan_kb,
     donate_back_kb,
     donate_kb,
     main_menu_kb,
@@ -186,28 +184,6 @@ async def vipay_currency(cq: CallbackQuery) -> None:
     kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
     await cq.message.answer(tr(lang, "back"), reply_markup=kb.as_markup())
 
-@router.callback_query(F.data == "pay:chat")
-async def pay_chat(cq: CallbackQuery) -> None:
-    lang = get_lang(cq.from_user)
-    currency = "USDT"
-    amount = CHAT_PRICES_USD.get("chat_30", 15)
-    log.info(
-        "pay_chat: user=%s currency=%s amount=%s",
-        cq.from_user.id,
-        currency,
-        amount,
-    )
-    inv = await create_invoice(
-        user_id=cq.from_user.id,
-        plan_code="chat_30",
-        amount_usd=float(amount),
-        meta=_build_meta(cq.from_user.id, "chat_30", currency),
-        asset=currency,
-    )
-    url = _invoice_url(inv)
-    await cq.message.answer(tr(lang, "invoice_created"), reply_markup=donate_back_kb(lang))
-    if url:
-        await cq.message.answer(url)
 
 
 # =======================
@@ -277,21 +253,13 @@ def _norm(s: Optional[str]) -> str:
     return (s or "").strip()
 
 @router.message(lambda m: _norm(m.text) in {
-    _norm(tr(get_lang(m.from_user), "btn_chat")) or "SEE YOU MY CHAT💬"
-})
-async def legacy_reply_chat(msg: Message, state: FSMContext) -> None:
-    await state.clear()
-    lang = get_lang(msg.from_user)
-    await msg.answer(tr(lang, "chat_desc"), reply_markup=chat_plan_kb())
-
-@router.message(lambda m: _norm(m.text) in {
     _norm(tr(get_lang(m.from_user), "btn_club")) or "💎 Luxury Room - 15 $"
 })
 async def legacy_reply_luxury(msg: Message) -> None:
     lang = get_lang(msg.from_user)
     kb = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
-        kb.button(text=title, callback_data="pay:chat")  # при желании сделай отдельный plan_code
+        kb.button(text=title, callback_data=f"paymem:chat_30:{code}")
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
@@ -375,10 +343,12 @@ async def donate_finish(msg: Message, state: FSMContext):
     await state.clear()
 
 
-@router.message(F.text == "SEE YOU MY CHAT💬")
+@router.message(
+    lambda m: _norm(m.text) == _norm(tr(get_lang(m.from_user), "btn_chat"))
+)
 async def handle_chat_btn(msg: Message, state: FSMContext):
+    await state.clear()
     lang = get_lang(msg.from_user)
-    await state.set_state(ChatGift.plan)
     await msg.answer(tr(lang, "chat_access"), reply_markup=chat_tariffs_kb(lang))
 
 
