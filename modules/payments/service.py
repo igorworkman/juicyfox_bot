@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import json
 import logging
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, Optional
 
 import aiohttp
@@ -27,12 +28,14 @@ STATUS_MAP = {
 }
 
 
-async def _cryptobot_convert_amount(amount_usd: float, asset: str) -> float:
+async def _cryptobot_convert_amount(amount_usd: float, asset: str) -> Decimal:
     """Convert amount in USD to selected asset using CryptoBot rates."""
-    if asset.upper() == "USD":
-        return amount_usd
+    asset_upper = asset.upper()
     if not CRYPTOBOT_TOKEN:
         raise ProviderError("CRYPTOBOT_TOKEN is not set")
+    # USD не требует запроса курса
+    if asset_upper == "USD":
+        return Decimal(str(amount_usd)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     headers = {"Crypto-Pay-API-Token": CRYPTOBOT_TOKEN}
     timeout = aiohttp.ClientTimeout(total=20)
     async with aiohttp.ClientSession(headers=headers, timeout=timeout) as sess:
@@ -63,17 +66,26 @@ async def _cryptobot_convert_amount(amount_usd: float, asset: str) -> float:
                 raise ProviderError(
                     f"cryptobot error: status={resp.status}, body={text[:200]}"
                 )
-            rate: Optional[float] = None
+            rate: Optional[Decimal] = None
             for item in data.get("result", []):
-                if item.get("source") == asset.upper() and item.get("target") == "USD":
+                if item.get("source") == asset_upper and item.get("target") == "USD":
                     try:
-                        rate = float(item.get("rate") or 0)
-                    except (TypeError, ValueError):
+                        rate = Decimal(str(item.get("rate") or "0"))
+                    except Exception:
                         rate = None
                     break
-            if not rate:
+            if not rate or rate <= 0:
                 raise ProviderError(f"cryptobot exchange rate not found for {asset}")
-            return amount_usd / rate
+            amount = Decimal(str(amount_usd)) / rate
+            quantize_map = {
+                "BTC": Decimal("0.00000001"),
+                "ETH": Decimal("0.0001"),
+            }
+            quantum = quantize_map.get(asset_upper, Decimal("0.01"))
+            amount = amount.quantize(quantum, rounding=ROUND_HALF_UP)
+            if amount <= 0:
+                raise ProviderError("cryptobot amount is zero after rounding")
+            return amount
 
 
 async def _cryptobot_create_invoice(
@@ -86,7 +98,7 @@ async def _cryptobot_create_invoice(
         raise ProviderError("CRYPTOBOT_TOKEN is not set")
     amount = await _cryptobot_convert_amount(amount_usd, asset)
     payload = {
-        "amount": f"{amount:.2f}",
+        "amount": str(amount),
         "asset": asset.upper(),
         "description": title[:200],
         "payload": json.dumps(meta, ensure_ascii=False),
