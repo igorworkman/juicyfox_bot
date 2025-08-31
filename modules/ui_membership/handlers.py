@@ -218,20 +218,19 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 @router.message(lambda m: (m.text or "").strip() == tr(get_lang(m.from_user), "btn_donate"))
 async def donate_menu(msg: Message) -> None:
     lang = get_lang(msg.from_user)
-    for amount in [5, 10, 25, 50, 100, 200, 500]:
-        desc = tr(lang, f"donate_desc_{amount}")
-        await msg.answer(
-            desc,
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text=f"{amount}$", callback_data=f"donate_{amount}")]
-                ]
-            ),
-        )
     await msg.answer(
-        tr(lang, "btn_back"),
+        tr(lang, "donate_menu"),
         reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_back"), callback_data="donate_back")]]
+            inline_keyboard=[
+                [InlineKeyboardButton(text="5$", callback_data="donate_5"),
+                 InlineKeyboardButton(text="10$", callback_data="donate_10"),
+                 InlineKeyboardButton(text="25$", callback_data="donate_25")],
+                [InlineKeyboardButton(text="50$", callback_data="donate_50"),
+                 InlineKeyboardButton(text="100$", callback_data="donate_100"),
+                 InlineKeyboardButton(text="200$", callback_data="donate_200")],
+                [InlineKeyboardButton(text="500$", callback_data="donate_500")],
+                [InlineKeyboardButton(text=tr(lang, "btn_back"), callback_data="donate_back")],
+            ]
         ),
     )
 
