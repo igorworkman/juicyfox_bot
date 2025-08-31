@@ -29,13 +29,13 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
 
-    # Determine the text and keyboard to restore based on the plan callback
+    # Determine the description and keyboard to restore based on the plan callback
     if plan_cb.startswith("vipay"):
-        text = tr(lang, "vip_secret_desc")
+        desc = tr(lang, "vip_secret_desc")
         kb = vip_currency_kb(lang)
     elif plan_cb.startswith("paymem:"):
         _, _, plan_code = plan_cb.partition(":")
-        text = tr(lang, "choose_cur", amount=price)
+        desc = tr(lang, "choose_cur", amount=price)
         kb = chat_currency_kb(plan_code, lang)
     else:
         builder = InlineKeyboardBuilder()
@@ -43,15 +43,19 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
             builder.button(text=title, callback_data=f"{plan_cb}:{code}")
         builder.button(text=tr(lang, "btn_back"), callback_data="ui:back")
         builder.adjust(2, 2, 2, 2, 1)
-        text = tr(
+        tariff_desc = tr(
             lang,
             "tariff_desc",
             plan_name=plan_name or "",
             price=price,
             period=period or 0,
         )
+        if plan_name == "VIP CLUB":
+            desc = tr(lang, "vip_club_description")
+        else:
+            desc = tariff_desc
         kb = builder.as_markup()
 
     # Replace the invoice with the original tariff description and currency menu
-    await callback.message.edit_text(text, reply_markup=kb)
+    await callback.message.edit_text(desc, reply_markup=kb)
 
