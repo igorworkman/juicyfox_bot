@@ -24,7 +24,7 @@ log = logging.getLogger("juicyfox.ui_membership.handlers")
 # Клавиатуры текущего модуля
 from .keyboards import (
     donate_back_kb,
-    donate_kb,
+    currency_menu,
     main_menu_kb,
     reply_menu,
     vip_currency_kb,
@@ -218,15 +218,16 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 @router.message(lambda m: (m.text or "").strip() == tr(get_lang(m.from_user), "btn_donate"))
 async def donate_currency(msg: Message, state: FSMContext) -> None:
     await state.set_state(Donate.choosing_currency)
+    lang = get_lang(msg.from_user)
     await msg.answer(
-        tr(get_lang(msg.from_user), "choose_cur", amount="donate"),
-        reply_markup=donate_kb(),
+        tr(lang, "donate_select_currency"),
+        reply_markup=currency_menu(lang, "donate$"),
     )
 
-@router.callback_query(F.data.startswith("donate:cur:"), Donate.choosing_currency)
+@router.callback_query(F.data.startswith("donate$"), Donate.choosing_currency)
 async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
-    # ожидаем формат donate:cur:<ASSET>, например donate:cur:USDT
-    _, _, cur = cq.data.partition("donate:cur:")
+    # ожидаем формат donate$<ASSET>, например donate$USDT
+    _, cur = cq.data.split("$", 1)
     cur = cur.strip().upper()
     if cur not in CURRENCY_CODES:
         await cq.answer("Unsupported currency", show_alert=True)

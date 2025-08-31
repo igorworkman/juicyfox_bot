@@ -33,6 +33,19 @@ def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
+def currency_menu(lang: str | None, prefix: str) -> InlineKeyboardMarkup:
+    """Build currency menu based on VIP layout with custom prefix."""
+    kb = vip_currency_kb(lang)
+    for row in kb.inline_keyboard[:-1]:
+        for btn in row:
+            if btn.callback_data:
+                code = btn.callback_data.split(":", 1)[1]
+                btn.callback_data = f"{prefix}{code}"
+    back_btn = kb.inline_keyboard[-1][0]
+    back_btn.callback_data = "donate:back" if prefix.startswith("donate") else "ui:back"
+    return kb
+
+
 def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
 
     """Меню выбора валюты для Luxury-подписки."""
