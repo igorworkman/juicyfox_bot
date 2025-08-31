@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton
 
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
@@ -55,6 +55,21 @@ def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
     b.adjust(3, 1)
     return b.as_markup()
+
+
+def donate_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="5$", callback_data="donate_5"),
+             InlineKeyboardButton(text="10$", callback_data="donate_10"),
+             InlineKeyboardButton(text="25$", callback_data="donate_25")],
+            [InlineKeyboardButton(text="50$", callback_data="donate_50"),
+             InlineKeyboardButton(text="100$", callback_data="donate_100"),
+             InlineKeyboardButton(text="200$", callback_data="donate_200")],
+            [InlineKeyboardButton(text="500$", callback_data="donate_500")],
+            [InlineKeyboardButton(text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel")],
+        ]
+    )
 
 def donate_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Выбор валюты для доната: donate:cur:<CODE> + Назад."""

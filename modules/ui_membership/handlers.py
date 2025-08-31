@@ -23,11 +23,11 @@ log = logging.getLogger("juicyfox.ui_membership.handlers")
 
 # Клавиатуры текущего модуля
 from .keyboards import (
-    donate_back_kb,
     currency_menu,
     main_menu_kb,
     reply_menu,
     vip_currency_kb,
+    donate_keyboard,
 )
 from .chat_keyboards import chat_tariffs_kb
 from .chat_handlers import router as chat_router
@@ -216,22 +216,14 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 # Донаты
 # =======================
 @router.message(lambda m: (m.text or "").strip() == tr(get_lang(m.from_user), "btn_donate"))
-async def donate_menu(msg: Message) -> None:
+async def donate_menu(msg: Message, state: FSMContext) -> None:
+    await state.clear()
     lang = get_lang(msg.from_user)
+    await msg.answer(tr(lang, "donate_intro_1"))
+    await msg.answer(tr(lang, "donate_intro_2"))
     await msg.answer(
         tr(lang, "donate_menu"),
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="5$", callback_data="donate_5"),
-                 InlineKeyboardButton(text="10$", callback_data="donate_10"),
-                 InlineKeyboardButton(text="25$", callback_data="donate_25")],
-                [InlineKeyboardButton(text="50$", callback_data="donate_50"),
-                 InlineKeyboardButton(text="100$", callback_data="donate_100"),
-                 InlineKeyboardButton(text="200$", callback_data="donate_200")],
-                [InlineKeyboardButton(text="500$", callback_data="donate_500")],
-                [InlineKeyboardButton(text=tr(lang, "btn_back"), callback_data="donate_back")],
-            ]
-        ),
+        reply_markup=donate_keyboard(lang),
     )
 
 @router.callback_query(F.data.startswith("donate_"))
@@ -276,11 +268,19 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
         await cq.message.answer(tr(lang, "inv_err"))
     await state.clear()
 
+@router.callback_query(F.data == "donate_cancel")
+async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = get_lang(callback.from_user)
+    await state.clear()
+    await callback.message.edit_text(
+        tr(lang, "donate_cancel"),
+        reply_markup=main_menu_kb(lang),
+    )
+    await callback.answer()
+
 @router.callback_query(F.data.in_({"donate:back", "donate_back"}))
 async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
-    await state.clear()
-    lang = get_lang(cq.from_user)
-    await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+    await cancel_donate(cq, state)
 
 
 # --- Legacy reply-кнопки (на переходный период) ---
