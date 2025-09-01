@@ -138,7 +138,7 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
     currency = "USDT"
     amount = VIP_PRICE_USD
     await state.update_data(
-        plan_name="VIP",
+        plan_name="VIP CLUB",
         price=float(amount),
         period=30,
         plan_callback="vipay",
@@ -162,7 +162,7 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
             inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
         await callback.message.edit_text(
-            tr(lang, "invoice_message", plan="VIP", url=url),
+            tr(lang, "invoice_message", plan="VIP CLUB", url=url),
             reply_markup=kb,
         )
     else:
@@ -186,7 +186,7 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
         VIP_PRICE_USD,
     )
     await state.update_data(
-        plan_name="VIP",
+        plan_name="VIP CLUB",
         price=float(VIP_PRICE_USD),
         period=30,
         plan_callback="vipay",
@@ -204,7 +204,7 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
             inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
         )
         await callback.message.edit_text(
-            tr(lang, "invoice_message", plan="VIP", url=url),
+            tr(lang, "invoice_message", plan="VIP CLUB", url=url),
             reply_markup=kb,
         )
     else:
