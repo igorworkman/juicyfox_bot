@@ -17,7 +17,7 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     b.button(text=tr(lang, "btn_vip"), callback_data="ui:vip")
     b.button(text=tr(lang, "btn_chat"), callback_data="ui:chat")
     b.button(text=tr(lang, "btn_donate"), callback_data="ui:donate")
-    b.adjust(2, 1, 1)
+    b.adjust(2, 2)
     return b.as_markup()
 
 

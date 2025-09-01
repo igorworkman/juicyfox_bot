@@ -84,7 +84,9 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data.in_({"ui:back", "back_to_main", "back"}))
-async def back_to_main(cq: CallbackQuery) -> None:
+async def back_to_main(cq: CallbackQuery, state: FSMContext) -> None:
+    """Return to main menu and reset any conversation state."""
+    await state.clear()
     lang = get_lang(cq.from_user)
     await cq.message.edit_text(
         tr(lang, "choose_action"),
