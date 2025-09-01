@@ -57,7 +57,7 @@
   "posting_only_group": "⛔ Available only in posting group",
   "posting_admin_only": "⛔ Only admins can schedule posts",
   "where_post": "Where to post?",
-  "invoice_message": "Payment invoice ({plan}): {url}",
+  "invoice_message": "Payment invoice ({plan}) ✅: {url}",
   "vip_access_link": "🔑 Your VIP channel access: {link}",
   "luxury_access_link": "🔑 Access to Luxury Room: {link}",
   "operator_reply_no_text": "📩 Operator reply (no text)",

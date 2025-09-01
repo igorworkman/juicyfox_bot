@@ -57,7 +57,7 @@
   "posting_only_group": "⛔ Disponible solo en el grupo de publicaciones",
   "posting_admin_only": "⛔ Solo los administradores pueden programar publicaciones",
   "where_post": "¿Dónde publicar?",
-  "invoice_message": "Factura de pago ({plan}): {url}",
+  "invoice_message": "Factura de pago ({plan}) ✅: {url}",
   "vip_access_link": "🔑 Acceso a tu canal VIP: {link}",
   "luxury_access_link": "🔑 Acceso a Luxury Room: {link}",
   "operator_reply_no_text": "📩 Respuesta del operador (sin texto)",
