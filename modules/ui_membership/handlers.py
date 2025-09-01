@@ -29,6 +29,7 @@ from .keyboards import (
     donate_keyboard,
     donate_currency_keyboard,
     donate_invoice_keyboard,
+    vip_invoice_keyboard,
 )
 from .chat_keyboards import chat_tariffs_kb
 from .chat_handlers import router as chat_router
@@ -163,12 +164,9 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
     )
     url = _invoice_url(inv)
     if url:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
-        )
         await callback.message.edit_text(
             tr(lang, "invoice_message", plan="VIP CLUB", url=url),
-            reply_markup=kb,
+            reply_markup=vip_invoice_keyboard(lang, url),
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))
@@ -207,12 +205,9 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
     )
     url = _invoice_url(inv)
     if url:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
-        )
         await callback.message.edit_text(
             tr(lang, "invoice_message", plan="VIP CLUB", url=url),
-            reply_markup=kb,
+            reply_markup=vip_invoice_keyboard(lang, url),
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))

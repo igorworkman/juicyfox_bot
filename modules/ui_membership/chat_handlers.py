@@ -11,6 +11,7 @@ from modules.payments import create_invoice
 from shared.utils.lang import get_lang
 
 from .chat_keyboards import chat_tariffs_kb, chat_currency_kb
+from .keyboards import chat_invoice_keyboard
 from .utils import _build_meta
 
 router = Router()
@@ -90,13 +91,10 @@ async def paymem_currency(callback: CallbackQuery, state: FSMContext) -> None:
 
     url = _invoice_url(inv)
     if url:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
-        )
         plan_name = PLAN_TITLES.get(plan_code, plan_code)
         await callback.message.edit_text(
             tr(lang, "invoice_message", plan=plan_name, url=url),
-            reply_markup=kb,
+            reply_markup=chat_invoice_keyboard(lang, url),
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))
