@@ -24,6 +24,7 @@ BUTTONS = {
 
     "btn_see_chat": "SEE YOU MY CHAT💬",
     "btn_back": "⬅️ Back",
+    "btn_cancel": "❌ Cancel",
     "btn_pay_vip": "💳 Pay VIP",
     "btn_pay_chat": "💳 Pay Chat",
     "reply_placeholder": "Choose an option below:",
