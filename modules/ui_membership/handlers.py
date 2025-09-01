@@ -97,7 +97,7 @@ async def back_to_main(cq: CallbackQuery) -> None:
 @router.callback_query(F.data.in_({"ui:vip", "vip"}))
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
-    await cq.message.edit_text(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb(lang))
+    await cq.message.edit_text(tr(lang, "vip_club_description"), reply_markup=vip_currency_kb(lang))
 
 
 @router.message(Command("currency"))
