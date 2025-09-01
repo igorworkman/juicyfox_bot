@@ -320,14 +320,8 @@ async def legacy_reply_luxury(msg: Message) -> None:
 async def life_link(cq: CallbackQuery):
     lang = get_lang(cq.from_user)
     kb = InlineKeyboardBuilder()
-    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
     await cq.message.edit_text(tr(lang, "life", my_channel=LIFE_URL), reply_markup=kb.as_markup())
-
-
-@router.callback_query(F.data == "back")
-async def back_to_main(cq: CallbackQuery):
-    lang = get_lang(cq.from_user)
-    await cq.message.edit_text(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
 
 """
 @router.callback_query(F.data == "donate")
@@ -410,7 +404,7 @@ async def luxury_room_reply(msg: Message):
     kb = InlineKeyboardBuilder()
     for title, code in CURRENCIES:
         kb.button(text=title, callback_data=f"payc:club:{code}")
-    kb.button(text="⬅️ Назад", callback_data="back")
+    kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
