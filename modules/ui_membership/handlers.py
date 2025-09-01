@@ -251,6 +251,15 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
         reply_markup=donate_currency_keyboard(lang),
     )
 
+@router.callback_query(F.data == "donate_back", Donate.choosing_currency)
+async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
+    """Return to amount selection without clearing state."""
+    lang = get_lang(cq.from_user)
+    await cq.message.edit_text(
+        tr(lang, "donate_menu"),
+        reply_markup=donate_keyboard(lang),
+    )
+
 @router.callback_query(F.data.startswith("donate$"), Donate.choosing_currency)
 async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     # ожидаем формат donate$<ASSET>, например donate$USDT

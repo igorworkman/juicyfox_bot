@@ -68,6 +68,7 @@ def donate_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
              InlineKeyboardButton(text="100$", callback_data="donate_100"),
              InlineKeyboardButton(text="200$", callback_data="donate_200")],
             [InlineKeyboardButton(text="500$", callback_data="donate_500")],
+            [InlineKeyboardButton(text=tr(lang or "en", "btn_back"), callback_data="ui:back")],
         ]
     )
 
@@ -78,15 +79,15 @@ def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
         for btn in row:
             btn.callback_data = f"donate${btn.callback_data.split(':', 1)[1]}"
     kb.inline_keyboard[-1][0] = InlineKeyboardButton(
-        text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel"
+        text=tr(lang or "en", "btn_back"), callback_data="donate_back"
     )
     return kb
 
 
 def donate_invoice_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel")]]
-    )
+    b = InlineKeyboardBuilder()
+    b.button(text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel")
+    return b.as_markup()
 
 def donate_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Выбор валюты для доната: donate:cur:<CODE> + Назад."""
