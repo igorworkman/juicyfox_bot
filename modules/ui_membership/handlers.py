@@ -303,7 +303,9 @@ async def legacy_reply_luxury(msg: Message) -> None:
 })
 async def legacy_reply_vip(msg: Message) -> None:
     lang = get_lang(msg.from_user)
-    await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
+    await msg.answer(
+        tr(lang, "vip_club_description"), reply_markup=vip_currency_kb(lang)
+    )
 
 @router.callback_query(F.data == "life")
 async def life_link(cq: CallbackQuery):
@@ -407,7 +409,9 @@ async def luxury_room_reply(msg: Message):
 @router.message(F.text.in_({"VIP CLUB 🔞 - 19 $", "❤️‍🔥 VIP Secret - 35 $"}))
 async def vip_secret_reply(msg: Message):
     lang = get_lang(msg.from_user)
-    await msg.answer(tr(lang, "vip_secret_desc"), reply_markup=vip_currency_kb())
+    text = (msg.text or "").upper()
+    key = "vip_club_description" if "VIP CLUB" in text else "vip_secret_desc"
+    await msg.answer(tr(lang, key), reply_markup=vip_currency_kb(lang))
 
 
 @router.callback_query(F.data == "tip_menu")
