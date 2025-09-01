@@ -28,6 +28,7 @@ from .keyboards import (
     vip_currency_kb,
     donate_keyboard,
     donate_currency_keyboard,
+    donate_invoice_keyboard,
 )
 from .chat_keyboards import chat_tariffs_kb
 from .chat_handlers import router as chat_router
@@ -270,18 +271,16 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     )
     url = _invoice_url(inv)
     if url:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=tr(lang, "btn_cancel"), callback_data="cancel")]]
-        )
-        await cq.message.answer(
+        await cq.message.edit_text(
             tr(lang, "invoice_message", plan="Donate", url=url),
-            reply_markup=kb,
+            reply_markup=donate_invoice_keyboard(lang),
         )
+        await state.set_state(Donate.confirm)
     else:
         await cq.message.answer(tr(lang, "inv_err"))
-    await state.clear()
 
 @router.callback_query(F.data == "donate_cancel")
+@router.callback_query(Donate.confirm)
 async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(callback.from_user)
     await state.clear()

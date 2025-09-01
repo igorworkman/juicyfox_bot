@@ -82,6 +82,12 @@ def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
     )
     return kb
 
+
+def donate_invoice_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel")]]
+    )
+
 def donate_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Выбор валюты для доната: donate:cur:<CODE> + Назад."""
     b = InlineKeyboardBuilder()
