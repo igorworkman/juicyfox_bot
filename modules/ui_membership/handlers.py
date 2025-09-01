@@ -395,20 +395,9 @@ async def luxury_room_reply(msg: Message):
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
 
-
 @router.message(
     lambda m: _norm(m.text) in {
         _norm(tr(get_lang(m.from_user), "btn_vip")),
-
-        "VIP CLUB 🔞 - 19 $",
-        "❤️‍🔥 VIP Secret - 35 $",
-    }
-)
-async def vip_secret_reply(msg: Message) -> None:
-    lang = get_lang(msg.from_user)
-    text = (_norm(msg.text)).upper()
-    key = "vip_club_description" if "VIP CLUB" in text else "vip_secret_desc"
-
         _norm("❤️‍🔥 VIP Secret - 35 $"),
     }
 )
@@ -421,6 +410,7 @@ async def vip_secret_reply(msg: Message):
     }
     key = descriptions.get(text, "vip_club_description")
 
+    log.info(f"Handler: vip_club_reply / plan={key}")
     await msg.answer(tr(lang, key), reply_markup=vip_currency_kb(lang))
 
 
