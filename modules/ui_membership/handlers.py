@@ -219,8 +219,19 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 # =======================
 # Донаты
 # =======================
+@router.callback_query(F.data == "ui:donate")
+async def donate_menu(cq: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    lang = get_lang(cq.from_user)
+    await cq.message.edit_text(
+        tr(lang, "donate_menu"),
+        reply_markup=donate_keyboard(lang),
+    )
+
+
 @router.message(lambda m: (m.text or "").strip() == tr(get_lang(m.from_user), "btn_donate"))
-async def donate_menu(msg: Message, state: FSMContext) -> None:
+async def donate_menu_legacy(msg: Message, state: FSMContext) -> None:
+    """Legacy reply-keyboard support."""
     await state.clear()
     lang = get_lang(msg.from_user)
     await msg.answer(
