@@ -243,7 +243,7 @@ async def donate_menu_legacy(msg: Message, state: FSMContext) -> None:
         reply_markup=donate_keyboard(lang),
     )
 
-@router.callback_query(F.data.startswith("donate_"))
+@router.callback_query(F.data.regexp(r"^donate_\d+$"))
 async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
     amount = int(cq.data.split("_", 1)[1])
     await state.update_data(amount=amount)

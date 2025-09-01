@@ -85,6 +85,7 @@ def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
 
 
 def donate_invoice_keyboard(lang):
+    """Invoice screen with a dedicated cancel callback."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="❌ Cancel", callback_data="donate_cancel_invoice")]
