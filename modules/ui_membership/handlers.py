@@ -78,10 +78,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
             tr(lang, "choose_action"),
             reply_markup=reply_menu(lang),
         )
-    await message.answer(
-        tr(lang, "choose_action"),
-        reply_markup=main_menu_kb(lang),
-    )
+    # Inline menu is not shown at start; it will appear on Back button
 
 
 @router.callback_query(F.data.in_({"ui:back", "back_to_main", "back"}))
@@ -251,12 +248,12 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "donate_back", Donate.choosing_currency)
 async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
-    """Go back to amount selection and reset state to start."""
-    await state.set_state(None)
+    """Return from donate flow to the main inline menu."""
+    await state.clear()
     lang = get_lang(cq.from_user)
     await cq.message.edit_text(
-        tr(lang, "donate_menu"),
-        reply_markup=donate_keyboard(lang),
+        tr(lang, "choose_action"),
+        reply_markup=main_menu_kb(lang),
     )
 
 @router.callback_query(F.data.startswith("donate$"), Donate.choosing_currency)
@@ -289,23 +286,25 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "donate_cancel_invoice")
 async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
-    lang = get_lang(callback.from_user)
-    await state.set_state(Donate.choosing_currency)
-    await callback.message.edit_text(
-        tr(lang, "donate_currency"),
-        reply_markup=donate_currency_keyboard(lang)
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "donate_cancel")
-async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
+    """Cancel invoice and show the main menu."""
     lang = get_lang(callback.from_user)
     await state.clear()
     await callback.answer(tr(lang, "donate_cancel"))
     await callback.message.edit_text(
-        tr(lang, "donate_menu"),
-        reply_markup=donate_keyboard(lang),
+        tr(lang, "choose_action"),
+        reply_markup=main_menu_kb(lang),
+    )
+
+
+@router.callback_query(F.data == "donate_cancel")
+async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
+    """Handle external donate cancel actions and return to main menu."""
+    lang = get_lang(callback.from_user)
+    await state.clear()
+    await callback.answer(tr(lang, "donate_cancel"))
+    await callback.message.edit_text(
+        tr(lang, "choose_action"),
+        reply_markup=main_menu_kb(lang),
     )
 
 
