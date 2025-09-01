@@ -23,11 +23,11 @@ log = logging.getLogger("juicyfox.ui_membership.handlers")
 
 # Клавиатуры текущего модуля
 from .keyboards import (
-    currency_menu,
     main_menu_kb,
     reply_menu,
     vip_currency_kb,
     donate_keyboard,
+    donate_currency_keyboard,
 )
 from .chat_keyboards import chat_tariffs_kb
 from .chat_handlers import router as chat_router
@@ -219,8 +219,6 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
 async def donate_menu(msg: Message, state: FSMContext) -> None:
     await state.clear()
     lang = get_lang(msg.from_user)
-    await msg.answer(tr(lang, "donate_intro_1"))
-    await msg.answer(tr(lang, "donate_intro_2"))
     await msg.answer(
         tr(lang, "donate_menu"),
         reply_markup=donate_keyboard(lang),
@@ -232,9 +230,9 @@ async def donate_currency(cq: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(amount=amount)
     await state.set_state(Donate.choosing_currency)
     lang = get_lang(cq.from_user)
-    await cq.message.answer(
-        tr(lang, "donate_select_currency"),
-        reply_markup=currency_menu(lang, "donate$"),
+    await cq.message.edit_text(
+        tr(lang, "donate_currency"),
+        reply_markup=donate_currency_keyboard(lang),
     )
 
 @router.callback_query(F.data.startswith("donate$"), Donate.choosing_currency)
@@ -272,15 +270,11 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
 async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(callback.from_user)
     await state.clear()
+    await callback.answer(tr(lang, "donate_cancel"))
     await callback.message.edit_text(
-        tr(lang, "donate_cancel"),
-        reply_markup=main_menu_kb(lang),
+        tr(lang, "donate_menu"),
+        reply_markup=donate_keyboard(lang),
     )
-    await callback.answer()
-
-@router.callback_query(F.data.in_({"donate:back", "donate_back"}))
-async def donate_back(cq: CallbackQuery, state: FSMContext) -> None:
-    await cancel_donate(cq, state)
 
 
 # --- Legacy reply-кнопки (на переходный период) ---
