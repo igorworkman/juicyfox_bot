@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
@@ -12,6 +14,7 @@ from modules.ui_membership.keyboards import vip_currency_kb
 from shared.utils.lang import get_lang
 
 
+log = logging.getLogger("juicyfox.payments.handlers")
 router = Router()
 
 
@@ -24,6 +27,8 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
     plan_name = data.get("plan_name")
     price = data.get("price")
     period = data.get("period")
+
+    log.debug("Retrieved plan_name from state: %s", plan_name)
 
     if not plan_cb or price is None:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
