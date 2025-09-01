@@ -84,10 +84,11 @@ def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
     return kb
 
 
-def donate_invoice_keyboard(lang):
+def donate_invoice_keyboard(lang, url: str):
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Cancel", callback_data="donate_cancel_invoice")]
+            [InlineKeyboardButton(text="\U0001F4B3 Pay", url=url)],
+            [InlineKeyboardButton(text="\u274C Cancel", callback_data="donate_cancel_invoice")]
         ]
     )
 
