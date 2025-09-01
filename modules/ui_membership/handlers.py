@@ -143,6 +143,8 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
         period=30,
         plan_callback="vipay",
     )
+    data = await state.get_data()
+    log.debug("Saved plan_name: %s", data.get("plan_name"))
     log.info(
         "pay_vip: user=%s currency=%s amount=%s",
         callback.from_user.id,
@@ -191,6 +193,8 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
         period=30,
         plan_callback="vipay",
     )
+    data = await state.get_data()
+    log.debug("Saved plan_name: %s", data.get("plan_name"))
     inv = await create_invoice(
         user_id=callback.from_user.id,
         plan_code="vip_30d",
