@@ -35,11 +35,14 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         return
 
     # Determine the description and keyboard to restore based on the plan callback
-    if plan_name == "VIP CLUB":
-        desc = tr(lang, "vip_club_description")
-        kb = vip_currency_kb(lang)
-    elif plan_cb.startswith("vipay"):
-        desc = tr(lang, "vip_secret_desc")
+    if plan_cb.startswith("vipay"):
+        plan_key = plan_cb.split(":", 1)[0]
+        plan_desc: dict[str, str] = {
+            "vipay": "vip_club_description",
+            "vip_secret": "vip_secret_desc",
+        }
+        key = plan_desc.get(plan_key, "vip_secret_desc")
+        desc = tr(lang, key)
         kb = vip_currency_kb(lang)
     elif plan_cb.startswith("paymem:"):
         _, _, plan_code = plan_cb.partition(":")
