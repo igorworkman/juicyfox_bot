@@ -282,11 +282,11 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
         meta={"user_id": cq.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
         asset=cur,
     )
-    url = _invoice_url(inv)
-    if url:
+    invoice_url = _invoice_url(inv)
+    if invoice_url:
         await cq.message.edit_text(
-            tr(lang, "invoice_message", plan="Donate", url=url),
-            reply_markup=donate_invoice_keyboard(lang),
+            tr(lang, "invoice_message", plan="Donate", url=invoice_url),
+            reply_markup=donate_invoice_keyboard(lang, invoice_url),
         )
         await state.set_state(Donate.confirm)
     else:
