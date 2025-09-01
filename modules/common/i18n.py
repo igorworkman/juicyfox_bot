@@ -13,7 +13,8 @@ for lang in ("ru", "en", "es"):
 BUTTONS = {
     "btn_life": "👀 Juicy Life - Free",
     "btn_lux": "💎 Luxury Room - 15 $",
-    # "btn_vip": "❤️‍🔥 VIP Secret - 35 $",
+    # Legacy buttons
+    # "btn_vip_secret": "❤️‍🔥 VIP Secret - 35 $",  # VIP Secret plan
     # "btn_chat": "💬 Juicy Chat",
     # "btn_donate": "🎁 Custom",
 

@@ -38,8 +38,8 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
     if plan_cb.startswith("vipay"):
         plan_key = plan_cb.split(":", 1)[0]
         plan_desc: dict[str, str] = {
-            "vipay": "vip_club_description",
-            "vip_secret": "vip_secret_desc",
+            "vipay": "vip_club_description",    # VIP CLUB plan
+            "vip_secret": "vip_secret_desc",    # VIP Secret plan
         }
         key = plan_desc.get(plan_key, "vip_secret_desc")
         desc = tr(lang, key)

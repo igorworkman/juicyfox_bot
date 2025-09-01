@@ -416,8 +416,8 @@ async def vip_secret_reply(msg: Message):
     lang = get_lang(msg.from_user)
     text = _norm(msg.text)
     descriptions = {
-        _norm(tr(lang, "btn_vip")): "vip_club_description",
-        _norm("❤️‍🔥 VIP Secret - 35 $"): "vip_secret_desc",
+        _norm(tr(lang, "btn_vip")): "vip_club_description",  # VIP CLUB plan
+        _norm("❤️‍🔥 VIP Secret - 35 $"): "vip_secret_desc",  # VIP Secret plan
     }
     key = descriptions.get(text, "vip_club_description")
     await msg.answer(tr(lang, key), reply_markup=vip_currency_kb(lang))
