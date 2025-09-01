@@ -67,9 +67,19 @@ def donate_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
              InlineKeyboardButton(text="100$", callback_data="donate_100"),
              InlineKeyboardButton(text="200$", callback_data="donate_200")],
             [InlineKeyboardButton(text="500$", callback_data="donate_500")],
-            [InlineKeyboardButton(text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel")],
         ]
     )
+
+
+def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
+    kb = vip_currency_kb(lang)
+    for row in kb.inline_keyboard[:-1]:
+        for btn in row:
+            btn.callback_data = f"donate${btn.callback_data.split(':', 1)[1]}"
+    kb.inline_keyboard[-1][0] = InlineKeyboardButton(
+        text=tr(lang or "en", "btn_cancel"), callback_data="donate_cancel"
+    )
+    return kb
 
 def donate_kb(lang: str | None = None) -> InlineKeyboardMarkup:
     """Выбор валюты для доната: donate:cur:<CODE> + Назад."""
