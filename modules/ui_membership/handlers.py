@@ -292,8 +292,19 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     else:
         await cq.message.answer(tr(lang, "inv_err"))
 
+@router.callback_query(F.data == "donate_cancel_invoice")
+async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
+    lang = get_lang(callback.from_user)
+    data = await state.get_data()
+    await state.set_state(Donate.choosing_currency)
+    await callback.message.edit_text(
+        tr(lang, "donate_currency"),
+        reply_markup=donate_currency_keyboard(lang)
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "donate_cancel")
-@router.callback_query(Donate.confirm)
 async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(callback.from_user)
     await state.clear()
