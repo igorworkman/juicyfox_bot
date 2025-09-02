@@ -217,6 +217,55 @@ async def relay_incoming_to_group(msg: Message):
         log.exception("relay to group failed: %s", e)
 
 
+# REGION AI: auto relay from group
+@router.message(F.chat.id == RELAY_GROUP_ID)
+async def relay_from_group(msg: Message) -> None:
+    if not msg.reply_to_message or (msg.text and msg.text.startswith("/")):
+        return
+    parts = (msg.reply_to_message.caption or msg.reply_to_message.text or "").split()
+    if len(parts) < 2 or parts[0] != "from:" or not parts[1].isdigit():
+        return
+    user_id = int(parts[1])
+    try:
+        typ, sender, args, log_data = (
+            "unknown",
+            msg.bot.send_message,
+            (user_id, "[unsupported content]"),
+            {},
+        )
+        if msg.text:
+            typ, sender, args, log_data = "text", msg.bot.send_message, (user_id, msg.text), {"text": msg.text}
+        elif msg.photo:
+            fid = msg.photo[-1].file_id
+            typ, sender, args, log_data = "photo", msg.bot.send_photo, (user_id, fid), {"file_id": fid, "text": msg.caption}
+        elif msg.video:
+            fid = msg.video.file_id
+            typ, sender, args, log_data = "video", msg.bot.send_video, (user_id, fid), {"file_id": fid, "text": msg.caption}
+        elif msg.voice:
+            fid = msg.voice.file_id
+            typ, sender, args, log_data = "voice", msg.bot.send_voice, (user_id, fid), {"file_id": fid, "text": msg.caption}
+        elif msg.document:
+            fid = msg.document.file_id
+            typ, sender, args, log_data = "document", msg.bot.send_document, (user_id, fid), {"file_id": fid, "text": msg.caption}
+        elif msg.animation:
+            fid = msg.animation.file_id
+            typ, sender, args, log_data = "animation", msg.bot.send_animation, (user_id, fid), {"file_id": fid, "text": msg.caption}
+        elif msg.sticker:
+            typ, sender, args, log_data = "sticker", msg.bot.send_sticker, (user_id, msg.sticker.file_id), {"text": msg.sticker.emoji}
+        try:
+            await sender(*args, caption=msg.caption if typ not in {"text", "sticker", "unknown"} else None)
+        except Exception:
+            if typ == "sticker":
+                await msg.bot.send_message(user_id, "[sticker]")
+            else:
+                raise
+        await _repo.log_message(user_id, "out", {"type": typ, **log_data, "ts": _now_ts()})
+        log.info("reply_to_user success user_id=%s type=%s", user_id, typ)
+    except Exception as e:
+        log.error("reply_to_user failed user_id=%s error=%s", user_id, e)
+    finally:
+        await _repo.reset_streak(user_id)
+# END REGION AI
 # ========== Ответ из рабочей группы пользователю ==========
 @router.message(Command("r"))
 async def reply_from_group(cmd: Message, command: CommandObject):
