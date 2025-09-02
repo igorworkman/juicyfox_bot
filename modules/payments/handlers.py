@@ -9,7 +9,7 @@ from modules.common.i18n import tr
 from modules.ui_membership.chat_keyboards import chat_currency_kb
 from modules.ui_membership.keyboards import vip_currency_kb, donate_currency_keyboard
 from shared.utils.lang import get_lang
-from shared.db.repo import get_active_invoice, delete_active_invoice
+from shared.db.repo import get_active_invoice, delete_pending_invoice
 
 
 log = logging.getLogger("juicyfox.payments.handlers")
@@ -26,7 +26,7 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
 
-    await delete_active_invoice(callback.from_user.id)
+    await delete_pending_invoice(invoice["invoice_id"])
     plan_code = invoice["plan_code"]
     plan_callback = invoice.get("plan_callback") or ""
 
