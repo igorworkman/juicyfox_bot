@@ -210,6 +210,29 @@ async def delete_pending_invoice(invoice_id: str) -> None:
         await db.execute("DELETE FROM pending_invoices WHERE invoice_id=?", (invoice_id,))
         await db.commit()
 
+
+async def get_active_invoice(user_id: int) -> Optional[Dict[str, Any]]:
+    async with _db() as db:
+        cur = await db.execute(
+            "SELECT invoice_id, plan_code, currency FROM pending_invoices WHERE user_id=? ORDER BY created_at DESC LIMIT 1",
+            (user_id,),
+        )
+        row = await cur.fetchone()
+    if row:
+        invoice_id, plan_code, currency = row
+        return {
+            "invoice_id": invoice_id,
+            "plan_code": plan_code,
+            "currency": currency,
+        }
+    return None
+
+
+async def delete_active_invoice(user_id: int) -> None:
+    async with _db() as db:
+        await db.execute("DELETE FROM pending_invoices WHERE user_id=?", (user_id,))
+        await db.commit()
+
 async def log_payment_event(event: Dict[str, Any]) -> None:
     """
     event: dict из normalize_webhook(...), поля: provider, invoice_id, status, amount, currency, meta

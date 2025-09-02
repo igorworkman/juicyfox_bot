@@ -5,14 +5,12 @@ import logging
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-
 from modules.common.i18n import tr
-from modules.constants.currencies import CURRENCIES
+from modules.constants.prices import CHAT_PRICES_USD
 from modules.ui_membership.chat_keyboards import chat_currency_kb
 from modules.ui_membership.keyboards import vip_currency_kb
 from shared.utils.lang import get_lang
-from shared.db.repo import delete_pending_invoice
+from shared.db.repo import get_active_invoice, delete_active_invoice
 
 
 log = logging.getLogger("juicyfox.payments.handlers")
@@ -21,53 +19,27 @@ router = Router()
 
 @router.callback_query(F.data == "cancel")
 async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
-    """Handle invoice cancellation and restore full tariff description with currency menu."""
+    """Handle invoice cancellation and restore currency selection."""
     lang = get_lang(callback.from_user)
-    data = await state.get_data()
-    plan_cb = data.get("plan_callback")
-    plan_name = data.get("plan_name")
-    price = data.get("price")
-    period = data.get("period")
-    invoice_id = data.get("invoice_id")
-
-    log.debug("Retrieved plan_name from state: %s", plan_name)
-
-    if not plan_cb or price is None:
+    invoice = await get_active_invoice(callback.from_user.id)
+    log.debug("Active invoice for user %s: %s", callback.from_user.id, invoice)
+    if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
 
-    # Determine the description and keyboard to restore based on the plan callback
-    if plan_cb.startswith("vipay"):
-        plan_key = plan_cb.split(":", 1)[0]
-        plan_desc: dict[str, str] = {
-            "vipay": "vip_club_description",    # VIP CLUB plan
-            "vip_secret": "vip_secret_desc",    # VIP Secret plan
-        }
-        key = plan_desc.get(plan_key, "vip_secret_desc")
-        desc = tr(lang, key)
-        kb = vip_currency_kb(lang)
-    elif plan_cb.startswith("paymem:"):
-        _, _, plan_code = plan_cb.partition(":")
-        desc = tr(lang, "choose_cur", amount=price)
-        kb = chat_currency_kb(plan_code, lang)
-    else:
-        builder = InlineKeyboardBuilder()
-        for title, code in CURRENCIES:
-            builder.button(text=title, callback_data=f"{plan_cb}:{code}")
-        builder.button(text=tr(lang, "btn_back"), callback_data="ui:back")
-        builder.adjust(2, 2, 2, 2, 1)
-        desc = tr(
-            lang,
-            "tariff_desc",
-            plan_name=plan_name or "",
-            price=price,
-            period=period or 0,
-        )
-        kb = builder.as_markup()
+    await delete_active_invoice(callback.from_user.id)
+    plan_code = invoice["plan_code"]
 
-    # Replace the invoice with the original tariff description and currency menu
+    if plan_code.startswith("vip"):
+        desc = tr(lang, "vip_club_description")
+        kb = vip_currency_kb(lang)
+    else:
+        amount = CHAT_PRICES_USD.get(plan_code)
+        if amount is None:
+            await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
+            return
+        desc = tr(lang, "choose_cur", amount=amount)
+        kb = chat_currency_kb(plan_code, lang)
+
+    await state.clear()
     await callback.message.edit_text(desc, reply_markup=kb)
-    if invoice_id:
-        await delete_pending_invoice(invoice_id)
-        data.pop("invoice_id", None)
-        await state.set_data(data)
