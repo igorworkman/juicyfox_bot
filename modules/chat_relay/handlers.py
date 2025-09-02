@@ -9,6 +9,10 @@ from typing import Optional, Dict, Any, List
 # REGION AI: imports
 import asyncio
 from aiogram.exceptions import TelegramNetworkError
+try:
+    from shared.db.repo import get_active_invoice
+except Exception:  # pragma: no cover
+    get_active_invoice = None  # type: ignore
 # END REGION AI
 
 from aiogram import Router, F
@@ -218,14 +222,31 @@ async def relay_incoming_to_group(msg: Message):
 
 
 # REGION AI: auto relay from group
+async def _safe_edit_text(msg: Message, text: str, reply_markup: Any = None) -> None:
+    current_text = msg.text or ""
+    if current_text == text and msg.reply_markup == reply_markup:
+        return
+    await msg.edit_text(text, reply_markup=reply_markup)
+
 @router.message(F.chat.id == RELAY_GROUP_ID)
 async def relay_from_group(msg: Message) -> None:
     if not msg.reply_to_message or (msg.text and msg.text.startswith("/")):
         return
     parts = (msg.reply_to_message.caption or msg.reply_to_message.text or "").split()
     if len(parts) < 2 or parts[0] != "from:" or not parts[1].isdigit():
+        log.info("relay_from_group: cannot extract user_id, skipping.")
         return
     user_id = int(parts[1])
+    log.info("relay_from_group: extracted user_id=%s from reply.", user_id)
+    if get_active_invoice:
+        try:
+            invoice = await get_active_invoice(user_id)
+        except Exception:
+            invoice = None
+        if not invoice:
+            log.warning(
+                "relay_from_group: missing user_id in DB, possibly after deploy reset."
+            )
     try:
         typ, sender, args, log_data = (
             "unknown",
@@ -260,9 +281,11 @@ async def relay_from_group(msg: Message) -> None:
             else:
                 raise
         await _repo.log_message(user_id, "out", {"type": typ, **log_data, "ts": _now_ts()})
-        log.info("reply_to_user success user_id=%s type=%s", user_id, typ)
+        if msg.text:
+            await _safe_edit_text(msg, msg.text, reply_markup=None)
+        log.info("relay_from_group: delivered to user_id=%s type=%s", user_id, typ)
     except Exception as e:
-        log.error("reply_to_user failed user_id=%s error=%s", user_id, e)
+        log.error("relay_from_group: failed to deliver user_id=%s error=%s", user_id, e)
     finally:
         await _repo.reset_streak(user_id)
 # END REGION AI
