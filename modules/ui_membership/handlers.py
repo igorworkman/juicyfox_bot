@@ -17,6 +17,7 @@ from modules.constants.currencies import CURRENCIES
 from modules.constants.prices import VIP_PRICE_USD
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
+from shared.db.repo import save_pending_invoice
 from shared.utils.lang import get_lang
 
 log = logging.getLogger("juicyfox.ui_membership.handlers")
@@ -157,6 +158,10 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
         meta=_build_meta(callback.from_user.id, "vip_30d", currency),
         asset=currency,
     )
+    invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
+    if invoice_id:
+        await state.update_data(invoice_id=invoice_id, currency=currency, plan_code="vip_30d")
+        await save_pending_invoice(callback.from_user.id, invoice_id, "vip_30d", currency)
     url = _invoice_url(inv)
     if url:
         await callback.message.edit_text(
@@ -165,7 +170,6 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))
-    await state.clear()
 
 
 @router.callback_query(F.data.startswith("vipay:"))
@@ -199,6 +203,10 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
         meta=_build_meta(callback.from_user.id, "vip_30d", cur),
         asset=cur,
     )
+    invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
+    if invoice_id:
+        await state.update_data(invoice_id=invoice_id, currency=cur, plan_code="vip_30d")
+        await save_pending_invoice(callback.from_user.id, invoice_id, "vip_30d", cur)
     url = _invoice_url(inv)
     if url:
         await callback.message.edit_text(
@@ -207,7 +215,6 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))
-    await state.clear()
 
 
 
