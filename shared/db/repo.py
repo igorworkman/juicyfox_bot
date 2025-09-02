@@ -229,67 +229,147 @@ async def save_pending_invoice(
     price: float,
     period: int,
 ) -> None:
-    async with _db() as db:
-        await db.execute(
-            """
-            INSERT OR REPLACE INTO pending_invoices(
-                invoice_id, user_id, plan_code, currency,
-                plan_callback, plan_name, price, period
-            ) VALUES (?,?,?,?,?,?,?,?)
-            """,
+    sql = (
+        """
+        INSERT OR REPLACE INTO pending_invoices(
+            invoice_id, user_id, plan_code, currency,
+            plan_callback, plan_name, price, period
+        ) VALUES (?,?,?,?,?,?,?,?)
+        """
+    )
+    params = (
+        invoice_id,
+        user_id,
+        plan_code,
+        currency,
+        plan_callback,
+        plan_name,
+        price,
+        period,
+    )
+    try:
+        log.info(
+            "Executing SQL: %s ; invoice_id=%s plan_code=%s plan_callback=%s user_id=%s",
+            sql.strip(),
+            invoice_id,
+            plan_code,
+            plan_callback,
+            user_id,
+        )
+        async with _db() as db:
+            await db.execute(sql, params)
+            await db.commit()
+        log.info(
+            "save_pending_invoice success: invoice_id=%s plan_code=%s user_id=%s",
+            invoice_id,
+            plan_code,
+            user_id,
+        )
+    except Exception:
+        log.exception(
+            "save_pending_invoice failed: invoice_id=%s plan_code=%s plan_callback=%s user_id=%s sql=%s",
+            invoice_id,
+            plan_code,
+            plan_callback,
+            user_id,
+            sql.strip(),
+        )
+
+
+async def delete_pending_invoice(invoice_id: str) -> None:
+    sql = "DELETE FROM pending_invoices WHERE invoice_id=?"
+    try:
+        log.info(
+            "Executing SQL: %s ; invoice_id=%s plan_code=%s plan_callback=%s user_id=%s",
+            sql,
+            invoice_id,
+            None,
+            None,
+            None,
+        )
+        async with _db() as db:
+            await db.execute(sql, (invoice_id,))
+            await db.commit()
+        log.info(
+            "delete_pending_invoice success: invoice_id=%s", invoice_id
+        )
+    except Exception:
+        log.exception(
+            "delete_pending_invoice failed: invoice_id=%s plan_code=%s plan_callback=%s user_id=%s sql=%s",
+            invoice_id,
+            None,
+            None,
+            None,
+            sql,
+        )
+
+
+async def get_active_invoice(user_id: int) -> Optional[Dict[str, Any]]:
+    sql = (
+        """
+        SELECT invoice_id, plan_code, currency,
+               plan_callback, plan_name, price, period
+        FROM pending_invoices
+        WHERE user_id=?
+        ORDER BY created_at DESC LIMIT 1
+        """
+    )
+    try:
+        log.info(
+            "Executing SQL: %s ; invoice_id=%s plan_code=%s plan_callback=%s user_id=%s",
+            sql.strip(),
+            None,
+            None,
+            None,
+            user_id,
+        )
+        async with _db() as db:
+            cur = await db.execute(sql, (user_id,))
+            row = await cur.fetchone()
+        if row:
             (
                 invoice_id,
-                user_id,
                 plan_code,
                 currency,
                 plan_callback,
                 plan_name,
                 price,
                 period,
-            ),
+            ) = row
+            log.info(
+                "get_active_invoice success: invoice_id=%s plan_code=%s plan_callback=%s user_id=%s",
+                invoice_id,
+                plan_code,
+                plan_callback,
+                user_id,
+            )
+            return {
+                "invoice_id": invoice_id,
+                "plan_code": plan_code,
+                "currency": currency,
+                "plan_callback": plan_callback,
+                "plan_name": plan_name,
+                "price": price,
+                "period": period,
+            }
+        log.info(
+            "get_active_invoice success: invoice_id=%s plan_code=%s plan_callback=%s user_id=%s",
+            None,
+            None,
+            None,
+            user_id,
         )
-        await db.commit()
-
-
-async def delete_pending_invoice(invoice_id: str) -> None:
-    async with _db() as db:
-        await db.execute("DELETE FROM pending_invoices WHERE invoice_id=?", (invoice_id,))
-        await db.commit()
-
-
-async def get_active_invoice(user_id: int) -> Optional[Dict[str, Any]]:
-    async with _db() as db:
-        cur = await db.execute(
-            """
-            SELECT invoice_id, plan_code, currency,
-                   plan_callback, plan_name, price, period
-            FROM pending_invoices
-            WHERE user_id=?
-            ORDER BY created_at DESC LIMIT 1
-            """,
-            (user_id,),
+        return None
+    except Exception:
+        log.exception(
+            "get_active_invoice failed: invoice_id=%s plan_code=%s plan_callback=%s user_id=%s sql=%s",
+            None,
+            None,
+            None,
+            user_id,
+            sql.strip(),
         )
-        row = await cur.fetchone()
-    if row:
-        (
-            invoice_id,
-            plan_code,
-            currency,
-            plan_callback,
-            plan_name,
-            price,
-            period,
-        ) = row
-        return {
-            "invoice_id": invoice_id,
-            "plan_code": plan_code,
-            "currency": currency,
-            "plan_callback": plan_callback,
-            "plan_name": plan_name,
-            "price": price,
-            "period": period,
-        }
-    return None
+        return None
 
 
 async def delete_active_invoice(user_id: int) -> None:
