@@ -99,7 +99,36 @@ async def init_db() -> None:
             await db.execute(p)
         for stmt in _SCHEMA:
             await db.execute(stmt)
+        cur = await db.execute("PRAGMA table_info(pending_invoices)")
+        rows = await cur.fetchall()
+        if not rows:
+            await db.execute(
+                """
+                CREATE TABLE pending_invoices (
+                    invoice_id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    plan_code TEXT NOT NULL,
+                    currency TEXT NOT NULL,
+                    plan_callback TEXT,
+                    plan_name TEXT,
+                    price REAL,
+                    period INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            )
+        else:
+            cols = {r[1] for r in rows}
+            if "plan_callback" not in cols:
+                await db.execute("ALTER TABLE pending_invoices ADD COLUMN plan_callback TEXT")
+            if "plan_name" not in cols:
+                await db.execute("ALTER TABLE pending_invoices ADD COLUMN plan_name TEXT")
+            if "price" not in cols:
+                await db.execute("ALTER TABLE pending_invoices ADD COLUMN price REAL")
+            if "period" not in cols:
+                await db.execute("ALTER TABLE pending_invoices ADD COLUMN period INTEGER")
         await db.commit()
+    log.info("DB schema migrated: pending_invoices ready")
     log.info("sqlite ready at %s", DB_PATH)
 
 
