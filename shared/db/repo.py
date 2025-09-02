@@ -13,6 +13,9 @@ log = logging.getLogger("juicyfox.db")
 
 DB_PATH = os.getenv("DB_PATH", "/app/data/juicyfox.sqlite")
 
+# Флаг, чтобы сообщение о миграции схемы выводилось только один раз
+_SCHEMA_LOGGED = False
+
 # PRAGMA действуют на УРОВНЕ СОЕДИНЕНИЯ SQLite.
 # Мы применяем их ровно один раз при открытии каждого соединения (см. _db()).
 _PRAGMAS = [
@@ -128,7 +131,14 @@ async def init_db() -> None:
             if "period" not in cols:
                 await db.execute("ALTER TABLE pending_invoices ADD COLUMN period INTEGER")
         await db.commit()
+
+    global _SCHEMA_LOGGED
+    if not _SCHEMA_LOGGED:
+        log.info("DB schema migrated: pending_invoices ready at %s", DB_PATH)
+        _SCHEMA_LOGGED = True
+
     log.info("DB schema migrated: pending_invoices ready")
+
     log.info("sqlite ready at %s", DB_PATH)
 
 
