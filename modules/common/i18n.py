@@ -21,16 +21,15 @@ BUTTONS = {
     "btn_vip": "VIP CLUB 🔞 – 19 $",
     "btn_chat": "SEE YOU СHAT 💬",
     "btn_donate": "DONATE 🎁",
-
-    "btn_see_chat": "SEE YOU MY CHAT💬",
     "btn_back": "⬅️ Back",
     "btn_cancel": "❌ Cancel",
-    "btn_pay_vip": "💳 Pay VIP",
-    "btn_pay_chat": "💳 Pay Chat",
+    "btn_pay": "💳 Pay",
     "reply_placeholder": "Choose an option below:",
 }
 for lang in ("ru", "en", "es"):
-    L10N.setdefault(lang, {}).update(BUTTONS)
+    lang_dict = L10N.setdefault(lang, {})
+    for key, value in BUTTONS.items():
+        lang_dict.setdefault(key, value)
 
 
 def tr(lang: str, key: str, **kwargs) -> str:
