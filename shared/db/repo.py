@@ -359,11 +359,6 @@ async def get_active_invoice(user_id: int) -> Optional[Dict[str, Any]]:
         return None
 
 
-async def delete_active_invoice(user_id: int) -> None:
-    async with _db() as db:
-        await db.execute("DELETE FROM pending_invoices WHERE user_id=?", (user_id,))
-        await db.commit()
-
 async def log_payment_event(event: Dict[str, Any]) -> None:
     """
     event: dict из normalize_webhook(...), поля: provider, invoice_id, status, amount, currency, meta

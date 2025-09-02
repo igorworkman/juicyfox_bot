@@ -18,13 +18,10 @@ from modules.constants.prices import VIP_PRICE_USD
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
 
-from shared.db.repo import save_pending_invoice, get_active_invoice, delete_pending_invoice
-
 from shared.db.repo import (
     save_pending_invoice,
     get_active_invoice,
     delete_pending_invoice,
-    delete_active_invoice,
 )
 
 from shared.utils.lang import get_lang
