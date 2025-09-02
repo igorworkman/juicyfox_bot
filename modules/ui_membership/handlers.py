@@ -161,7 +161,16 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
     invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
     if invoice_id:
         await state.update_data(invoice_id=invoice_id, currency=currency, plan_code="vip_30d")
-        await save_pending_invoice(callback.from_user.id, invoice_id, "vip_30d", currency)
+        await save_pending_invoice(
+            callback.from_user.id,
+            invoice_id,
+            "vip_30d",
+            currency,
+            "vipay",
+            "VIP CLUB",
+            float(amount),
+            30,
+        )
     url = _invoice_url(inv)
     if url:
         await callback.message.edit_text(
@@ -206,7 +215,16 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
     invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
     if invoice_id:
         await state.update_data(invoice_id=invoice_id, currency=cur, plan_code="vip_30d")
-        await save_pending_invoice(callback.from_user.id, invoice_id, "vip_30d", cur)
+        await save_pending_invoice(
+            callback.from_user.id,
+            invoice_id,
+            "vip_30d",
+            cur,
+            "vipay",
+            "VIP CLUB",
+            float(VIP_PRICE_USD),
+            30,
+        )
     url = _invoice_url(inv)
     if url:
         await callback.message.edit_text(
