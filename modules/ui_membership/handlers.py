@@ -303,6 +303,42 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     amount = data.get("amount", 0)
     await state.update_data(price=float(amount), currency=cur)
 
+    lang = get_lang(cq.from_user)
+    try:
+        inv = await create_invoice(
+            user_id=cq.from_user.id,
+            plan_code="donation",
+            amount_usd=amount,
+            meta={"user_id": cq.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
+            asset=cur,
+        )
+    except Exception:
+        log.exception("donate_set_currency: create_invoice failed")
+        await cq.message.answer(tr(lang, "donate_error"))
+        return
+
+    invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
+    invoice_url = _invoice_url(inv)
+    if invoice_url:
+        if invoice_id:
+            data = await state.get_data()
+            try:
+                await save_pending_invoice(
+                    cq.from_user.id,
+                    invoice_id,
+                    "donation",
+                    data.get("currency", cur),
+                    "donate",
+                    "Donate",
+                    float(data.get("price", amount)),
+                    0,
+                )
+            except Exception:
+                log.exception("donate_set_currency: save_pending_invoice failed")
+                await cq.message.answer(tr(lang, "donate_error"))
+                return
+
+
     await cq.answer()
 
     user_id = cq.from_user.id
@@ -361,6 +397,7 @@ async def _create_donate_invoice(
         if user_id in _donate_cancelled:
             await delete_pending_invoice(invoice_id)
             return
+
 
         await cq.message.edit_text(
             tr(lang, "invoice_message", plan="Donate", url=invoice_url),

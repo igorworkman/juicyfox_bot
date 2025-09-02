@@ -21,6 +21,7 @@
   "don_num": "💸 Ingresa una cantidad de donación en USD",
   "donate_menu": "🎁 Donaciones\n\n5$ – «Un pequeño cumplido solo para mí 💐☺️»\n10$ – «Estás encendiendo mi deseo 💋💦»\n25$ – «Mmm… ahora me dan ganas de mostrarte más 👀✨»\n50$ – «Sabes cómo encenderme de verdad 🔥😉»\n100$ – «Me consientes peligrosamente… me derrito 👑🔥»\n200$ – «Me estás conquistando… un poco más y soy toda tuya 💎💞»\n500$ – «Me vuelves loca… estoy bajo tu hechizo ✨😍👸🏼»",
   "inv_err": "⚠️ Error al crear factura. Prueba otra moneda 😉",
+  "donate_error": "⚠️ No se pudo procesar la donación. Inténtalo de nuevo.",
   "access_denied": "💬 Cariño, activa “Chat” y vuelve a escribirme. Te estaré esperando 😘",
   "life": "💎 Bienvenido a mi mundo 💋\n{my_channel}",
   "pay_conf": "✅ ¡Hecho! Estás conmigo por 30 días 😘",
