@@ -81,6 +81,10 @@ _SCHEMA = [
         user_id INTEGER NOT NULL,
         plan_code TEXT NOT NULL,
         currency TEXT NOT NULL,
+        plan_callback TEXT,
+        plan_name TEXT,
+        price REAL,
+        period INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """,
@@ -196,11 +200,34 @@ async def get_streak(user_id: int) -> int:
 
 # ============== (Опционально) Лог платежей/грантов ==============
 
-async def save_pending_invoice(user_id: int, invoice_id: str, plan_code: str, currency: str) -> None:
+async def save_pending_invoice(
+    user_id: int,
+    invoice_id: str,
+    plan_code: str,
+    currency: str,
+    plan_callback: str,
+    plan_name: str,
+    price: float,
+    period: int,
+) -> None:
     async with _db() as db:
         await db.execute(
-            "INSERT OR REPLACE INTO pending_invoices(invoice_id, user_id, plan_code, currency) VALUES (?,?,?,?)",
-            (invoice_id, user_id, plan_code, currency),
+            """
+            INSERT OR REPLACE INTO pending_invoices(
+                invoice_id, user_id, plan_code, currency,
+                plan_callback, plan_name, price, period
+            ) VALUES (?,?,?,?,?,?,?,?)
+            """,
+            (
+                invoice_id,
+                user_id,
+                plan_code,
+                currency,
+                plan_callback,
+                plan_name,
+                price,
+                period,
+            ),
         )
         await db.commit()
 
@@ -214,16 +241,34 @@ async def delete_pending_invoice(invoice_id: str) -> None:
 async def get_active_invoice(user_id: int) -> Optional[Dict[str, Any]]:
     async with _db() as db:
         cur = await db.execute(
-            "SELECT invoice_id, plan_code, currency FROM pending_invoices WHERE user_id=? ORDER BY created_at DESC LIMIT 1",
+            """
+            SELECT invoice_id, plan_code, currency,
+                   plan_callback, plan_name, price, period
+            FROM pending_invoices
+            WHERE user_id=?
+            ORDER BY created_at DESC LIMIT 1
+            """,
             (user_id,),
         )
         row = await cur.fetchone()
     if row:
-        invoice_id, plan_code, currency = row
+        (
+            invoice_id,
+            plan_code,
+            currency,
+            plan_callback,
+            plan_name,
+            price,
+            period,
+        ) = row
         return {
             "invoice_id": invoice_id,
             "plan_code": plan_code,
             "currency": currency,
+            "plan_callback": plan_callback,
+            "plan_name": plan_name,
+            "price": price,
+            "period": period,
         }
     return None
 

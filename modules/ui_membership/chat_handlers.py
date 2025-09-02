@@ -9,6 +9,7 @@ from modules.constants.currencies import CURRENCIES
 from modules.constants.prices import CHAT_PRICES_USD
 from modules.payments import create_invoice
 from shared.utils.lang import get_lang
+from shared.db.repo import save_pending_invoice
 
 from .chat_keyboards import chat_tariffs_kb, chat_currency_kb
 from .keyboards import chat_invoice_keyboard
@@ -74,10 +75,12 @@ async def paymem_currency(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer("Unknown plan", show_alert=True)
         return
 
+    period = int(plan_code.split("_")[-1]) if plan_code.split("_")[-1].isdigit() else 0
+
     await state.update_data(
         plan_name=PLAN_TITLES.get(plan_code, plan_code),
         price=float(amount),
-        period=int(plan_code.split("_")[-1]) if plan_code.split("_")[-1].isdigit() else None,
+        period=period,
         plan_callback=f"paymem:{plan_code}",
     )
 
@@ -88,6 +91,19 @@ async def paymem_currency(callback: CallbackQuery, state: FSMContext) -> None:
         meta=_build_meta(callback.from_user.id, plan_code, asset),
         asset=asset,
     )
+    invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
+    if invoice_id:
+        await state.update_data(invoice_id=invoice_id, currency=asset, plan_code=plan_code)
+        await save_pending_invoice(
+            callback.from_user.id,
+            invoice_id,
+            plan_code,
+            asset,
+            f"paymem:{plan_code}",
+            PLAN_TITLES.get(plan_code, plan_code),
+            float(amount),
+            period,
+        )
 
     url = _invoice_url(inv)
     if url:
