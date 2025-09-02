@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Dict, Set
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -44,6 +45,9 @@ from .utils import BOT_ID, _build_meta
 
 router = Router()
 router.include_router(chat_router)
+
+_donate_tasks: Dict[int, asyncio.Task] = {}
+_donate_cancelled: Set[int] = set()
 
 # --- Конфиг из ENV (позже переедет в shared.config.env) ---
 VIP_URL = os.getenv("VIP_URL")
@@ -298,6 +302,7 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     amount = data.get("amount", 0)
     await state.update_data(price=float(amount), currency=cur)
+
     lang = get_lang(cq.from_user)
     try:
         inv = await create_invoice(
@@ -332,21 +337,101 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
                 log.exception("donate_set_currency: save_pending_invoice failed")
                 await cq.message.answer(tr(lang, "donate_error"))
                 return
+
+
+    await cq.answer()
+
+    user_id = cq.from_user.id
+    # cancel previous pending task if any
+    prev = _donate_tasks.pop(user_id, None)
+    if prev and not prev.done():
+        prev.cancel()
+    _donate_cancelled.discard(user_id)
+
+    task = asyncio.create_task(
+        _create_donate_invoice(cq, state, user_id, cur, float(amount))
+    )
+    _donate_tasks[user_id] = task
+
+
+async def _create_donate_invoice(
+    cq: CallbackQuery,
+    state: FSMContext,
+    user_id: int,
+    currency: str,
+    amount: float,
+) -> None:
+    """Background task: create invoice and notify user."""
+    invoice_id: Optional[str] = None
+    lang = get_lang(cq.from_user)
+    try:
+        inv = await create_invoice(
+            user_id=user_id,
+            plan_code="donation",
+            amount_usd=amount,
+            meta={
+                "user_id": user_id,
+                "currency": currency,
+                "kind": "donate",
+                "bot_id": BOT_ID,
+            },
+            asset=currency,
+        )
+        invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
+        invoice_url = _invoice_url(inv)
+        if not invoice_url or not invoice_id:
+            await cq.message.answer(tr(lang, "inv_err"))
+            return
+
+        await save_pending_invoice(
+            user_id,
+            invoice_id,
+            "donation",
+            currency,
+            "donate",
+            "Donate",
+            float(amount),
+            0,
+        )
+
+        if user_id in _donate_cancelled:
+            await delete_pending_invoice(invoice_id)
+            return
+
+
         await cq.message.edit_text(
             tr(lang, "invoice_message", plan="Donate", url=invoice_url),
             reply_markup=donate_invoice_keyboard(lang, invoice_url),
         )
         await state.clear()
-    else:
-        await cq.message.answer(tr(lang, "inv_err"))
+    except asyncio.CancelledError:
+        if invoice_id:
+            await delete_pending_invoice(invoice_id)
+        log.info("donation task cancelled: user_id=%s", user_id)
+    except Exception:
+        log.exception("donation invoice failed: user_id=%s", user_id)
+        try:
+            await cq.message.answer(tr(lang, "donate_error"))
+        except Exception:
+            log.exception("failed to send donate_error message: user_id=%s", user_id)
+    finally:
+        _donate_tasks.pop(user_id, None)
+        _donate_cancelled.discard(user_id)
 
 @router.callback_query(F.data == "donate_cancel_invoice")
 async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
     """Cancel donation invoice and return to currency selection."""
     lang = get_lang(callback.from_user)
-    invoice = await get_active_invoice(callback.from_user.id)
+    user_id = callback.from_user.id
 
-    log.debug("Active invoice for user %s: %s", callback.from_user.id, invoice)
+    _donate_cancelled.add(user_id)
+    task = _donate_tasks.pop(user_id, None)
+    if task and not task.done():
+        task.cancel()
+
+    invoice = await get_active_invoice(user_id)
+
+    log.debug("Active invoice for user %s: %s", user_id, invoice)
     if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
@@ -355,7 +440,7 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
     deleted_rows = await delete_pending_invoice(invoice["invoice_id"])
     log.info(
         "cancel_donate_invoice: user_id=%s invoice_id=%s plan_code=%s state=%s deleted=%s",
-        callback.from_user.id,
+        user_id,
         invoice["invoice_id"],
         invoice["plan_code"],
         fsm_state,
@@ -375,8 +460,15 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
 async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     """Handle external donate cancel actions and return to currency selection."""
     lang = get_lang(callback.from_user)
-    invoice = await get_active_invoice(callback.from_user.id)
-    log.debug("Active invoice for user %s: %s", callback.from_user.id, invoice)
+    user_id = callback.from_user.id
+
+    _donate_cancelled.add(user_id)
+    task = _donate_tasks.pop(user_id, None)
+    if task and not task.done():
+        task.cancel()
+
+    invoice = await get_active_invoice(user_id)
+    log.debug("Active invoice for user %s: %s", user_id, invoice)
     if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
@@ -384,7 +476,7 @@ async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     deleted_rows = await delete_pending_invoice(invoice["invoice_id"])
     log.info(
         "cancel_donate: user_id=%s invoice_id=%s plan_code=%s state=%s deleted=%s",
-        callback.from_user.id,
+        user_id,
         invoice["invoice_id"],
         invoice["plan_code"],
         fsm_state,
