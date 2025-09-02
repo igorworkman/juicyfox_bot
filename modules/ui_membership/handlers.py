@@ -49,8 +49,6 @@ CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 # --- FSM для донатов (оставляем в UI-модуле) ---
 class Donate(StatesGroup):
     choosing_currency = State()
-    entering_amount = State()
-    confirm = State()
 
 
 # =======================
@@ -167,6 +165,7 @@ async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("vipay:"))
@@ -208,6 +207,7 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
         )
     else:
         await callback.message.edit_text(tr(lang, "inv_err"))
+    await state.clear()
 
 
 
@@ -280,7 +280,7 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
             tr(lang, "invoice_message", plan="Donate", url=invoice_url),
             reply_markup=donate_invoice_keyboard(lang, invoice_url),
         )
-        await state.set_state(Donate.confirm)
+        await state.clear()
     else:
         await cq.message.answer(tr(lang, "inv_err"))
 
@@ -330,72 +330,6 @@ async def life_link(cq: CallbackQuery):
     kb = InlineKeyboardBuilder()
     kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
     await cq.message.edit_text(tr(lang, "life", my_channel=LIFE_URL), reply_markup=kb.as_markup())
-
-"""
-@router.callback_query(F.data == "donate")
-async def donate_currency(cq: CallbackQuery, state: FSMContext):
-    await cq.message.edit_text(
-        tr(get_lang(cq.from_user), "choose_cur", amount="donate"),
-        reply_markup=donate_kb(),
-    )
-    await state.set_state(Donate.choosing_currency)
-
-
-@router.callback_query(F.data.startswith("doncur:"), Donate.choosing_currency)
-async def donate_amount(cq: CallbackQuery, state: FSMContext):
-    await state.update_data(currency=cq.data.split(":")[1])
-    await cq.message.edit_text(
-        tr(get_lang(cq.from_user), "don_enter"),
-        reply_markup=donate_back_kb(),
-    )
-    await state.set_state(Donate.entering_amount)
-
-
-@router.callback_query(F.data == "don_back", Donate.entering_amount)
-async def donate_back(cq: CallbackQuery, state: FSMContext):
-    await state.set_state(Donate.choosing_currency)
-    await cq.message.edit_text(
-        tr(get_lang(cq.from_user), "choose_cur", amount="donate"),
-        reply_markup=donate_kb(),
-    )
-
-
-@router.message(Donate.entering_amount)
-async def donate_finish(msg: Message, state: FSMContext):
-    text = msg.text.replace(",", ".")
-    if not text.replace(".", "", 1).isdigit():
-        await msg.reply(tr(get_lang(msg.from_user), "don_num"))
-        return
-    amount = float(text)
-    data = await state.get_data()
-    cur = data["currency"]
-    amount_usd = amount  # TODO: конверсия при необходимости
-    log.info(
-        "donate_finish: user=%s currency=%s amount=%s",
-        msg.from_user.id,
-        cur,
-        amount_usd,
-    )
-    inv = await create_invoice(
-        user_id=msg.from_user.id,
-        plan_code="donation",
-        amount_usd=amount_usd,
-        meta={"user_id": msg.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
-        asset=cur,
-    )
-    url = _invoice_url(inv)
-    if url:
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text=tr(get_lang(msg.from_user), "btn_cancel"), callback_data="cancel")]]
-        )
-        await msg.answer(
-            tr(get_lang(msg.from_user), "invoice_message", plan="Donate", url=url),
-            reply_markup=kb,
-        )
-    else:
-        await msg.reply(tr(get_lang(msg.from_user), "inv_err"))
-    await state.clear()
-"""
 
 @router.message(
     lambda m: _norm(m.text) == _norm(tr(get_lang(m.from_user), "btn_chat"))
