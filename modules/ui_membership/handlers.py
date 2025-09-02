@@ -17,7 +17,7 @@ from modules.constants.currencies import CURRENCIES
 from modules.constants.prices import VIP_PRICE_USD
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
-from shared.db.repo import save_pending_invoice
+from shared.db.repo import save_pending_invoice, delete_active_invoice
 from shared.utils.lang import get_lang
 
 log = logging.getLogger("juicyfox.ui_membership.handlers")
@@ -291,6 +291,7 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
         return
     data = await state.get_data()
     amount = data.get("amount", 0)
+    await state.update_data(price=float(amount), currency=cur)
     lang = get_lang(cq.from_user)
     inv = await create_invoice(
         user_id=cq.from_user.id,
@@ -299,8 +300,21 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
         meta={"user_id": cq.from_user.id, "currency": cur, "kind": "donate", "bot_id": BOT_ID},
         asset=cur,
     )
+    invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
     invoice_url = _invoice_url(inv)
     if invoice_url:
+        if invoice_id:
+            data = await state.get_data()
+            await save_pending_invoice(
+                cq.from_user.id,
+                invoice_id,
+                "donation",
+                data.get("currency", cur),
+                "donate",
+                "Donate",
+                float(data.get("price", amount)),
+                0,
+            )
         await cq.message.edit_text(
             tr(lang, "invoice_message", plan="Donate", url=invoice_url),
             reply_markup=donate_invoice_keyboard(lang, invoice_url),
@@ -313,6 +327,7 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
 async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
     """Cancel invoice and show the main menu."""
     lang = get_lang(callback.from_user)
+    await delete_active_invoice(callback.from_user.id)
     await state.clear()
     await callback.answer(tr(lang, "donate_cancel"))
     await callback.message.edit_text(
@@ -325,6 +340,7 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
 async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     """Handle external donate cancel actions and return to main menu."""
     lang = get_lang(callback.from_user)
+    await delete_active_invoice(callback.from_user.id)
     await state.clear()
     await callback.answer(tr(lang, "donate_cancel"))
     await callback.message.edit_text(
