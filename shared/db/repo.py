@@ -137,8 +137,6 @@ async def init_db() -> None:
         log.info("DB schema migrated: pending_invoices ready at %s", DB_PATH)
         _SCHEMA_LOGGED = True
 
-    log.info("DB schema migrated: pending_invoices ready")
-
     log.info("sqlite ready at %s", DB_PATH)
 
 
