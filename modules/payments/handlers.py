@@ -12,6 +12,7 @@ from modules.constants.currencies import CURRENCIES
 from modules.ui_membership.chat_keyboards import chat_currency_kb
 from modules.ui_membership.keyboards import vip_currency_kb
 from shared.utils.lang import get_lang
+from shared.db.repo import delete_pending_invoice
 
 
 log = logging.getLogger("juicyfox.payments.handlers")
@@ -27,6 +28,7 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
     plan_name = data.get("plan_name")
     price = data.get("price")
     period = data.get("period")
+    invoice_id = data.get("invoice_id")
 
     log.debug("Retrieved plan_name from state: %s", plan_name)
 
@@ -65,4 +67,7 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
 
     # Replace the invoice with the original tariff description and currency menu
     await callback.message.edit_text(desc, reply_markup=kb)
-
+    if invoice_id:
+        await delete_pending_invoice(invoice_id)
+        data.pop("invoice_id", None)
+        await state.set_data(data)

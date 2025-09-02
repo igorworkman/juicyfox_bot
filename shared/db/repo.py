@@ -73,6 +73,17 @@ _SCHEMA = [
     );
     """,
     "CREATE INDEX IF NOT EXISTS idx_access_user ON access_grants(user_id);",
+
+    # Незакрытые инвойсы (для повторной проверки при оплате/отмене)
+    """
+    CREATE TABLE IF NOT EXISTS pending_invoices (
+        invoice_id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        plan_code TEXT NOT NULL,
+        currency TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """,
 ]
 
 
@@ -184,6 +195,20 @@ async def get_streak(user_id: int) -> int:
 
 
 # ============== (Опционально) Лог платежей/грантов ==============
+
+async def save_pending_invoice(user_id: int, invoice_id: str, plan_code: str, currency: str) -> None:
+    async with _db() as db:
+        await db.execute(
+            "INSERT OR REPLACE INTO pending_invoices(invoice_id, user_id, plan_code, currency) VALUES (?,?,?,?)",
+            (invoice_id, user_id, plan_code, currency),
+        )
+        await db.commit()
+
+
+async def delete_pending_invoice(invoice_id: str) -> None:
+    async with _db() as db:
+        await db.execute("DELETE FROM pending_invoices WHERE invoice_id=?", (invoice_id,))
+        await db.commit()
 
 async def log_payment_event(event: Dict[str, Any]) -> None:
     """
