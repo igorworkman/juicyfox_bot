@@ -25,10 +25,18 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
     if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
-
-    await delete_pending_invoice(invoice["invoice_id"])
     plan_code = invoice["plan_code"]
     plan_callback = invoice.get("plan_callback") or ""
+    fsm_state = await state.get_state()
+    deleted_rows = await delete_pending_invoice(invoice["invoice_id"])
+    log.info(
+        "cancel_payment: user_id=%s invoice_id=%s plan_code=%s state=%s deleted=%s",
+        callback.from_user.id,
+        invoice["invoice_id"],
+        plan_code,
+        fsm_state,
+        deleted_rows > 0,
+    )
 
     if plan_callback.startswith("vipay") or plan_code.startswith("vip"):
         desc = tr(lang, "vip_club_description")

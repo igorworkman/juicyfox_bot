@@ -276,32 +276,19 @@ async def save_pending_invoice(
         )
 
 
-async def delete_pending_invoice(invoice_id: str) -> None:
+async def delete_pending_invoice(invoice_id: str) -> int:
     sql = "DELETE FROM pending_invoices WHERE invoice_id=?"
     try:
-        log.info(
-            "Executing SQL: %s ; invoice_id=%s plan_code=%s plan_callback=%s user_id=%s",
-            sql,
-            invoice_id,
-            None,
-            None,
-            None,
-        )
+        log.info("Executing SQL: %s ; invoice_id=%s", sql, invoice_id)
         async with _db() as db:
-            await db.execute(sql, (invoice_id,))
+            cur = await db.execute(sql, (invoice_id,))
             await db.commit()
-        log.info(
-            "delete_pending_invoice success: invoice_id=%s", invoice_id
-        )
+            deleted = cur.rowcount
+        log.info("delete_pending_invoice success: invoice_id=%s rows=%s", invoice_id, deleted)
+        return int(deleted)
     except Exception:
-        log.exception(
-            "delete_pending_invoice failed: invoice_id=%s plan_code=%s plan_callback=%s user_id=%s sql=%s",
-            invoice_id,
-            None,
-            None,
-            None,
-            sql,
-        )
+        log.exception("delete_pending_invoice failed: invoice_id=%s sql=%s", invoice_id, sql)
+        return 0
 
 
 async def get_active_invoice(user_id: int) -> Optional[Dict[str, Any]]:
