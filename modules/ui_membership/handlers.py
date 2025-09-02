@@ -340,9 +340,6 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
 
-    if not invoice:
-        await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
-        return
     fsm_state = await state.get_state()
     deleted_rows = await delete_pending_invoice(invoice["invoice_id"])
     log.info(
