@@ -17,12 +17,16 @@ from modules.constants.currencies import CURRENCIES
 from modules.constants.prices import VIP_PRICE_USD
 from modules.constants.paths import START_PHOTO
 from modules.payments import create_invoice
+
+from shared.db.repo import save_pending_invoice, get_active_invoice, delete_pending_invoice
+
 from shared.db.repo import (
     save_pending_invoice,
     get_active_invoice,
     delete_pending_invoice,
     delete_active_invoice,
 )
+
 from shared.utils.lang import get_lang
 
 log = logging.getLogger("juicyfox.ui_membership.handlers")
@@ -333,9 +337,16 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
     """Cancel donation invoice and return to currency selection."""
     lang = get_lang(callback.from_user)
     invoice = await get_active_invoice(callback.from_user.id)
+
+    log.debug("Active invoice for user %s: %s", callback.from_user.id, invoice)
     if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
+
+    if not invoice:
+        await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
+        return
+
 
     await delete_pending_invoice(invoice["invoice_id"])
     await state.clear()
@@ -350,14 +361,21 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "donate_cancel")
 async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
-    """Handle external donate cancel actions and return to main menu."""
+    """Handle external donate cancel actions and return to currency selection."""
     lang = get_lang(callback.from_user)
-    await delete_active_invoice(callback.from_user.id)
+    invoice = await get_active_invoice(callback.from_user.id)
+    log.debug("Active invoice for user %s: %s", callback.from_user.id, invoice)
+    if not invoice:
+        await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
+        return
+    await delete_pending_invoice(invoice["invoice_id"])
     await state.clear()
+    await state.update_data(amount=invoice.get("price"))
+    await state.set_state(Donate.choosing_currency)
     await callback.answer(tr(lang, "donate_cancel"))
     await callback.message.edit_text(
-        tr(lang, "choose_action"),
-        reply_markup=main_menu_kb(lang),
+        tr(lang, "donate_currency"),
+        reply_markup=donate_currency_keyboard(lang),
     )
 
 
