@@ -346,9 +346,16 @@ async def cancel_donate_invoice(callback: CallbackQuery, state: FSMContext):
     if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
-
-
-    await delete_pending_invoice(invoice["invoice_id"])
+    fsm_state = await state.get_state()
+    deleted_rows = await delete_pending_invoice(invoice["invoice_id"])
+    log.info(
+        "cancel_donate_invoice: user_id=%s invoice_id=%s plan_code=%s state=%s deleted=%s",
+        callback.from_user.id,
+        invoice["invoice_id"],
+        invoice["plan_code"],
+        fsm_state,
+        deleted_rows > 0,
+    )
     await state.clear()
     await state.update_data(amount=invoice.get("price"))
     await state.set_state(Donate.choosing_currency)
@@ -368,7 +375,16 @@ async def cancel_donate(callback: CallbackQuery, state: FSMContext) -> None:
     if not invoice:
         await callback.answer(tr(lang, "nothing_cancel"), show_alert=True)
         return
-    await delete_pending_invoice(invoice["invoice_id"])
+    fsm_state = await state.get_state()
+    deleted_rows = await delete_pending_invoice(invoice["invoice_id"])
+    log.info(
+        "cancel_donate: user_id=%s invoice_id=%s plan_code=%s state=%s deleted=%s",
+        callback.from_user.id,
+        invoice["invoice_id"],
+        invoice["plan_code"],
+        fsm_state,
+        deleted_rows > 0,
+    )
     await state.clear()
     await state.update_data(amount=invoice.get("price"))
     await state.set_state(Donate.choosing_currency)
