@@ -261,11 +261,24 @@ async def relay_from_group(msg: Message) -> None:
     try:
         # REGION AI: relay via copy_message
         await msg.bot.copy_message(user_id, msg.chat.id, msg.message_id)
-        await _repo.log_message(
-            user_id,
-            "out",
-            {"type": msg.content_type, "text": msg.text or msg.caption, "ts": _now_ts()},
-        )
+        # fix: log media file_id for accurate history playback
+        log_rec = {"type": msg.content_type, "ts": _now_ts()}
+        caption = msg.caption or msg.text or None
+        if msg.photo:
+            log_rec.update({"file_id": msg.photo[-1].file_id, "text": caption})
+        elif msg.video:
+            log_rec.update({"file_id": msg.video.file_id, "text": caption})
+        elif msg.voice:
+            log_rec.update({"file_id": msg.voice.file_id, "text": caption})
+        elif msg.document:
+            log_rec.update({"file_id": msg.document.file_id, "text": caption})
+        elif msg.animation:
+            log_rec.update({"file_id": msg.animation.file_id, "text": caption})
+        elif msg.sticker:
+            log_rec.update({"file_id": msg.sticker.file_id, "text": msg.sticker.emoji})
+        else:
+            log_rec.update({"text": caption})
+        await _repo.log_message(user_id, "out", log_rec)
         if msg.text:
             await _safe_edit_text(msg, msg.text, reply_markup=None)
         log.info(
