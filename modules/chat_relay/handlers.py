@@ -121,25 +121,35 @@ def _user_stats(uid: int) -> tuple[float, Optional[int]]:
 def _fmt_from(msg: Message) -> str:
     u = msg.from_user
     uid = u.id if u else "unknown"
-    uname = f"@{u.username}" if u and u.username else ""
-    name = f"{u.full_name}" if u else ""
     lang = (u.language_code or "")[:2] if u else ""
     flag = (
         "".join(chr(ord(c.upper()) + 127397) for c in lang)
         if len(lang) == 2
         else ""
     )
-    if lang == "en" and flag:
-        flag = f"{flag} EN"
+    if lang == "en":
+        flag = "🇺🇸 EN"
+
     total, until_ts = _user_stats(uid) if isinstance(uid, int) else (0.0, None)
-    lines = [f"from: {uid}"]
-    second = " ".join(x for x in [name, uname, flag] if x).strip()
-    if second:
-        lines.append(second)
-    lines.append(f"💰 ${total:.2f}")
+
+    parts = [f"from: {uid}"]
+
+    display = (u.full_name or u.username) if u else None
+    if display:
+        parts.append(display)
+
+    if u and u.username:
+        parts.append(f"@{u.username}")
+
+    if flag:
+        parts.append(flag)
+
+    parts.append(f"💰 ${total:.2f}")
+
     if until_ts:
-        lines.append(time.strftime("до %Y-%m-%d", time.localtime(until_ts)))
-    return "\n".join(lines)
+        parts.append(time.strftime("до %Y-%m-%d", time.localtime(until_ts)))
+
+    return " • ".join(parts)
 # END REGION AI
 
 
