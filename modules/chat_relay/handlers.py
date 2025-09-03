@@ -10,9 +10,9 @@ from typing import Optional, Dict, Any, List
 import asyncio
 from aiogram.exceptions import TelegramNetworkError
 try:
-    from shared.db.repo import get_active_invoice
+    from shared.db.repo import get_active_invoice, upsert_relay_user, get_relay_user
 except Exception:  # pragma: no cover
-    get_active_invoice = None  # type: ignore
+    get_active_invoice = upsert_relay_user = get_relay_user = None  # type: ignore
 # END REGION AI
 
 from aiogram import Router, F
@@ -135,6 +135,9 @@ async def relay_incoming_to_group(msg: Message):
         return
 
     uid = msg.from_user.id
+    if upsert_relay_user:
+        await upsert_relay_user(uid, msg.from_user.username, msg.from_user.full_name)
+        log.info("relay_users: upsert user_id=%s username=%s", uid, msg.from_user.username)
     caption_header = _fmt_from(msg)
     # Поддержка "медиа + подпись": текст берём из msg.text ИЛИ msg.caption
     content_text = (msg.text or msg.caption or "").strip()
@@ -238,6 +241,10 @@ async def relay_from_group(msg: Message) -> None:
         return
     user_id = int(parts[1])
     log.info("relay_from_group: extracted user_id=%s from reply.", user_id)
+    if get_relay_user:
+        user = await get_relay_user(user_id)
+        if not user:
+            log.warning("relay_users: user_id not found in DB")
     if get_active_invoice:
         try:
             invoice = await get_active_invoice(user_id)
