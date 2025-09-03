@@ -245,6 +245,10 @@ async def relay_from_group(msg: Message) -> None:
         user = await get_relay_user(user_id)
         if not user:
             log.warning("relay_users: user_id not found in DB")
+    else:
+        # REGION AI: missing relay_users
+        log.warning("relay_users: repository unavailable")
+        # END REGION AI
     if get_active_invoice:
         try:
             invoice = await get_active_invoice(user_id)
@@ -255,42 +259,21 @@ async def relay_from_group(msg: Message) -> None:
                 "relay_from_group: missing user_id in DB, possibly after deploy reset."
             )
     try:
-        typ, sender, args, log_data = (
-            "unknown",
-            msg.bot.send_message,
-            (user_id, "[unsupported content]"),
-            {},
+        # REGION AI: relay via copy_message
+        await msg.bot.copy_message(user_id, msg.chat.id, msg.message_id)
+        await _repo.log_message(
+            user_id,
+            "out",
+            {"type": msg.content_type, "text": msg.text or msg.caption, "ts": _now_ts()},
         )
         if msg.text:
-            typ, sender, args, log_data = "text", msg.bot.send_message, (user_id, msg.text), {"text": msg.text}
-        elif msg.photo:
-            fid = msg.photo[-1].file_id
-            typ, sender, args, log_data = "photo", msg.bot.send_photo, (user_id, fid), {"file_id": fid, "text": msg.caption}
-        elif msg.video:
-            fid = msg.video.file_id
-            typ, sender, args, log_data = "video", msg.bot.send_video, (user_id, fid), {"file_id": fid, "text": msg.caption}
-        elif msg.voice:
-            fid = msg.voice.file_id
-            typ, sender, args, log_data = "voice", msg.bot.send_voice, (user_id, fid), {"file_id": fid, "text": msg.caption}
-        elif msg.document:
-            fid = msg.document.file_id
-            typ, sender, args, log_data = "document", msg.bot.send_document, (user_id, fid), {"file_id": fid, "text": msg.caption}
-        elif msg.animation:
-            fid = msg.animation.file_id
-            typ, sender, args, log_data = "animation", msg.bot.send_animation, (user_id, fid), {"file_id": fid, "text": msg.caption}
-        elif msg.sticker:
-            typ, sender, args, log_data = "sticker", msg.bot.send_sticker, (user_id, msg.sticker.file_id), {"text": msg.sticker.emoji}
-        try:
-            await sender(*args, caption=msg.caption if typ not in {"text", "sticker", "unknown"} else None)
-        except Exception:
-            if typ == "sticker":
-                await msg.bot.send_message(user_id, "[sticker]")
-            else:
-                raise
-        await _repo.log_message(user_id, "out", {"type": typ, **log_data, "ts": _now_ts()})
-        if msg.text:
             await _safe_edit_text(msg, msg.text, reply_markup=None)
-        log.info("relay_from_group: delivered to user_id=%s type=%s", user_id, typ)
+        log.info(
+            "relay_from_group: delivered to user_id=%s type=%s",
+            user_id,
+            msg.content_type,
+        )
+        # END REGION AI
     except Exception as e:
         log.error("relay_from_group: failed to deliver user_id=%s error=%s", user_id, e)
     finally:
