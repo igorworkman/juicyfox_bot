@@ -10,9 +10,9 @@ from typing import Optional, Dict, Any, List
 import asyncio
 from aiogram.exceptions import TelegramNetworkError
 try:
-    from shared.db.repo import get_active_invoice, upsert_relay_user, get_relay_user
+    from shared.db.repo import get_active_invoice, upsert_relay_user, get_relay_user, get_user_profile
 except Exception:  # pragma: no cover
-    get_active_invoice = upsert_relay_user = get_relay_user = None  # type: ignore
+    get_active_invoice = upsert_relay_user = get_relay_user = get_user_profile = None  # type: ignore
 # END REGION AI
 
 from aiogram import Router, F
@@ -92,12 +92,28 @@ class _Repo:
 _repo = _Repo()
 
 
-def _fmt_from(msg: Message) -> str:
+# REGION AI: relay header and send helpers
+async def _fmt_from(msg: Message) -> str:
+    uid = msg.from_user.id
+    profile = {}
+    if get_user_profile:
+        try:
+            profile = await get_user_profile(uid) or {}
+        except Exception:
+            profile = {}
     u = msg.from_user
-    uid = u.id if u else "unknown"
-    uname = f"@{u.username}" if u and u.username else ""
-    name = f"{u.full_name}" if u else ""
-    return f"from: {uid} {uname} {name}".strip()
+    name = profile.get("full_name") or profile.get("username") or (u.full_name or (f"@{u.username}" if u.username else ""))
+    lang = profile.get("language_code") or (getattr(u, "language_code", "") if u else "")
+    total = float(profile.get("total_spent") or 0.0)
+    until = profile.get("access_until")
+    code = (lang or "").split("-")[-1].upper()
+    flag = "".join(chr(0x1F1E6 + ord(c) - 65) for c in ("US" if code == "EN" else code)) if code else ""
+    if code == "EN":
+        flag += " EN"
+    header = f"{name} • {uid} • {flag} • 💰 ${total:.2f}"
+    if until and total > 0:
+        header += f"\nдо {until}"
+    return header
 
 
 def _now_ts() -> int:
@@ -120,8 +136,7 @@ async def _send_with_retry(func, *args, **kwargs) -> None:
             return
 
 
-async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None = None) -> None:
-    header = header or _fmt_from(msg)
+async def _send_record(msg: Message, chat_id: int, header: str) -> None:
     text = (msg.text or msg.caption or "").strip()
     bot = msg.bot
     rec = {"type": msg.content_type, "ts": _now_ts()}
@@ -169,20 +184,16 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.sticker:
         media_id = msg.sticker.file_id
+        await _send_with_retry(bot.send_message, chat_id, header)
         asyncio.create_task(
             _send_with_retry(bot.send_sticker, chat_id, media_id)
-        )
-        asyncio.create_task(
-            _send_with_retry(bot.send_message, chat_id, header)
         )
         rec.update({"file_id": media_id, "text": msg.sticker.emoji or None})
     elif msg.video_note:
         media_id = msg.video_note.file_id
+        await _send_with_retry(bot.send_message, chat_id, header)
         asyncio.create_task(
             _send_with_retry(bot.send_video_note, chat_id, media_id)
-        )
-        asyncio.create_task(
-            _send_with_retry(bot.send_message, chat_id, header)
         )
         rec["file_id"] = media_id
     else:
@@ -216,7 +227,7 @@ async def relay_incoming_to_group(msg: Message):
     if upsert_relay_user:
         await upsert_relay_user(uid, msg.from_user.username, msg.from_user.full_name)
         log.info("relay_users: upsert user_id=%s username=%s", uid, msg.from_user.username)
-    caption_header = _fmt_from(msg)
+    caption_header = await _fmt_from(msg)
     # Поддержка "медиа + подпись": текст берём из msg.text ИЛИ msg.caption
     content_text = (msg.text or msg.caption or "").strip()
 

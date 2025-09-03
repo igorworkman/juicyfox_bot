@@ -447,3 +447,34 @@ async def get_all_relay_users() -> List[Dict[str, Any]]:
         rows = await (await db.execute("SELECT user_id, username, full_name, last_seen FROM relay_users")).fetchall()
     return [{"user_id": r[0], "username": r[1], "full_name": r[2], "last_seen": r[3]} for r in rows]
 # END REGION AI
+
+# REGION AI: user profile
+async def get_user_profile(user_id: int) -> Dict[str, Any]:
+    from datetime import date
+
+    async with _db() as db:
+        try:
+            row = await (await db.execute(
+                "SELECT full_name, username, language_code FROM relay_users WHERE user_id=?",
+                (user_id,),
+            )).fetchone()
+        except Exception:
+            row = await (await db.execute(
+                "SELECT full_name, username FROM relay_users WHERE user_id=?",
+                (user_id,),
+            )).fetchone()
+            row = (row[0], row[1], "") if row else None
+        full_name, username, lang = row if row else ("", "", "")
+        cur = await db.execute(
+            "SELECT COALESCE(SUM(amount),0) FROM payment_events WHERE status='paid' AND json_extract(meta,'$.user_id')=?",
+            (user_id,),
+        )
+        total = float((await cur.fetchone())[0] or 0.0)
+        cur = await db.execute(
+            "SELECT MAX(until_ts) FROM access_grants WHERE user_id=?",
+            (user_id,),
+        )
+        r = await cur.fetchone()
+        until = date.fromtimestamp(r[0]) if r and r[0] else None
+    return {"full_name": full_name, "username": username, "language_code": lang, "total_spent": total, "access_until": until}
+# END REGION AI
