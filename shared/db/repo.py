@@ -91,6 +91,16 @@ _SCHEMA = [
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """,
+    # REGION AI: relay_users table
+    """
+    CREATE TABLE IF NOT EXISTS relay_users (
+        user_id INTEGER PRIMARY KEY,
+        username TEXT,
+        full_name TEXT,
+        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """,
+    # END REGION AI
 ]
 
 
@@ -409,3 +419,31 @@ async def log_access_grant(user_id: int, plan_code: str, invite_link: Optional[s
             (user_id, plan_code, invite_link, until_ts),
         )
         await db.commit()
+
+
+# REGION AI: relay_users helpers
+async def upsert_relay_user(user_id: int, username: Optional[str], full_name: Optional[str]) -> None:
+    async with _db() as db:
+        await db.execute(
+            "INSERT INTO relay_users(user_id, username, full_name, last_seen) VALUES(?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name, last_seen=CURRENT_TIMESTAMP",
+            (user_id, username, full_name),
+        )
+        await db.commit()
+
+
+async def get_relay_user(user_id: int) -> Optional[Dict[str, Any]]:
+    async with _db() as db:
+        row = await (
+            await db.execute(
+                "SELECT user_id, username, full_name, last_seen FROM relay_users WHERE user_id=?",
+                (user_id,),
+            )
+        ).fetchone()
+    return {"user_id": row[0], "username": row[1], "full_name": row[2], "last_seen": row[3]} if row else None
+
+
+async def get_all_relay_users() -> List[Dict[str, Any]]:
+    async with _db() as db:
+        rows = await (await db.execute("SELECT user_id, username, full_name, last_seen FROM relay_users")).fetchall()
+    return [{"user_id": r[0], "username": r[1], "full_name": r[2], "last_seen": r[3]} for r in rows]
+# END REGION AI
