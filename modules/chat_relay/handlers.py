@@ -92,12 +92,55 @@ class _Repo:
 _repo = _Repo()
 
 
+# REGION AI: extended header
+def _user_stats(uid: int) -> tuple[float, Optional[int]]:
+    try:
+        from shared.db.repo import DB_PATH  # type: ignore
+        import sqlite3
+    except Exception:  # pragma: no cover
+        return 0.0, None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        total = cur.execute(
+            "SELECT COALESCE(SUM(amount),0) FROM payment_events "
+            "WHERE status='paid' AND json_extract(meta,'$.user_id')=?",
+            (uid,),
+        ).fetchone()[0] or 0.0
+        row = cur.execute(
+            "SELECT until_ts FROM access_grants WHERE user_id=? "
+            "AND until_ts IS NOT NULL ORDER BY until_ts DESC LIMIT 1",
+            (uid,),
+        ).fetchone()
+        conn.close()
+        return float(total), (int(row[0]) if row and row[0] else None)
+    except Exception:  # pragma: no cover
+        return 0.0, None
+
+
 def _fmt_from(msg: Message) -> str:
     u = msg.from_user
     uid = u.id if u else "unknown"
     uname = f"@{u.username}" if u and u.username else ""
     name = f"{u.full_name}" if u else ""
-    return f"from: {uid} {uname} {name}".strip()
+    lang = (u.language_code or "")[:2] if u else ""
+    flag = (
+        "".join(chr(ord(c.upper()) + 127397) for c in lang)
+        if len(lang) == 2
+        else ""
+    )
+    if lang == "en" and flag:
+        flag = f"{flag} EN"
+    total, until_ts = _user_stats(uid) if isinstance(uid, int) else (0.0, None)
+    lines = [f"from: {uid}"]
+    second = " ".join(x for x in [name, uname, flag] if x).strip()
+    if second:
+        lines.append(second)
+    lines.append(f"💰 ${total:.2f}")
+    if until_ts:
+        lines.append(time.strftime("до %Y-%m-%d", time.localtime(until_ts)))
+    return "\n".join(lines)
+# END REGION AI
 
 
 def _now_ts() -> int:
@@ -128,68 +171,46 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
     media_id: Optional[str] = None
 
     if msg.text:
-        asyncio.create_task(
-            _send_with_retry(bot.send_message, chat_id, f"{header}\n\n{text}")
-        )
+        await _send_with_retry(bot.send_message, chat_id, f"{header}\n\n{text}")
         rec["text"] = text
     elif msg.photo:
         media_id = msg.photo[-1].file_id
         cap = f"{header}\n\n{text}" if text else header
-        asyncio.create_task(
-            _send_with_retry(bot.send_photo, chat_id, media_id, caption=cap)
-        )
+        await _send_with_retry(bot.send_photo, chat_id, media_id, caption=cap)
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.video:
         media_id = msg.video.file_id
         cap = f"{header}\n\n{text}" if text else header
-        asyncio.create_task(
-            _send_with_retry(bot.send_video, chat_id, media_id, caption=cap)
-        )
+        await _send_with_retry(bot.send_video, chat_id, media_id, caption=cap)
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.voice:
         media_id = msg.voice.file_id
         cap = f"{header}\n\n{text}" if text else header
-        asyncio.create_task(
-            _send_with_retry(bot.send_voice, chat_id, media_id, caption=cap)
-        )
+        await _send_with_retry(bot.send_voice, chat_id, media_id, caption=cap)
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.document:
         media_id = msg.document.file_id
         cap = f"{header}\n\n{text}" if text else header
-        asyncio.create_task(
-            _send_with_retry(bot.send_document, chat_id, media_id, caption=cap)
-        )
+        await _send_with_retry(bot.send_document, chat_id, media_id, caption=cap)
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.animation:
         media_id = msg.animation.file_id
         cap = f"{header}\n\n{text}" if text else header
-        asyncio.create_task(
-            _send_with_retry(bot.send_animation, chat_id, media_id, caption=cap)
-        )
+        await _send_with_retry(bot.send_animation, chat_id, media_id, caption=cap)
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.sticker:
         media_id = msg.sticker.file_id
-        asyncio.create_task(
-            _send_with_retry(bot.send_sticker, chat_id, media_id)
-        )
-        asyncio.create_task(
-            _send_with_retry(bot.send_message, chat_id, header)
-        )
+        await _send_with_retry(bot.send_message, chat_id, header)
+        await _send_with_retry(bot.send_sticker, chat_id, media_id)
         rec.update({"file_id": media_id, "text": msg.sticker.emoji or None})
     elif msg.video_note:
         media_id = msg.video_note.file_id
-        asyncio.create_task(
-            _send_with_retry(bot.send_video_note, chat_id, media_id)
-        )
-        asyncio.create_task(
-            _send_with_retry(bot.send_message, chat_id, header)
-        )
+        await _send_with_retry(bot.send_message, chat_id, header)
+        await _send_with_retry(bot.send_video_note, chat_id, media_id)
         rec["file_id"] = media_id
     else:
-        asyncio.create_task(
-            _send_with_retry(
-                bot.send_message, chat_id, f"{header}\n\n[unsupported content]"
-            )
+        await _send_with_retry(
+            bot.send_message, chat_id, f"{header}\n\n[unsupported content]"
         )
         rec["type"] = "unknown"
 
