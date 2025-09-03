@@ -93,31 +93,6 @@ _repo = _Repo()
 
 
 # REGION AI: extended header
-def _user_stats(uid: int) -> tuple[float, Optional[int]]:
-    try:
-        from shared.db.repo import DB_PATH  # type: ignore
-        import sqlite3
-    except Exception:  # pragma: no cover
-        return 0.0, None
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        total = cur.execute(
-            "SELECT COALESCE(SUM(amount),0) FROM payment_events "
-            "WHERE status='paid' AND json_extract(meta,'$.user_id')=?",
-            (uid,),
-        ).fetchone()[0] or 0.0
-        row = cur.execute(
-            "SELECT until_ts FROM access_grants WHERE user_id=? "
-            "AND until_ts IS NOT NULL ORDER BY until_ts DESC LIMIT 1",
-            (uid,),
-        ).fetchone()
-        conn.close()
-        return float(total), (int(row[0]) if row and row[0] else None)
-    except Exception:  # pragma: no cover
-        return 0.0, None
-
-
 def _fmt_from(msg: Message) -> str:
     u = msg.from_user
     uid = u.id if u else "unknown"
@@ -129,8 +104,14 @@ def _fmt_from(msg: Message) -> str:
     )
     if lang == "en":
         flag = "🇺🇸 EN"
-
-    total, until_ts = _user_stats(uid) if isinstance(uid, int) else (0.0, None)
+    if isinstance(uid, int):
+        try:
+            from shared.db.repo import get_user_profile  # type: ignore
+            total, until_ts = get_user_profile(uid)
+        except Exception:  # pragma: no cover
+            total, until_ts = (0.0, None)
+    else:
+        total, until_ts = (0.0, None)
 
     parts = [f"from: {uid}"]
 

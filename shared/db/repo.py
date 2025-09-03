@@ -421,6 +421,28 @@ async def log_access_grant(user_id: int, plan_code: str, invite_link: Optional[s
         await db.commit()
 
 
+# REGION AI: user profile
+def get_user_profile(user_id: int) -> tuple[float, Optional[int]]:
+    try:
+        import sqlite3
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        total = cur.execute(
+            "SELECT COALESCE(SUM(amount),0) FROM payment_events "
+            "WHERE status='paid' AND json_extract(meta,'$.user_id')=?",
+            (user_id,),
+        ).fetchone()[0] or 0.0
+        row = cur.execute(
+            "SELECT until_ts FROM access_grants WHERE user_id=? "
+            "AND until_ts IS NOT NULL ORDER BY until_ts DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
+        conn.close()
+        return float(total), (int(row[0]) if row and row[0] else None)
+    except Exception:  # pragma: no cover
+        return 0.0, None
+# END REGION AI
+
 # REGION AI: relay_users helpers
 async def upsert_relay_user(user_id: int, username: Optional[str], full_name: Optional[str]) -> None:
     async with _db() as db:
