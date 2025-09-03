@@ -5,6 +5,10 @@ import logging
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
+# REGION AI: imports
+from aiogram.types import Message, LabeledPrice
+from modules.access import grant
+# END REGION AI
 from modules.common.i18n import tr
 from modules.ui_membership.chat_keyboards import chat_currency_kb
 from modules.ui_membership.keyboards import vip_currency_kb, donate_currency_keyboard
@@ -70,3 +74,35 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         )
 
     await callback.message.edit_text(desc, reply_markup=kb)
+
+
+# REGION AI: Telegram Stars payments
+@router.callback_query(F.data == "pay_stars")
+async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = get_lang(callback.from_user)
+    data = await state.get_data()
+    plan_code = data.get("plan_code") or "donation"
+    purchase = "vip" if plan_code.startswith("vip") else "donate"
+    title = data.get("plan_name") or purchase
+    amount = float(data.get("price") or 1.0)
+    await callback.message.answer_invoice(
+        title=title,
+        description=tr(lang, "choose_cur", amount=amount),
+        payload=f"{purchase}:{plan_code}",
+        provider_token="",
+        currency="XTR",
+        prices=[LabeledPrice(label=title, amount=int(amount * 100))],
+    )
+
+
+@router.message(F.successful_payment)
+async def stars_success(message: Message) -> None:
+    lang = get_lang(message.from_user)
+    payload = message.successful_payment.invoice_payload
+    purchase, _, plan_code = payload.partition(":")
+    if purchase == "vip":
+        await grant(message.from_user.id, plan_code or "vip_30d", bot=message.bot)
+        await message.answer(tr(lang, "pay_conf"))
+    else:
+        await message.answer(tr(lang, "donate_intro_1"))
+# END REGION AI
