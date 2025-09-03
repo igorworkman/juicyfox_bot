@@ -21,16 +21,18 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
+# REGION AI: stars in currency menu
 def vip_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
 
     """Меню выбора валюты для VIP-подписки."""
     b = InlineKeyboardBuilder()
+    b.button(text="⭐ Stars", callback_data="pay_stars")
     if len(CURRENCIES) != 8:
         raise ValueError("CURRENCIES must contain exactly eight items")
     for title, code in CURRENCIES:
         b.button(text=title, callback_data=f"vipay:{code}")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
-    b.adjust(2, 2, 2, 2, 1)
+    b.adjust(1, 2, 2, 2, 2, 1)
     return b.as_markup()
 
 
@@ -39,12 +41,13 @@ def currency_menu(lang: str | None, prefix: str) -> InlineKeyboardMarkup:
     kb = vip_currency_kb(lang)
     for row in kb.inline_keyboard[:-1]:
         for btn in row:
-            if btn.callback_data:
+            if btn.callback_data and ":" in btn.callback_data:
                 code = btn.callback_data.split(":", 1)[1]
                 btn.callback_data = f"{prefix}{code}"
     back_btn = kb.inline_keyboard[-1][0]
     back_btn.callback_data = "donate:back" if prefix.startswith("donate") else "ui:back"
     return kb
+# END REGION AI
 
 
 def luxury_currency_kb(lang: str | None = None) -> InlineKeyboardMarkup:
