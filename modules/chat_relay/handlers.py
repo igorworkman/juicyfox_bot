@@ -207,21 +207,6 @@ async def relay_incoming_to_group(msg: Message):
     """
     if not RELAY_GROUP_ID:
         return
-    # REGION AI: retry helper
-    async def _send_with_retry(func, *args, **kwargs):
-        for attempt in range(3):
-            try:
-                await func(*args, **kwargs)
-                return
-            except TelegramNetworkError as e:
-                if attempt == 2:
-                    log.exception("relay to group failed: %s", e)
-                else:
-                    await asyncio.sleep(1)
-            except Exception as e:
-                log.exception("relay to group failed: %s", e)
-                return
-    # END REGION AI
 
     # Игнорируем команды вида "/start", "/help", "/..."
     if msg.text and msg.text.startswith("/"):
