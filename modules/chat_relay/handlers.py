@@ -104,6 +104,100 @@ def _now_ts() -> int:
     return int(time.time())
 
 
+# REGION AI: relay helpers
+async def _send_with_retry(func, *args, **kwargs) -> None:
+    for attempt in range(3):
+        try:
+            await func(*args, **kwargs)
+            return
+        except TelegramNetworkError as e:
+            if attempt == 2:
+                log.exception("relay send failed: %s", e)
+            else:
+                await asyncio.sleep(1)
+        except Exception as e:
+            log.exception("relay send failed: %s", e)
+            return
+
+
+async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None = None) -> None:
+    header = header or _fmt_from(msg)
+    text = (msg.text or msg.caption or "").strip()
+    bot = msg.bot
+    rec = {"type": msg.content_type, "ts": _now_ts()}
+    media_id: Optional[str] = None
+
+    if msg.text:
+        asyncio.create_task(
+            _send_with_retry(bot.send_message, chat_id, f"{header}\n\n{text}")
+        )
+        rec["text"] = text
+    elif msg.photo:
+        media_id = msg.photo[-1].file_id
+        cap = f"{header}\n\n{text}" if text else header
+        asyncio.create_task(
+            _send_with_retry(bot.send_photo, chat_id, media_id, caption=cap)
+        )
+        rec.update({"file_id": media_id, "text": text or None})
+    elif msg.video:
+        media_id = msg.video.file_id
+        cap = f"{header}\n\n{text}" if text else header
+        asyncio.create_task(
+            _send_with_retry(bot.send_video, chat_id, media_id, caption=cap)
+        )
+        rec.update({"file_id": media_id, "text": text or None})
+    elif msg.voice:
+        media_id = msg.voice.file_id
+        cap = f"{header}\n\n{text}" if text else header
+        asyncio.create_task(
+            _send_with_retry(bot.send_voice, chat_id, media_id, caption=cap)
+        )
+        rec.update({"file_id": media_id, "text": text or None})
+    elif msg.document:
+        media_id = msg.document.file_id
+        cap = f"{header}\n\n{text}" if text else header
+        asyncio.create_task(
+            _send_with_retry(bot.send_document, chat_id, media_id, caption=cap)
+        )
+        rec.update({"file_id": media_id, "text": text or None})
+    elif msg.animation:
+        media_id = msg.animation.file_id
+        cap = f"{header}\n\n{text}" if text else header
+        asyncio.create_task(
+            _send_with_retry(bot.send_animation, chat_id, media_id, caption=cap)
+        )
+        rec.update({"file_id": media_id, "text": text or None})
+    elif msg.sticker:
+        media_id = msg.sticker.file_id
+        asyncio.create_task(
+            _send_with_retry(bot.send_sticker, chat_id, media_id)
+        )
+        asyncio.create_task(
+            _send_with_retry(bot.send_message, chat_id, header)
+        )
+        rec.update({"file_id": media_id, "text": msg.sticker.emoji or None})
+    elif msg.video_note:
+        media_id = msg.video_note.file_id
+        asyncio.create_task(
+            _send_with_retry(bot.send_video_note, chat_id, media_id)
+        )
+        asyncio.create_task(
+            _send_with_retry(bot.send_message, chat_id, header)
+        )
+        rec["file_id"] = media_id
+    else:
+        asyncio.create_task(
+            _send_with_retry(
+                bot.send_message, chat_id, f"{header}\n\n[unsupported content]"
+            )
+        )
+        rec["type"] = "unknown"
+
+    await _repo.log_message(msg.from_user.id, "in", rec)
+
+
+# END REGION AI
+
 # ========== Входящие от пользователя → в рабочую группу ==========
 @router.message(F.chat.type == "private")
 async def relay_incoming_to_group(msg: Message):
@@ -113,7 +207,6 @@ async def relay_incoming_to_group(msg: Message):
     """
     if not RELAY_GROUP_ID:
         return
-
     # REGION AI: retry helper
     async def _send_with_retry(func, *args, **kwargs):
         for attempt in range(3):
@@ -159,67 +252,9 @@ async def relay_incoming_to_group(msg: Message):
 
     # 2) Пересылка в рабочую группу + лог
     try:
-        sent = False
-        if msg.text:
-            # REGION AI: relay send text
-            asyncio.create_task(_send_with_retry(msg.bot.send_message, RELAY_GROUP_ID, f"{caption_header}\n\n{content_text}"))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "text", "text": content_text, "ts": _now_ts()})
-
-        elif msg.photo:
-            cap = f"{caption_header}\n\n{content_text}" if content_text else caption_header
-            # REGION AI: relay send photo
-            asyncio.create_task(_send_with_retry(msg.bot.send_photo, RELAY_GROUP_ID, msg.photo[-1].file_id, caption=cap))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "photo", "file_id": msg.photo[-1].file_id, "text": content_text or None, "ts": _now_ts()})
-
-        elif msg.video:
-            cap = f"{caption_header}\n\n{content_text}" if content_text else caption_header
-            # REGION AI: relay send video
-            asyncio.create_task(_send_with_retry(msg.bot.send_video, RELAY_GROUP_ID, msg.video.file_id, caption=cap))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "video", "file_id": msg.video.file_id, "text": content_text or None, "ts": _now_ts()})
-
-        elif msg.voice:
-            cap = f"{caption_header}\n\n{content_text}" if content_text else caption_header
-            # REGION AI: relay send voice
-            asyncio.create_task(_send_with_retry(msg.bot.send_voice, RELAY_GROUP_ID, msg.voice.file_id, caption=cap))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "voice", "file_id": msg.voice.file_id, "text": content_text or None, "ts": _now_ts()})
-
-        elif msg.document:
-            cap = f"{caption_header}\n\n{content_text}" if content_text else caption_header
-            # REGION AI: relay send document
-            asyncio.create_task(_send_with_retry(msg.bot.send_document, RELAY_GROUP_ID, msg.document.file_id, caption=cap))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "document", "file_id": msg.document.file_id, "text": content_text or None, "ts": _now_ts()})
-
-        elif msg.animation:
-            cap = f"{caption_header}\n\n{content_text}" if content_text else caption_header
-            # REGION AI: relay send animation
-            asyncio.create_task(_send_with_retry(msg.bot.send_animation, RELAY_GROUP_ID, msg.animation.file_id, caption=cap))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "animation", "file_id": msg.animation.file_id, "text": content_text or None, "ts": _now_ts()})
-
-        elif msg.sticker:
-            # REGION AI: relay send sticker
-            asyncio.create_task(_send_with_retry(msg.bot.send_message, RELAY_GROUP_ID, f"{caption_header}\n\n[sticker] {msg.sticker.emoji or ''}".strip()))
-            # END REGION AI
-            sent = True
-            await _repo.log_message(uid, "in", {"type": "sticker", "text": msg.sticker.emoji or None, "ts": _now_ts()})
-
-        if not sent:
-            # REGION AI: relay send unknown
-            asyncio.create_task(_send_with_retry(msg.bot.send_message, RELAY_GROUP_ID, f"{caption_header}\n\n[unsupported content]"))
-            # END REGION AI
-            await _repo.log_message(uid, "in", {"type": "unknown", "ts": _now_ts()})
-
+        # REGION AI: relay via helper
+        await _send_record(msg, RELAY_GROUP_ID, caption_header)
+        # END REGION AI
     except Exception as e:
         log.exception("relay to group failed: %s", e)
 
