@@ -87,7 +87,7 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     amount = float(data.get("price") or 1.0)
     await callback.message.answer_invoice(
         title=title,
-        description=tr(lang, "choose_cur", amount=amount),
+        description=tr(lang, "stars_payment_desc"),
         payload=f"{purchase}:{plan_code}",
         provider_token="",
         currency="XTR",
@@ -104,5 +104,6 @@ async def stars_success(message: Message) -> None:
         await grant(message.from_user.id, plan_code or "vip_30d", bot=message.bot)
         await message.answer(tr(lang, "pay_conf"))
     else:
-        await message.answer(tr(lang, "donate_intro_1"))
+        amount = message.successful_payment.total_amount / 100
+        await message.answer(tr(lang, "donate_thanks", amount=amount))
 # END REGION AI
