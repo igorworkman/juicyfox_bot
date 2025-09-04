@@ -88,9 +88,11 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     plan_callback = data.get("plan_callback") or ""
     if plan_callback == "vip" or (plan_code and plan_code.startswith("vip")):
         purchase = "vip"
+        plan_code = plan_code or "vip_30d"
+        await state.update_data(plan_code=plan_code, plan_callback="vip")
     else:
         purchase = "donate"
-    plan_code = plan_code or "donation"
+        plan_code = plan_code or "donation"
     title = data.get("plan_name") or purchase
     amount = float(data.get("price") or 1.0)
     # REGION AI: stars invoice prompt
