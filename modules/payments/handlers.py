@@ -84,14 +84,15 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     plan_code = data.get("plan_code") or "donation"
     purchase = "vip" if plan_code.startswith("vip") else "donate"
     title = data.get("plan_name") or purchase
-    amount = float(data.get("price") or 1.0)
-    await callback.message.answer_invoice(
+    amount = int(data.get("price") or 1)
+    await callback.bot.send_invoice(
+        chat_id=callback.from_user.id,
         title=title,
         description=tr(lang, "stars_payment_desc"),
         payload=f"{purchase}:{plan_code}",
         provider_token="",
         currency="XTR",
-        prices=[LabeledPrice(label=title, amount=int(amount * 100))],
+        prices=[LabeledPrice(label=title, amount=amount * 100)],
     )
 
 
