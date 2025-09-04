@@ -50,7 +50,7 @@
   "dt_cancel": "❌ Отмена",
   "choose_time": "{time}",
   "ask_stars": "Укажи количество Stars:",
-  "stars_payment_desc": "Оплата в Звёздах Telegram",
+  "stars_payment_desc": "Оплата через ⭐ Stars\n⚠️ Только с телефона (iOS / Android)",
   "ask_content": "Пришли текст поста или медиа.",
   "set_price_prompt": "Укажи цену поста:",
   "free_label": "FREE",

@@ -50,7 +50,7 @@
   "dt_cancel": "❌ Cancelar",
   "choose_time": "{time}",
   "ask_stars": "Especifica el número de Stars:",
-  "stars_payment_desc": "Pago en Estrellas de Telegram",
+  "stars_payment_desc": "Pagar con ⭐ Stars\n⚠️ Disponible solo en móviles (iOS / Android)",
   "ask_content": "Envía el texto o medio de la publicación.",
   "set_price_prompt": "Establece el precio de la publicación:",
   "free_label": "FREE",
