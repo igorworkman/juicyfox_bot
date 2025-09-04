@@ -62,7 +62,10 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(amount=invoice.get("price"))
         await state.set_state(Donate.choosing_currency)
     else:
-        desc = tr(lang, "choose_cur", amount=invoice.get("price"))
+        # REGION AI: choose currency text
+        key = "choose_cur_stars" if invoice.get("currency") == "XTR" else "choose_cur_usd"
+        desc = tr(lang, key, amount=invoice.get("price"))
+        # END REGION AI
         kb = chat_currency_kb(plan_code, lang)
         await state.clear()
         await state.update_data(
@@ -85,6 +88,9 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     purchase = "vip" if plan_code.startswith("vip") else "donate"
     title = data.get("plan_name") or purchase
     amount = float(data.get("price") or 1.0)
+    # REGION AI: stars invoice prompt
+    await callback.message.answer(tr(lang, "choose_cur_stars", amount=amount))
+    # END REGION AI
     await callback.message.answer_invoice(
         title=title,
         description=tr(lang, "stars_payment_desc"),
