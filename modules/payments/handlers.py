@@ -119,7 +119,6 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
         purchase = "vip" if plan_callback == "vip" or plan_code.startswith("vip") else "donate"
         title = data.get("plan_name") or ("VIP CLUB - 19$" if purchase == "vip" else purchase)
         stars = int(data.get("stars") or 100)
-    await callback.message.answer(tr(lang, "choose_cur_stars", amount=stars))
     await callback.message.answer_invoice(
         title=title,
         description=tr(lang, "stars_payment_desc"),
