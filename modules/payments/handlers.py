@@ -68,12 +68,13 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
         # END REGION AI
         kb = chat_currency_kb(plan_code, lang)
         await state.clear()
+        data_key = "stars" if invoice.get("currency") == "XTR" else "price"
         await state.update_data(
             plan_name=invoice.get("plan_name"),
-            price=invoice.get("price"),
             period=invoice.get("period"),
             plan_callback=plan_callback,
             plan_code=plan_code,
+            **{data_key: invoice.get("price")},
         )
 
     await callback.message.edit_text(desc, reply_markup=kb)
@@ -94,9 +95,9 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
         purchase = "donate"
         plan_code = plan_code or "donation"
     title = data.get("plan_name") or purchase
-    amount = float(data.get("price") or 1.0)
+    stars = int(data.get("stars") or data.get("price") or 100)
     # REGION AI: stars invoice prompt
-    await callback.message.answer(tr(lang, "choose_cur_stars", amount=amount))
+    await callback.message.answer(tr(lang, "choose_cur_stars", amount=stars))
     # END REGION AI
     await callback.message.answer_invoice(
         title=title,
@@ -104,7 +105,7 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
         payload=f"{purchase}:{plan_code}",
         provider_token="",
         currency="XTR",
-        prices=[LabeledPrice(label=title, amount=int(amount * 100))],
+        prices=[LabeledPrice(label=title, amount=stars * 100)],
     )
 
 
