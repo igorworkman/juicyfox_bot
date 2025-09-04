@@ -83,6 +83,8 @@ def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
     for row in kb.inline_keyboard[:-1]:
         for btn in row:
             data = btn.callback_data or ""
+            if data == "pay_stars":
+                continue
             code = data.split(":", 1)[1] if ":" in data else data
             btn.callback_data = f"donate${code}"
     # END REGION AI
