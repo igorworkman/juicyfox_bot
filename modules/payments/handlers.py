@@ -81,32 +81,45 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 # REGION AI: Telegram Stars payments
-@router.callback_query(F.data == "pay_stars")
+CHAT_STAR_PLANS = {
+    "chat_7d": ("Chat 7", 7, 250),
+    "chat_15d": ("Chat 15", 15, 450),
+    "chat_30d": ("Chat 30", 30, 750),
+}
+
+
+@router.callback_query(F.data.startswith("pay_stars"))
 async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(callback.from_user)
     data = await state.get_data()
-    plan_code = data.get("plan_code") or ""
+    _, _, plan_code = callback.data.partition(":")
     plan_callback = data.get("plan_callback") or ""
-    if not plan_code and not plan_callback:
+    if plan_code in CHAT_STAR_PLANS:
+        title, period, stars = CHAT_STAR_PLANS[plan_code]
         await state.update_data(
-            plan_code="vip_30d",
-            plan_callback="vip",
-            plan_name="VIP CLUB - 19$",
-            stars=1000,
+            plan_name=title,
+            period=period,
+            plan_callback=f"paymem:{plan_code}",
+            plan_code=plan_code,
+            stars=stars,
         )
-        data = await state.get_data()
-        plan_code = data.get("plan_code") or ""
-        plan_callback = data.get("plan_callback") or ""
-    if plan_callback == "vip" or plan_code.startswith("vip"):
-        purchase = "vip"
+        purchase = "chat"
     else:
-        purchase = "donate"
-        plan_code = plan_code or "donation"
-    title = data.get("plan_name") or ("VIP CLUB - 19$" if purchase == "vip" else purchase)
-    stars = int(data.get("stars") or 100)
-    # REGION AI: stars invoice prompt
+        plan_code = data.get("plan_code") or ""
+        if not plan_code and not plan_callback:
+            await state.update_data(
+                plan_code="vip_30d",
+                plan_callback="vip",
+                plan_name="VIP CLUB - 19$",
+                stars=1000,
+            )
+            data = await state.get_data()
+            plan_code = data.get("plan_code") or ""
+            plan_callback = data.get("plan_callback") or ""
+        purchase = "vip" if plan_callback == "vip" or plan_code.startswith("vip") else "donate"
+        title = data.get("plan_name") or ("VIP CLUB - 19$" if purchase == "vip" else purchase)
+        stars = int(data.get("stars") or 100)
     await callback.message.answer(tr(lang, "choose_cur_stars", amount=stars))
-    # END REGION AI
     await callback.message.answer_invoice(
         title=title,
         description=tr(lang, "stars_payment_desc"),
@@ -120,12 +133,12 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
 @router.message(F.successful_payment)
 async def stars_success(message: Message) -> None:
     lang = get_lang(message.from_user)
-    payload = message.successful_payment.invoice_payload
-    purchase, _, plan_code = payload.partition(":")
-    if purchase == "vip":
-        await grant(message.from_user.id, plan_code or "vip_30d", bot=message.bot)
+    purchase, _, plan_code = message.successful_payment.invoice_payload.partition(":")
+    if purchase in {"vip", "chat"}:
+        default_code = "vip_30d" if purchase == "vip" else "chat_7d"
+        await grant(message.from_user.id, plan_code or default_code, bot=message.bot)
         await message.answer(tr(lang, "pay_conf"))
     else:
-        amount = message.successful_payment.total_amount / 100
+        amount = message.successful_payment.total_amount
         await message.answer(tr(lang, "donate_thanks", amount=amount))
 # END REGION AI

@@ -19,9 +19,13 @@ def chat_tariffs_kb(lang: str) -> InlineKeyboardMarkup:
 
 def chat_currency_kb(plan_code: str, lang: str | None = None) -> InlineKeyboardMarkup:
     """Keyboard for choosing payment currency for chat plans."""
+    # REGION AI: add Stars option
     b = InlineKeyboardBuilder()
+    stars_code = f"{plan_code}d"
+    b.button(text="⭐ Stars", callback_data=f"pay_stars:{stars_code}")
     for title, code in CURRENCIES:
         b.button(text=title, callback_data=f"paymem:{plan_code}:{code}")
     b.button(text=tr(lang or "en", "btn_back"), callback_data="ui:back")
-    b.adjust(2, 2, 2, 2, 1)
+    b.adjust(1, 2, 2, 2, 2, 1)
     return b.as_markup()
+    # END REGION AI
