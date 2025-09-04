@@ -41,10 +41,11 @@ def currency_menu(lang: str | None, prefix: str) -> InlineKeyboardMarkup:
     kb = vip_currency_kb(lang)
     for row in kb.inline_keyboard[:-1]:
         for btn in row:
-            if btn.callback_data:
-                data = btn.callback_data
-                code = data.split(":", 1)[1] if ":" in data else data
-                btn.callback_data = f"{prefix}{code}"
+            data = btn.callback_data or ""
+            if data == "pay_stars":
+                continue
+            code = data.split(":", 1)[1] if ":" in data else data
+            btn.callback_data = f"{prefix}{code}"
     back_btn = kb.inline_keyboard[-1][0]
     back_btn.callback_data = "donate:back" if prefix.startswith("donate") else "ui:back"
     return kb
