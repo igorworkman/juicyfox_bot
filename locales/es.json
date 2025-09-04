@@ -11,6 +11,8 @@
   "my_channel": "👀 Mi canal gratuito: {link}",
   "choose_action": "Elige una acción abajo:",
   "choose_cur": "Elige método de pago: {amount}⭐",
+  "choose_cur_usd": "Elige el método de pago: {amount}$",
+  "choose_cur_stars": "Paga con Estrellas de Telegram: {amount}⭐",
   "donate_currency": "Cariño, elige la moneda para tu donación 🎁",
   "donate_intro_1": "🎁 Mándame un pequeño regalo... y te sorprenderé 😉",
   "donate_intro_2": "Elige una cantidad — cada donación me hace más feliz 💕",
