@@ -79,20 +79,14 @@ def donate_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
 
 
 def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
-    kb = vip_currency_kb(lang)
-    # REGION AI: donate callback split
-    for row in kb.inline_keyboard[:-1]:
-        for btn in row:
-            data = btn.callback_data or ""
-            if data == "pay_stars":
-                continue
-            code = data.split(":", 1)[1] if ":" in data else data
-            btn.callback_data = f"donate${code}"
+    # REGION AI: remove stars from donate menu
+    b = InlineKeyboardBuilder()
+    for title, code in CURRENCIES:
+        b.button(text=title, callback_data=f"donate${code}")
+    b.button(text=tr(lang or "en", "btn_back"), callback_data="donate_back")
+    b.adjust(2, 2, 2, 2, 1)
+    return b.as_markup()
     # END REGION AI
-    kb.inline_keyboard[-1][0] = InlineKeyboardButton(
-        text=tr(lang or "en", "btn_back"), callback_data="donate_back"
-    )
-    return kb
 
 
 def _invoice_keyboard(lang, url: str, cancel_data: str) -> InlineKeyboardMarkup:
