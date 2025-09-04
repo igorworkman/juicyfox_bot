@@ -84,8 +84,13 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
 async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(callback.from_user)
     data = await state.get_data()
-    plan_code = data.get("plan_code") or "donation"
-    purchase = "vip" if plan_code.startswith("vip") else "donate"
+    plan_code = data.get("plan_code") or ""
+    plan_callback = data.get("plan_callback") or ""
+    if plan_callback == "vip" or (plan_code and plan_code.startswith("vip")):
+        purchase = "vip"
+    else:
+        purchase = "donate"
+    plan_code = plan_code or "donation"
     title = data.get("plan_name") or purchase
     amount = float(data.get("price") or 1.0)
     # REGION AI: stars invoice prompt

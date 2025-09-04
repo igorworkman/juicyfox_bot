@@ -41,8 +41,9 @@ def currency_menu(lang: str | None, prefix: str) -> InlineKeyboardMarkup:
     kb = vip_currency_kb(lang)
     for row in kb.inline_keyboard[:-1]:
         for btn in row:
-            if btn.callback_data and ":" in btn.callback_data:
-                code = btn.callback_data.split(":", 1)[1]
+            if btn.callback_data:
+                data = btn.callback_data
+                code = data.split(":", 1)[1] if ":" in data else data
                 btn.callback_data = f"{prefix}{code}"
     back_btn = kb.inline_keyboard[-1][0]
     back_btn.callback_data = "donate:back" if prefix.startswith("donate") else "ui:back"
@@ -78,9 +79,13 @@ def donate_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
 
 def donate_currency_keyboard(lang: str | None = None) -> InlineKeyboardMarkup:
     kb = vip_currency_kb(lang)
+    # REGION AI: donate callback split
     for row in kb.inline_keyboard[:-1]:
         for btn in row:
-            btn.callback_data = f"donate${btn.callback_data.split(':', 1)[1]}"
+            data = btn.callback_data or ""
+            code = data.split(":", 1)[1] if ":" in data else data
+            btn.callback_data = f"donate${code}"
+    # END REGION AI
     kb.inline_keyboard[-1][0] = InlineKeyboardButton(
         text=tr(lang or "en", "btn_back"), callback_data="donate_back"
     )
