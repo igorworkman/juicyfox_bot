@@ -87,15 +87,23 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     plan_code = data.get("plan_code") or ""
     plan_callback = data.get("plan_callback") or ""
-    if plan_callback == "vip" or (plan_code and plan_code.startswith("vip")):
+    if not plan_code and not plan_callback:
+        await state.update_data(
+            plan_code="vip_30d",
+            plan_callback="vip",
+            plan_name="VIP CLUB - 19$",
+            stars=1000,
+        )
+        data = await state.get_data()
+        plan_code = data.get("plan_code") or ""
+        plan_callback = data.get("plan_callback") or ""
+    if plan_callback == "vip" or plan_code.startswith("vip"):
         purchase = "vip"
-        plan_code = plan_code or "vip_30d"
-        await state.update_data(plan_code=plan_code, plan_callback="vip")
     else:
         purchase = "donate"
         plan_code = plan_code or "donation"
-    title = data.get("plan_name") or purchase
-    stars = int(data.get("stars") or data.get("price") or 100)
+    title = data.get("plan_name") or ("VIP CLUB - 19$" if purchase == "vip" else purchase)
+    stars = int(data.get("stars") or 100)
     # REGION AI: stars invoice prompt
     await callback.message.answer(tr(lang, "choose_cur_stars", amount=stars))
     # END REGION AI
@@ -105,7 +113,7 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
         payload=f"{purchase}:{plan_code}",
         provider_token="",
         currency="XTR",
-        prices=[LabeledPrice(label=title, amount=stars * 100)],
+        prices=[LabeledPrice(label=title, amount=stars)],
     )
 
 
