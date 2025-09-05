@@ -16,9 +16,17 @@ try:
         get_relay_user,
         link_user_group,
         get_group_for_user,
+        get_user_by_group,
     )
 except Exception:  # pragma: no cover
-    get_active_invoice = upsert_relay_user = get_relay_user = link_user_group = get_group_for_user = None  # type: ignore
+    (
+        get_active_invoice,
+        upsert_relay_user,
+        get_relay_user,
+        link_user_group,
+        get_group_for_user,
+        get_user_by_group,
+    ) = (None, None, None, None, None, None)  # type: ignore
 try:
     from shared.config.env import config
 except Exception:  # pragma: no cover
@@ -280,9 +288,49 @@ async def _safe_edit_text(msg: Message, text: str, reply_markup: Any = None) -> 
     if current_text == text and msg.reply_markup == reply_markup:
         return
     await msg.edit_text(text, reply_markup=reply_markup)
+# REGION AI: group replies
+async def _copy_and_log(msg: Message, user_id: int) -> None:
+    await msg.bot.copy_message(user_id, msg.chat.id, msg.message_id)
+    log_rec = {"type": msg.content_type, "ts": _now_ts()}
+    caption = msg.caption or msg.text or None
+    if msg.photo:
+        log_rec.update({"file_id": msg.photo[-1].file_id, "text": caption})
+    elif msg.video:
+        log_rec.update({"file_id": msg.video.file_id, "text": caption})
+    elif msg.voice:
+        log_rec.update({"file_id": msg.voice.file_id, "text": caption})
+    elif msg.document:
+        log_rec.update({"file_id": msg.document.file_id, "text": caption})
+    elif msg.animation:
+        log_rec.update({"file_id": msg.animation.file_id, "text": caption})
+    elif msg.sticker:
+        log_rec.update({"file_id": msg.sticker.file_id, "text": msg.sticker.emoji})
+    else:
+        log_rec.update({"text": caption})
+    await _repo.log_message(user_id, "out", log_rec)
 
-@router.message(F.chat.id == RELAY_GROUP_ID)
+
+@router.message(F.chat.type.in_({"group", "supergroup"}))
 async def relay_from_group(msg: Message) -> None:
+    group_id = msg.chat.id
+    user_id: Optional[int] = None
+    if get_user_by_group:
+        try:
+            user_id = await get_user_by_group(group_id)
+        except Exception:
+            user_id = None
+    if user_id:
+        text = msg.text or msg.caption or ""
+        log.info("OUT: group_id=%s → user_id=%s text=%r", group_id, user_id, text)
+        try:
+            await _copy_and_log(msg, user_id)
+        except Exception as e:
+            log.error("relay_from_group: failed to deliver user_id=%s error=%s", user_id, e)
+        finally:
+            await _repo.reset_streak(user_id)
+        return
+
+    log.warning("relay_from_group: user not linked for group_id=%s", group_id)
     if not msg.reply_to_message or (msg.text and msg.text.startswith("/")):
         return
     parts = (msg.reply_to_message.caption or msg.reply_to_message.text or "").split()
@@ -296,9 +344,7 @@ async def relay_from_group(msg: Message) -> None:
         if not user:
             log.warning("relay_users: user_id not found in DB")
     else:
-        # REGION AI: missing relay_users
         log.warning("relay_users: repository unavailable")
-        # END REGION AI
     if get_active_invoice:
         try:
             invoice = await get_active_invoice(user_id)
@@ -309,26 +355,7 @@ async def relay_from_group(msg: Message) -> None:
                 "relay_from_group: missing user_id in DB, possibly after deploy reset."
             )
     try:
-        # REGION AI: relay via copy_message
-        await msg.bot.copy_message(user_id, msg.chat.id, msg.message_id)
-        # fix: log media file_id for accurate history playback
-        log_rec = {"type": msg.content_type, "ts": _now_ts()}
-        caption = msg.caption or msg.text or None
-        if msg.photo:
-            log_rec.update({"file_id": msg.photo[-1].file_id, "text": caption})
-        elif msg.video:
-            log_rec.update({"file_id": msg.video.file_id, "text": caption})
-        elif msg.voice:
-            log_rec.update({"file_id": msg.voice.file_id, "text": caption})
-        elif msg.document:
-            log_rec.update({"file_id": msg.document.file_id, "text": caption})
-        elif msg.animation:
-            log_rec.update({"file_id": msg.animation.file_id, "text": caption})
-        elif msg.sticker:
-            log_rec.update({"file_id": msg.sticker.file_id, "text": msg.sticker.emoji})
-        else:
-            log_rec.update({"text": caption})
-        await _repo.log_message(user_id, "out", log_rec)
+        await _copy_and_log(msg, user_id)
         if msg.text:
             await _safe_edit_text(msg, msg.text, reply_markup=None)
         log.info(
@@ -336,11 +363,11 @@ async def relay_from_group(msg: Message) -> None:
             user_id,
             msg.content_type,
         )
-        # END REGION AI
     except Exception as e:
         log.error("relay_from_group: failed to deliver user_id=%s error=%s", user_id, e)
     finally:
         await _repo.reset_streak(user_id)
+# END REGION AI
 # END REGION AI
 # ========== Ответ из рабочей группы пользователю ==========
 @router.message(Command("r"))
