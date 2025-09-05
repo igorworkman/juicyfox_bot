@@ -15,9 +15,10 @@ try:
         upsert_relay_user,
         get_relay_user,
         link_user_group,
+        get_group_for_user,
     )
 except Exception:  # pragma: no cover
-    get_active_invoice = upsert_relay_user = get_relay_user = link_user_group = None  # type: ignore
+    get_active_invoice = upsert_relay_user = get_relay_user = link_user_group = get_group_for_user = None  # type: ignore
 try:
     from shared.config.env import config
 except Exception:  # pragma: no cover
@@ -241,6 +242,13 @@ async def relay_incoming_to_group(msg: Message):
     # Поддержка "медиа + подпись": текст берём из msg.text ИЛИ msg.caption
     content_text = (msg.text or msg.caption or "").strip()
 
+    group_id = RELAY_GROUP_ID
+    if get_group_for_user:
+        try:
+            group_id = int(await get_group_for_user(uid) or RELAY_GROUP_ID)
+        except Exception:
+            group_id = RELAY_GROUP_ID
+
     # 1) Лимит подряд входящих
     streak = await _repo.inc_streak(uid)
     if streak > USER_STREAK_LIMIT:
@@ -257,9 +265,10 @@ async def relay_incoming_to_group(msg: Message):
         return
 
     # 2) Пересылка в рабочую группу + лог
+    log.info("IN: user_id=%s → group_id=%s text=%r", uid, group_id, content_text)
     try:
         # REGION AI: relay via helper
-        await _send_record(msg, RELAY_GROUP_ID, caption_header)
+        await _send_record(msg, group_id, caption_header)
         # END REGION AI
     except Exception as e:
         log.exception("relay to group failed: %s", e)
