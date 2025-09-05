@@ -10,9 +10,18 @@ from typing import Optional, Dict, Any, List
 import asyncio
 from aiogram.exceptions import TelegramNetworkError
 try:
-    from shared.db.repo import get_active_invoice, upsert_relay_user, get_relay_user
+    from shared.db.repo import (
+        get_active_invoice,
+        upsert_relay_user,
+        get_relay_user,
+        link_user_group,
+    )
 except Exception:  # pragma: no cover
-    get_active_invoice = upsert_relay_user = get_relay_user = None  # type: ignore
+    get_active_invoice = upsert_relay_user = get_relay_user = link_user_group = None  # type: ignore
+try:
+    from shared.config.env import config
+except Exception:  # pragma: no cover
+    config = None  # type: ignore
 # END REGION AI
 
 from aiogram import Router, F
@@ -410,3 +419,61 @@ async def history_cmd(m: Message, command: CommandObject):
 
     chunk = "\n".join(_fmt_msg(r) for r in messages[-limit:])
     await m.reply(f"История {user_id} (последние {limit}):\n{chunk}")
+
+# REGION AI: link command
+ADMIN_IDS: set[int] = set()
+if config:
+    raw_ids = config.extra.get("admin_ids", [])
+    if isinstance(raw_ids, str):
+        ADMIN_IDS.update(
+            int(x) for x in raw_ids.split(",") if x.strip().lstrip("-").isdigit()
+        )
+    elif isinstance(raw_ids, (list, tuple, set)):
+        ADMIN_IDS.update(
+            int(x) for x in raw_ids if str(x).strip().lstrip("-").isdigit()
+        )
+env_ids = os.getenv("ADMIN_IDS", "")
+if env_ids:
+    ADMIN_IDS.update(
+        int(x) for x in env_ids.replace(";", ",").split(",") if x.strip().lstrip("-").isdigit()
+    )
+
+def _link_text(lang: str, key: str, user_id: int, group_id: int) -> str:
+    texts = {
+        "ok": {
+            "ru": f"Связь установлена: user_id {user_id} → group {group_id}",
+            "en": f"Link established: user_id {user_id} → group {group_id}",
+            "es": f"Enlace establecido: user_id {user_id} → group {group_id}",
+        },
+        "bad": {
+            "ru": "Использование: /link <user_id> <group_id>",
+            "en": "Usage: /link <user_id> <group_id>",
+            "es": "Uso: /link <user_id> <group_id>",
+        },
+        "forbidden": {
+            "ru": "Команда доступна только администратору.",
+            "en": "This command is only available to administrators.",
+            "es": "Este comando solo está disponible para administradores.",
+        },
+    }
+    return texts[key].get(lang, texts[key]["en"])
+
+
+@router.message(Command("link"))
+async def link_user_to_group(message: Message, command: CommandObject) -> None:
+    lang = (message.from_user.language_code or "en")[:2]
+    if message.from_user.id not in ADMIN_IDS:
+        await message.reply(_link_text(lang, "forbidden", 0, 0))
+        return
+    args = (command.args or "").split()
+    if len(args) != 2 or not args[0].lstrip("-").isdigit() or not args[1].lstrip("-").isdigit():
+        await message.reply(_link_text(lang, "bad", 0, 0))
+        return
+    user_id, group_id = int(args[0]), int(args[1])
+    if link_user_group:
+        try:
+            await link_user_group(user_id, group_id)
+        except Exception:
+            pass
+    await message.reply(_link_text(lang, "ok", user_id, group_id))
+# END REGION AI
