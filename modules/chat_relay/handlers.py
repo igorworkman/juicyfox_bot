@@ -17,6 +17,7 @@ try:
         link_user_group,
         get_group_for_user,
         get_user_by_group,
+        get_chat_number,
     )
 except Exception:  # pragma: no cover
     (
@@ -26,7 +27,8 @@ except Exception:  # pragma: no cover
         link_user_group,
         get_group_for_user,
         get_user_by_group,
-    ) = (None, None, None, None, None, None)  # type: ignore
+        get_chat_number,
+    ) = (None, None, None, None, None, None, None)  # type: ignore
 try:
     from shared.config.env import config
 except Exception:  # pragma: no cover
@@ -122,23 +124,32 @@ def _fmt_from(msg: Message) -> str:
     )
     if lang == "en":
         flag = "🇺🇸 EN"
+    chat_num = None
     if isinstance(uid, int):
         try:
             from shared.db.repo import get_user_profile  # type: ignore
             total, until_ts = get_user_profile(uid)
+            chat_num = get_chat_number(uid) if get_chat_number else None
         except Exception:  # pragma: no cover
             total, until_ts = (0.0, None)
+            chat_num = None
     else:
         total, until_ts = (0.0, None)
+        chat_num = None
 
-    parts = [f"from: {uid}"]
-
-    display = (u.full_name or u.username) if u else None
-    if display:
-        parts.append(display)
-
-    if u and u.username:
-        parts.append(f"@{u.username}")
+    if chat_num is not None:
+        parts = [f"№{chat_num}", str(uid)]
+        if u and u.username:
+            parts.append(f"@{u.username}")
+        if u and u.full_name:
+            parts.append(u.full_name)
+    else:
+        parts = [f"from: {uid}"]
+        display = (u.full_name or u.username) if u else None
+        if display:
+            parts.append(display)
+        if u and u.username:
+            parts.append(f"@{u.username}")
 
     if flag:
         parts.append(flag)
