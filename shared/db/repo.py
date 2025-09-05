@@ -107,6 +107,7 @@ _SCHEMA = [
     CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER PRIMARY KEY,
         group_id INTEGER NOT NULL,
+        chat_number INTEGER,
         status TEXT NOT NULL DEFAULT 'active',
         linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -133,6 +134,10 @@ async def init_db() -> None:
             await db.execute("ALTER TABLE pending_invoices ADD COLUMN price REAL")
         if "period" not in cols:
             await db.execute("ALTER TABLE pending_invoices ADD COLUMN period INTEGER")
+        cur = await db.execute("PRAGMA table_info(users)")
+        cols = {r[1] for r in await cur.fetchall()}
+        if "chat_number" not in cols:
+            await db.execute("ALTER TABLE users ADD COLUMN chat_number INTEGER")
         await db.commit()
 
     global _SCHEMA_LOGGED
@@ -481,18 +486,37 @@ async def get_all_relay_users() -> List[Dict[str, Any]]:
     return [{"user_id": r[0], "username": r[1], "full_name": r[2], "last_seen": r[3]} for r in rows]
 # END REGION AI
 
+# REGION AI: user chat number
+def get_chat_number(user_id: int) -> Optional[int]:
+    try:
+        import sqlite3
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        row = cur.execute("SELECT chat_number FROM users WHERE user_id=?", (user_id,)).fetchone()
+        conn.close()
+        return int(row[0]) if row and row[0] is not None else None
+    except Exception:  # pragma: no cover
+        return None
+# END REGION AI
+
 # feat: link user with personal group
 # REGION AI: user-group link
 async def link_user_group(user_id: int, group_id: int) -> None:
     sql = (
-        "INSERT INTO users(user_id, group_id, status, linked_at) "
-        "VALUES(?, ?, 'active', CURRENT_TIMESTAMP) "
+        "INSERT INTO users(user_id, group_id, status, linked_at, chat_number) "
+        "VALUES(?, ?, 'active', CURRENT_TIMESTAMP, ?) "
         "ON CONFLICT(user_id) DO UPDATE SET "
         "group_id=excluded.group_id, status='active', linked_at=CURRENT_TIMESTAMP"
     )
     try:
         async with _db() as db:
-            await db.execute(sql, (user_id, group_id))
+            row = await (await db.execute("SELECT chat_number FROM users WHERE user_id=?", (user_id,))).fetchone()
+            if row and row[0] is not None:
+                chat_number = int(row[0])
+            else:
+                max_row = await (await db.execute("SELECT COALESCE(MAX(chat_number),0) FROM users")).fetchone()
+                chat_number = int(max_row[0]) + 1
+            await db.execute(sql, (user_id, group_id, chat_number))
             await db.commit()
         log.info("link_user_group success: user_id=%s group_id=%s", user_id, group_id)
     except Exception as e:
