@@ -101,6 +101,17 @@ _SCHEMA = [
     );
     """,
     # END REGION AI
+    # feat: store user to group links
+    # REGION AI: users table
+    """
+    CREATE TABLE IF NOT EXISTS users (
+        user_id INTEGER PRIMARY KEY,
+        group_id INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """,
+    # END REGION AI
 ]
 
 
@@ -468,4 +479,23 @@ async def get_all_relay_users() -> List[Dict[str, Any]]:
     async with _db() as db:
         rows = await (await db.execute("SELECT user_id, username, full_name, last_seen FROM relay_users")).fetchall()
     return [{"user_id": r[0], "username": r[1], "full_name": r[2], "last_seen": r[3]} for r in rows]
+# END REGION AI
+
+# feat: link user with personal group
+# REGION AI: user-group link
+async def link_user_group(user_id: int, group_id: int) -> None:
+    sql = (
+        "INSERT INTO users(user_id, group_id, status, linked_at) "
+        "VALUES(?, ?, 'active', CURRENT_TIMESTAMP) "
+        "ON CONFLICT(user_id) DO UPDATE SET "
+        "group_id=excluded.group_id, status='active', linked_at=CURRENT_TIMESTAMP"
+    )
+    try:
+        async with _db() as db:
+            await db.execute(sql, (user_id, group_id))
+            await db.commit()
+        log.info("link_user_group success: user_id=%s group_id=%s", user_id, group_id)
+    except Exception as e:
+        log.error("link_user_group failed: user_id=%s group_id=%s error=%s", user_id, group_id, e)
+        raise
 # END REGION AI
