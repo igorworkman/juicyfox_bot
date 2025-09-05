@@ -510,3 +510,18 @@ async def get_group_for_user(user_id: int) -> Optional[int]:
             )
         ).fetchone()
     return int(row[0]) if row else None
+
+
+# feat: reverse lookup user by group
+# REGION AI: get user by group
+async def get_user_by_group(group_id: int) -> Optional[int]:
+    sql = "SELECT user_id FROM users WHERE group_id=? AND status='active'"
+    async with _db() as db:
+        row = await (await db.execute(sql, (group_id,))).fetchone()
+    if row:
+        user_id = int(row[0])
+        log.info("get_user_by_group found: group_id=%s user_id=%s", group_id, user_id)
+        return user_id
+    log.warning("get_user_by_group not found: group_id=%s", group_id)
+    return None
+# END REGION AI
