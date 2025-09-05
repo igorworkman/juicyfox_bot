@@ -499,3 +499,14 @@ async def link_user_group(user_id: int, group_id: int) -> None:
         log.error("link_user_group failed: user_id=%s group_id=%s error=%s", user_id, group_id, e)
         raise
 # END REGION AI
+
+
+async def get_group_for_user(user_id: int) -> Optional[int]:
+    async with _db() as db:
+        row = await (
+            await db.execute(
+                "SELECT group_id FROM users WHERE user_id=? AND status='active'",
+                (user_id,),
+            )
+        ).fetchone()
+    return int(row[0]) if row else None
