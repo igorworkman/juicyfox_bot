@@ -262,6 +262,23 @@ async def relay_incoming_to_group(msg: Message):
     caption_header = _fmt_from(msg)
     # Поддержка "медиа + подпись": текст берём из msg.text ИЛИ msg.caption
     content_text = (msg.text or msg.caption or "").strip()
+    status = "active"
+    try:
+        from shared.db.repo import get_user_status  # type: ignore
+        status = await get_user_status(uid) or "active"
+    except Exception:
+        pass
+    if status != "active":
+        try:
+            await msg.answer("⛔️ Подписка закончилась, продлите её")
+        except Exception:
+            pass
+        await _repo.log_message(
+            uid,
+            "in",
+            {"type": "text" if msg.text else "media", "text": content_text or None, "ts": _now_ts()},
+        )
+        return
 
     group_id = RELAY_GROUP_ID
     if get_group_for_user:
@@ -474,28 +491,14 @@ async def history_cmd(m: Message, command: CommandObject):
 
 # REGION AI: link command
 ADMIN_IDS: set[int] = set()
-if config:
-    raw_ids = config.extra.get("admin_ids", [])
-    if isinstance(raw_ids, str):
-        ADMIN_IDS.update(
-            int(x) for x in raw_ids.split(",") if x.strip().lstrip("-").isdigit()
-        )
-    elif isinstance(raw_ids, (list, tuple, set)):
-        ADMIN_IDS.update(
-            int(x) for x in raw_ids if str(x).strip().lstrip("-").isdigit()
-        )
-env_ids = os.getenv("ADMIN_IDS", "")
-if env_ids:
-    ADMIN_IDS.update(
-        int(x) for x in env_ids.replace(";", ",").split(",") if x.strip().lstrip("-").isdigit()
-    )
 
-def _link_text(lang: str, key: str, user_id: int, group_id: int) -> str:
+
+def _link_text(lang: str, key: str, user_id: int, group_id: int, chat_number: int) -> str:
     texts = {
         "ok": {
-            "ru": f"Связь установлена: user_id {user_id} → group {group_id}",
-            "en": f"Link established: user_id {user_id} → group {group_id}",
-            "es": f"Enlace establecido: user_id {user_id} → group {group_id}",
+            "ru": f"✅ Пользователь {user_id} привязан к группе {group_id}, номер чата {chat_number}",
+            "en": f"✅ User {user_id} linked to group {group_id}, chat number {chat_number}",
+            "es": f"✅ Usuario {user_id} vinculado al grupo {group_id}, número de chat {chat_number}",
         },
         "bad": {
             "ru": "Использование: /link <user_id> <group_id>",
@@ -514,12 +517,16 @@ def _link_text(lang: str, key: str, user_id: int, group_id: int) -> str:
 @router.message(Command("link"))
 async def link_user_to_group(message: Message, command: CommandObject) -> None:
     lang = (message.from_user.language_code or "en")[:2]
-    if message.from_user.id not in ADMIN_IDS:
-        await message.reply(_link_text(lang, "forbidden", 0, 0))
+    try:
+        member = await message.bot.get_chat_member(message.chat.id, message.from_user.id)
+        if member.status not in {"administrator", "creator"}:
+            raise ValueError
+    except Exception:
+        await message.reply(_link_text(lang, "forbidden", 0, 0, 0))
         return
     args = (command.args or "").split()
     if len(args) != 2 or not args[0].lstrip("-").isdigit() or not args[1].lstrip("-").isdigit():
-        await message.reply(_link_text(lang, "bad", 0, 0))
+        await message.reply(_link_text(lang, "bad", 0, 0, 0))
         return
     user_id, group_id = int(args[0]), int(args[1])
     if link_user_group:
@@ -527,7 +534,8 @@ async def link_user_to_group(message: Message, command: CommandObject) -> None:
             await link_user_group(user_id, group_id)
         except Exception:
             pass
-    await message.reply(_link_text(lang, "ok", user_id, group_id))
+    chat_number = get_chat_number(user_id) if get_chat_number else 0
+    await message.reply(_link_text(lang, "ok", user_id, group_id, chat_number))
 # END REGION AI
 
 # fix: restrict /groupid command to admins

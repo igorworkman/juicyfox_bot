@@ -486,21 +486,30 @@ async def get_all_relay_users() -> List[Dict[str, Any]]:
     return [{"user_id": r[0], "username": r[1], "full_name": r[2], "last_seen": r[3]} for r in rows]
 # END REGION AI
 
-# REGION AI: user chat number
+# REGION AI: user helpers
 def get_chat_number(user_id: int) -> Optional[int]:
     try:
         import sqlite3
         conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        row = cur.execute("SELECT chat_number FROM users WHERE user_id=?", (user_id,)).fetchone()
+        row = conn.execute("SELECT chat_number FROM users WHERE user_id=?", (user_id,)).fetchone()
         conn.close()
         return int(row[0]) if row and row[0] is not None else None
     except Exception:  # pragma: no cover
         return None
-# END REGION AI
 
-# feat: link user with personal group
-# REGION AI: user-group link
+
+async def get_user_status(user_id: int) -> Optional[str]:
+    async with _db() as db:
+        row = await (await db.execute("SELECT status FROM users WHERE user_id=?", (user_id,))).fetchone()
+    return str(row[0]) if row else None
+
+
+async def set_user_status(user_id: int, status: str) -> None:
+    async with _db() as db:
+        await db.execute("UPDATE users SET status=? WHERE user_id=?", (status, user_id))
+        await db.commit()
+
+
 async def link_user_group(user_id: int, group_id: int) -> None:
     sql = (
         "INSERT INTO users(user_id, group_id, status, linked_at, chat_number) "
@@ -522,7 +531,6 @@ async def link_user_group(user_id: int, group_id: int) -> None:
     except Exception as e:
         log.error("link_user_group failed: user_id=%s group_id=%s error=%s", user_id, group_id, e)
         raise
-# END REGION AI
 
 
 async def get_group_for_user(user_id: int) -> Optional[int]:
@@ -536,8 +544,6 @@ async def get_group_for_user(user_id: int) -> Optional[int]:
     return int(row[0]) if row else None
 
 
-# feat: reverse lookup user by group
-# REGION AI: get user by group
 async def get_user_by_group(group_id: int) -> Optional[int]:
     sql = "SELECT user_id FROM users WHERE group_id=? AND status='active'"
     async with _db() as db:
