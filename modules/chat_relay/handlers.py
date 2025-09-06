@@ -528,7 +528,22 @@ async def link_user_to_group(message: Message, command: CommandObject) -> None:
 # REGION AI: groupid command
 @router.message(Command("groupid"))
 async def cmd_groupid(message: Message) -> None:
+    lang = (message.from_user.language_code or "en")[:2]
+    if message.from_user.id not in ADMIN_IDS:
+        texts = {
+            "ru": "Команда доступна только администратору.",
+            "en": "This command is only available to administrators.",
+            "es": "Este comando solo está disponible para administradores.",
+        }
+        await message.reply(texts.get(lang, texts["en"]))
+        return
     if message.chat.type not in {"group", "supergroup"}:
+        texts = {
+            "ru": "Используй эту команду в группе",
+            "en": "Use this command in a group",
+            "es": "Usa este comando en un grupo",
+        }
+        await message.reply(texts.get(lang, texts["en"]))
         return
     await message.reply(f"Group ID: {message.chat.id}")
     log.info("cmd_groupid: group_id=%s title=%s", message.chat.id, message.chat.title)
