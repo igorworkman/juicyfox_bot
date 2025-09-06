@@ -525,11 +525,26 @@ async def link_user_to_group(message: Message, command: CommandObject) -> None:
     await message.reply(_link_text(lang, "ok", user_id, group_id))
 # END REGION AI
 
+# fix: restrict /groupid command to admins
 # REGION AI: groupid command
 @router.message(Command("groupid"))
 async def cmd_groupid(message: Message) -> None:
+    if message.from_user is None:
+        await message.reply(
+            "⚠️ Анонимные администраторы не могут выполнять эту команду"
+        )
+        return
+    if message.from_user.id not in ADMIN_IDS:
+        await message.reply("Команда доступна только администратору")
+        return
     if message.chat.type not in {"group", "supergroup"}:
+        await message.reply("Используй эту команду в группе")
         return
     await message.reply(f"Group ID: {message.chat.id}")
-    log.info("cmd_groupid: group_id=%s title=%s", message.chat.id, message.chat.title)
+    log.info(
+        "cmd_groupid: group_id=%s title=%s user_id=%s",
+        message.chat.id,
+        message.chat.title,
+        message.from_user.id,
+    )
 # END REGION AI
