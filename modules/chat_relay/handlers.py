@@ -535,10 +535,19 @@ async def link_user_to_group(message: Message, command: CommandObject) -> None:
 @router.message(Command("groupid"))
 async def cmd_groupid(message: Message) -> None:
     lang = get_lang(message.from_user)
-    if not message.from_user or message.from_user.id not in ADMIN_IDS:
-        await message.reply(tr(lang, "error_admin_only"))
-        return
     if message.chat.type in {"group", "supergroup"}:
+        if not message.from_user:
+            await message.reply(tr(lang, "error_admin_only"))
+            return
+        try:
+            member = await message.bot.get_chat_member(message.chat.id, message.from_user.id)
+        except Exception as e:  # pragma: no cover - network issues
+            log.warning("cmd_groupid: get_chat_member failed: %s", e)
+            await message.reply(tr(lang, "error_admin_only"))
+            return
+        if member.status not in {"administrator", "creator"}:
+            await message.reply(tr(lang, "error_admin_only"))
+            return
         await message.reply(f"Group ID: {message.chat.id}")
         log.info(
             "cmd_groupid: group_id=%s title=%s user_id=%s",
@@ -546,6 +555,9 @@ async def cmd_groupid(message: Message) -> None:
             message.chat.title,
             message.from_user.id,
         )
+        return
+    if message.chat.type == "private" and message.from_user and message.from_user.id not in ADMIN_IDS:
+        await message.reply(tr(lang, "error_group_only"))
         return
     await message.reply(tr(lang, "error_group_only"))
 # END REGION AI
