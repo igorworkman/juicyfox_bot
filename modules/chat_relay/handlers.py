@@ -524,3 +524,12 @@ async def link_user_to_group(message: Message, command: CommandObject) -> None:
             pass
     await message.reply(_link_text(lang, "ok", user_id, group_id))
 # END REGION AI
+
+# REGION AI: groupid command
+@router.message(Command("groupid"))
+async def cmd_groupid(message: Message) -> None:
+    if message.chat.type not in {"group", "supergroup"}:
+        return
+    await message.reply(f"Group ID: {message.chat.id}")
+    log.info("cmd_groupid: group_id=%s title=%s", message.chat.id, message.chat.title)
+# END REGION AI
