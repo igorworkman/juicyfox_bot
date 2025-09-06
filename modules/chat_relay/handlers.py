@@ -323,7 +323,10 @@ async def _copy_and_log(msg: Message, user_id: int) -> None:
     await _repo.log_message(user_id, "out", log_rec)
 
 
-@router.message(F.chat.type.in_({"group", "supergroup"}))
+@router.message(
+    F.chat.type.in_({"group", "supergroup"}),
+    ~F.text.startswith("/"),
+)
 async def relay_from_group(msg: Message) -> None:
     group_id = msg.chat.id
     user_id: Optional[int] = None
