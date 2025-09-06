@@ -85,5 +85,7 @@
   "sent_to_vip": "✅ Enviado correctamente al canal VIP",
   "admin_delete_only": "⛔️ Solo el admin puede eliminar publicaciones.",
   "delete_usage": "❌ Usa /delete_post <id>",
-  "start_message": "Bienvenido a JuicyFox 🦊"
+  "start_message": "Bienvenido a JuicyFox 🦊",
+  "error_admin_only": "El comando está disponible solo para administradores",
+  "error_group_only": "El comando está disponible solo en grupos"
 }

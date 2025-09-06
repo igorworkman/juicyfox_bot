@@ -9,6 +9,8 @@ from typing import Optional, Dict, Any, List
 # REGION AI: imports
 import asyncio
 from aiogram.exceptions import TelegramNetworkError
+from modules.common.i18n import tr
+from shared.utils.lang import get_lang
 try:
     from shared.db.repo import (
         get_active_invoice,
@@ -529,22 +531,18 @@ async def link_user_to_group(message: Message, command: CommandObject) -> None:
 # REGION AI: groupid command
 @router.message(Command("groupid"))
 async def cmd_groupid(message: Message) -> None:
-    if message.from_user is None:
-        await message.reply(
-            "⚠️ Анонимные администраторы не могут выполнять эту команду"
+    lang = get_lang(message.from_user)
+    if not message.from_user or message.from_user.id not in ADMIN_IDS:
+        await message.reply(tr(lang, "error_admin_only"))
+        return
+    if message.chat.type in {"group", "supergroup"}:
+        await message.reply(f"Group ID: {message.chat.id}")
+        log.info(
+            "cmd_groupid: group_id=%s title=%s user_id=%s",
+            message.chat.id,
+            message.chat.title,
+            message.from_user.id,
         )
         return
-    if message.from_user.id not in ADMIN_IDS:
-        await message.reply("Команда доступна только администратору")
-        return
-    if message.chat.type not in {"group", "supergroup"}:
-        await message.reply("Используй эту команду в группе")
-        return
-    await message.reply(f"Group ID: {message.chat.id}")
-    log.info(
-        "cmd_groupid: group_id=%s title=%s user_id=%s",
-        message.chat.id,
-        message.chat.title,
-        message.from_user.id,
-    )
+    await message.reply(tr(lang, "error_group_only"))
 # END REGION AI
