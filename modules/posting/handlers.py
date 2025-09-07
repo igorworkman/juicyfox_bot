@@ -130,14 +130,16 @@ async def cmd_post(msg: Message, state: FSMContext):
     if msg.chat.type not in {"group", "supergroup"} or not _is_planner_chat(msg):
         return
     await state.clear()
+    # REGION AI: english planning prompt
     await msg.reply(
-        "🗓 Укажи время публикации:\n"
-        "• `now` — сразу\n"
-        "• `HH:MM` — сегодня в указанное время\n"
+        "🗓 Specify publication time:\n"
+        "• `now` — immediately\n"
+        "• `HH:MM` — today at given time\n"
         "• `YYYY-MM-DD HH:MM`\n"
         "• `+30m`, `+2h`",
         parse_mode=None,
     )
+    # END REGION AI
     await state.set_state(PostPlan.waiting_time)
 
 @router.message(PostPlan.waiting_time)
@@ -194,17 +196,27 @@ async def offer_post_plan(msg: Message):
     fid = msg.photo[-1].file_id if msg.photo else msg.video.file_id if msg.video else msg.document.file_id if msg.document else msg.animation.file_id
     kb = InlineKeyboardBuilder()
     kb.button(text="POST PLAN", callback_data=f"post:plan:{msg.chat.id}:{fid}")
-    await msg.reply("💡 Запланировать?", reply_markup=kb.as_markup())
+    await msg.answer(reply_markup=kb.as_markup())
 
 @router.callback_query(F.data.startswith("post:plan:"))
 async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
-    await cq.answer(); src = cq.message.reply_to_message
-    if not src: return
-    if src.photo: tp, fid, cap = "photo", src.photo[-1].file_id, src.caption
-    elif src.video: tp, fid, cap = "video", src.video.file_id, src.caption
-    elif src.document: tp, fid, cap = "document", src.document.file_id, src.caption
-    else: tp, fid, cap = "animation", src.animation.file_id, src.caption
-    await state.clear(); await state.update_data(type=tp, file_id=fid, caption=cap)
-    await cq.message.answer("🗓 Укажи время публикации:\n• `now` — сразу\n• `HH:MM` — сегодня в указанное время\n• `YYYY-MM-DD HH:MM`\n• `+30m`, `+2h`", parse_mode=None)
+    await cq.answer()
+    src = cq.message
+    if src.photo:
+        tp, fid, cap = "photo", src.photo[-1].file_id, src.caption
+    elif src.video:
+        tp, fid, cap = "video", src.video.file_id, src.caption
+    elif src.document:
+        tp, fid, cap = "document", src.document.file_id, src.caption
+    elif src.animation:
+        tp, fid, cap = "animation", src.animation.file_id, src.caption
+    else:
+        return
+    await state.clear()
+    await state.update_data(type=tp, file_id=fid, caption=cap)
+    await cq.message.answer(
+        "🗓 Specify publication time:\n• `now` — immediately\n• `HH:MM` — today at given time\n• `YYYY-MM-DD HH:MM`\n• `+30m`, `+2h`",
+        parse_mode=None,
+    )
     await state.set_state(PostPlan.waiting_time)
 # END REGION AI
