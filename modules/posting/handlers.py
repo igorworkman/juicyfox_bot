@@ -150,65 +150,61 @@ async def set_time(msg: Message, state: FSMContext):
     await msg.reply("Выбери цель публикации или введи chat_id числом:", reply_markup=_targets_kb().as_markup())
     await state.set_state(PostPlan.choosing_target)
 
+"""Handlers for post planning."""
+
+# REGION AI: post planning callbacks
+async def _finalize_post(send, bot, chat_id, state):
+    data = await state.get_data()
+    if data.get("type"):
+        job = {"chat_id": chat_id, "type": data["type"], "file_id": data.get("file_id"), "text": data.get("caption"), "run_at": int(data["run_at"])}
+        job_id = await _enqueue_post(job); await state.clear()
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(job["run_at"]))
+        await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
+        if LOG_CHANNEL_ID:
+            try: await bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={chat_id} at {when}")
+            except Exception: pass
+    else:
+        await send("Отправь содержимое поста (текст/фото/видео/документ со подписью).")
+        await state.set_state(PostPlan.waiting_content)
+
 @router.callback_query(F.data.startswith("post:target:"), PostPlan.choosing_target)
 async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
-    _, _, val = cq.data.partition("post:target:")
+    val = cq.data.split("post:target:", 1)[1]
     if val == "other":
         await cq.message.edit_text("Введи числовой chat_id (пример: -1001234567890):")
         return
     try:
         chat_id = int(val)
     except Exception:
-        await cq.answer("Некорректный chat_id", show_alert=True)
-        return
-    await state.update_data(chat_id=chat_id)
-    await cq.message.edit_text("Отправь содержимое поста (текст/фото/видео/документ со подписью).")
-    await state.set_state(PostPlan.waiting_content)
+        await cq.answer("Некорректный chat_id", show_alert=True); return
+    await cq.answer(); await state.update_data(chat_id=chat_id); await _finalize_post(cq.message.edit_text, cq.bot, chat_id, state)
 
 @router.message(PostPlan.choosing_target)
 async def choose_target_text(msg: Message, state: FSMContext):
     try:
         chat_id = int(msg.text.strip())
     except Exception:
-        await msg.reply("Это не похоже на chat_id. Попробуй ещё раз или нажми кнопку.")
-        return
+        await msg.reply("Это не похоже на chat_id. Попробуй ещё раз или нажми кнопку."); return
     await state.update_data(chat_id=chat_id)
-    await msg.reply("Отправь содержимое поста (текст/фото/видео/документ со подписью).")
-    await state.set_state(PostPlan.waiting_content)
+    await _finalize_post(msg.reply, msg.bot, chat_id, state)
 
-@router.message(PostPlan.waiting_content)
-async def receive_content(msg: Message, state: FSMContext):
-    data = await state.get_data()
-    run_at = int(data.get("run_at", 0))
-    chat_id = int(data.get("chat_id", 0))
-    if not run_at or not chat_id:
-        await msg.reply("Что-то пошло не так. Начни заново: /post")
-        await state.clear()
-        return
+@router.message(F.photo | F.video | F.document | F.animation)
+async def offer_post_plan(msg: Message):
+    if not _is_planner_chat(msg): return
+    fid = msg.photo[-1].file_id if msg.photo else msg.video.file_id if msg.video else msg.document.file_id if msg.document else msg.animation.file_id
+    kb = InlineKeyboardBuilder()
+    kb.button(text="POST PLAN", callback_data=f"post:plan:{msg.chat.id}:{fid}")
+    await msg.reply("💡 Запланировать?", reply_markup=kb.as_markup())
 
-    job: Dict[str, Any]
-    if msg.text:
-        job = {"chat_id": chat_id, "type": "text", "text": msg.text, "run_at": run_at}
-    elif msg.photo:
-        job = {"chat_id": chat_id, "type": "photo", "file_id": msg.photo[-1].file_id, "text": msg.caption, "run_at": run_at}
-    elif msg.video:
-        job = {"chat_id": chat_id, "type": "video", "file_id": msg.video.file_id, "text": msg.caption, "run_at": run_at}
-    elif msg.document:
-        job = {"chat_id": chat_id, "type": "document", "file_id": msg.document.file_id, "text": msg.caption, "run_at": run_at}
-    elif msg.animation:
-        job = {"chat_id": chat_id, "type": "animation", "file_id": msg.animation.file_id, "text": msg.caption, "run_at": run_at}
-    else:
-        await msg.reply("Этот тип контента пока не поддержан. Пришли текст/фото/видео/документ.")
-        return
-
-    job_id = await _enqueue_post(job)
-    await state.clear()
-    when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run_at))
-    await msg.reply(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
-
-    # Лог каналу (если задан)
-    if LOG_CHANNEL_ID:
-        try:
-            await msg.bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={chat_id} at {when}")
-        except Exception:
-            pass
+@router.callback_query(F.data.startswith("post:plan:"))
+async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
+    await cq.answer(); src = cq.message.reply_to_message
+    if not src: return
+    if src.photo: tp, fid, cap = "photo", src.photo[-1].file_id, src.caption
+    elif src.video: tp, fid, cap = "video", src.video.file_id, src.caption
+    elif src.document: tp, fid, cap = "document", src.document.file_id, src.caption
+    else: tp, fid, cap = "animation", src.animation.file_id, src.caption
+    await state.clear(); await state.update_data(type=tp, file_id=fid, caption=cap)
+    await cq.message.answer("🗓 Укажи время публикации:\n• `now` — сразу\n• `HH:MM` — сегодня в указанное время\n• `YYYY-MM-DD HH:MM`\n• `+30m`, `+2h`", parse_mode=None)
+    await state.set_state(PostPlan.waiting_time)
+# END REGION AI
