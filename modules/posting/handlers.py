@@ -206,7 +206,9 @@ async def offer_post_plan(msg: Message):
 @router.callback_query(F.data.startswith("post:plan:"))
 async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
-    src = cq.message
+    # REGION AI: handle reply context
+    src = cq.message.reply_to_message or cq.message
+    # END REGION AI
     if src.photo:
         tp, fid, cap = "photo", src.photo[-1].file_id, src.caption
     elif src.video:
