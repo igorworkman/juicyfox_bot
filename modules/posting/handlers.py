@@ -221,9 +221,9 @@ async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
         tp, fid, cap = "photo", src.photo[-1].file_id, src.caption
     elif src.video:
         tp, fid, cap = "video", src.video.file_id, src.caption
-    # REGION AI: image documents as photos
+    # REGION AI: image documents as documents
     elif src.document and src.document.mime_type and src.document.mime_type.startswith("image/"):
-        tp, fid, cap = "photo", src.document.file_id, src.caption
+        tp, fid, cap = "document", src.document.file_id, src.caption
     elif src.document:
         tp, fid, cap = "document", src.document.file_id, src.caption
     # END REGION AI
