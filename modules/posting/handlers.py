@@ -13,7 +13,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 # REGION AI: imports
+# fix: correct localization call for post plan button
 from modules.common import i18n
+from shared.utils.lang import get_lang
 # END REGION AI
 
 router = Router()
@@ -208,7 +210,7 @@ async def offer_post_plan(msg: Message):
     kb = InlineKeyboardBuilder()
     kb.button(text="POST PLAN", callback_data=f"post:plan:{msg.chat.id}:{fid}")
     # REGION AI: localized choose post plan
-    await msg.reply(i18n.get("choose_post_plan"), reply_markup=kb.as_markup())
+    await msg.reply(i18n.tr(get_lang(msg.from_user), "choose_post_plan"), reply_markup=kb.as_markup())
     # END REGION AI
 
 @router.callback_query(F.data.startswith("post:plan:"))
