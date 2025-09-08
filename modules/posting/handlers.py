@@ -12,6 +12,9 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+# REGION AI: imports
+from modules.common import i18n
+# END REGION AI
 
 router = Router()
 log = logging.getLogger("juicyfox.posting.ui")
@@ -196,7 +199,9 @@ async def offer_post_plan(msg: Message):
     fid = msg.photo[-1].file_id if msg.photo else msg.video.file_id if msg.video else msg.document.file_id if msg.document else msg.animation.file_id
     kb = InlineKeyboardBuilder()
     kb.button(text="POST PLAN", callback_data=f"post:plan:{msg.chat.id}:{fid}")
-    await msg.answer(reply_markup=kb.as_markup())
+    # REGION AI: localized choose post plan
+    await msg.answer(i18n.get("choose_post_plan"), reply_markup=kb.as_markup())
+    # END REGION AI
 
 @router.callback_query(F.data.startswith("post:plan:"))
 async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
