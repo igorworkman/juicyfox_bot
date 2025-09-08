@@ -196,11 +196,19 @@ async def choose_target_text(msg: Message, state: FSMContext):
 @router.message(F.photo | F.video | F.document | F.animation)
 async def offer_post_plan(msg: Message):
     if not _is_planner_chat(msg): return
-    fid = msg.photo[-1].file_id if msg.photo else msg.video.file_id if msg.video else msg.document.file_id if msg.document else msg.animation.file_id
+    # REGION AI: support image documents
+    if msg.document:
+        if msg.document.mime_type and msg.document.mime_type.startswith("image/"):
+            fid = msg.document.file_id
+        else:
+            return
+    else:
+        fid = msg.photo[-1].file_id if msg.photo else msg.video.file_id if msg.video else msg.animation.file_id
+    # END REGION AI
     kb = InlineKeyboardBuilder()
     kb.button(text="POST PLAN", callback_data=f"post:plan:{msg.chat.id}:{fid}")
     # REGION AI: localized choose post plan
-    await msg.answer(i18n.get("choose_post_plan"), reply_markup=kb.as_markup())
+    await msg.reply(i18n.get("choose_post_plan"), reply_markup=kb.as_markup())
     # END REGION AI
 
 @router.callback_query(F.data.startswith("post:plan:"))
@@ -213,8 +221,12 @@ async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
         tp, fid, cap = "photo", src.photo[-1].file_id, src.caption
     elif src.video:
         tp, fid, cap = "video", src.video.file_id, src.caption
+    # REGION AI: image documents as photos
+    elif src.document and src.document.mime_type and src.document.mime_type.startswith("image/"):
+        tp, fid, cap = "photo", src.document.file_id, src.caption
     elif src.document:
         tp, fid, cap = "document", src.document.file_id, src.caption
+    # END REGION AI
     elif src.animation:
         tp, fid, cap = "animation", src.animation.file_id, src.caption
     else:
