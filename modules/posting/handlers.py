@@ -16,6 +16,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 # fix: correct localization call for post plan button
 from modules.common import i18n
 from shared.utils.lang import get_lang
+import hashlib
 # END REGION AI
 
 router = Router()
@@ -208,12 +209,17 @@ async def offer_post_plan(msg: Message):
         fid = msg.photo[-1].file_id if msg.photo else msg.video.file_id if msg.video else msg.animation.file_id
     # END REGION AI
     kb = InlineKeyboardBuilder()
-    kb.button(text="POST PLAN", callback_data=f"post:plan:{msg.chat.id}:{fid}")
+    # REGION AI: safe callback data
+    safe_fid = hashlib.sha256(fid.encode()).hexdigest()[:32]
+    kb.button(text="POST PLAN", callback_data=f"post_plan:{safe_fid}")
+    # END REGION AI
     # REGION AI: localized choose post plan
     await msg.reply(i18n.tr(get_lang(msg.from_user), "choose_post_plan"), reply_markup=kb.as_markup())
     # END REGION AI
 
-@router.callback_query(F.data.startswith("post:plan:"))
+# REGION AI: post plan callback prefix
+@router.callback_query(F.data.startswith("post_plan:"))
+# END REGION AI
 async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
     # REGION AI: handle reply context
