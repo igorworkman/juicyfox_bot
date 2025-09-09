@@ -79,6 +79,7 @@
   "choose_minute": "Choose minute",
   "post_number": "Post #{num:03d}",
   "post_channel_not_selected": "Error: channel not selected.",
+  "post_channel_not_specified": "Error: channel not specified for publication.",
   "media_added": "Media added",
   "text_saved": "Text saved",
   "history_usage": "⚠️ Use /history <user_id> [limit]",

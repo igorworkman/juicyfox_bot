@@ -161,16 +161,31 @@ async def set_time(msg: Message, state: FSMContext):
 """Handlers for post planning."""
 
 # REGION AI: post planning callbacks
-async def _finalize_post(send, bot, chat_id, state):
+async def _finalize_post(send, bot, state):
     data = await state.get_data()
+    channel = data.get("channel")
+    if channel is None:
+        msg_obj = getattr(send, "__self__", None)
+        lang = get_lang(getattr(msg_obj, "from_user", None))
+        await send(i18n.tr(lang, "post_channel_not_specified"))
+        return
     if data.get("type"):
-        job = {"chat_id": chat_id, "type": data["type"], "file_id": data.get("file_id"), "text": data.get("caption"), "run_at": int(data["run_at"])}
-        job_id = await _enqueue_post(job); await state.clear()
+        job = {
+            "chat_id": channel,
+            "type": data["type"],
+            "file_id": data.get("file_id"),
+            "text": data.get("caption"),
+            "run_at": int(data["run_at"]),
+        }
+        job_id = await _enqueue_post(job)
+        await state.clear()
         when = time.strftime("%Y-%m-%d %H:%M", time.localtime(job["run_at"]))
         await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
         if LOG_CHANNEL_ID:
-            try: await bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={chat_id} at {when}")
-            except Exception: pass
+            try:
+                await bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={channel} at {when}")
+            except Exception:
+                pass
     else:
         await send("Отправь содержимое поста (текст/фото/видео/документ со подписью).")
         await state.set_state(PostPlan.waiting_content)
@@ -185,7 +200,7 @@ async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
         chat_id = int(val)
     except Exception:
         await cq.answer("Некорректный chat_id", show_alert=True); return
-    await cq.answer(); await state.update_data(chat_id=chat_id); await _finalize_post(cq.message.edit_text, cq.bot, chat_id, state)
+    await cq.answer(); await state.update_data(channel=chat_id); await _finalize_post(cq.message.edit_text, cq.bot, state)
 
 @router.message(PostPlan.choosing_target)
 async def choose_target_text(msg: Message, state: FSMContext):
@@ -193,8 +208,8 @@ async def choose_target_text(msg: Message, state: FSMContext):
         chat_id = int(msg.text.strip())
     except Exception:
         await msg.reply("Это не похоже на chat_id. Попробуй ещё раз или нажми кнопку."); return
-    await state.update_data(chat_id=chat_id)
-    await _finalize_post(msg.reply, msg.bot, chat_id, state)
+    await state.update_data(channel=chat_id)
+    await _finalize_post(msg.reply, msg.bot, state)
 
 @router.message(F.photo | F.video | F.document | F.animation)
 async def offer_post_plan(msg: Message):

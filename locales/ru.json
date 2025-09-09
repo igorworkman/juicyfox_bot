@@ -80,6 +80,7 @@
   "btn_cancel": "❌ Cancel",
   "post_number": "Пост №{num:03d}",
   "post_channel_not_selected": "Ошибка: не выбран канал.",
+  "post_channel_not_specified": "Ошибка: не указан канал для публикации.",
   "media_added": "Медиа добавлено",
   "text_saved": "Текст сохранён",
   "history_usage": "⚠️ Используй /history <user_id> [limit]",
