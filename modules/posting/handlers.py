@@ -13,9 +13,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 # REGION AI: imports
-# fix: correct localization call for post plan button
-from modules.common import i18n
-from shared.utils.lang import get_lang
+# fix: safe callback data hashing
 import hashlib
 # END REGION AI
 
@@ -213,8 +211,8 @@ async def offer_post_plan(msg: Message):
     safe_fid = hashlib.sha256(fid.encode()).hexdigest()[:32]
     kb.button(text="POST PLAN", callback_data=f"post_plan:{safe_fid}")
     # END REGION AI
-    # REGION AI: localized choose post plan
-    await msg.reply(i18n.tr(get_lang(msg.from_user), "choose_post_plan"), reply_markup=kb.as_markup())
+    # REGION AI: show post plan button without text
+    await msg.reply(reply_markup=kb.as_markup())
     # END REGION AI
 
 # REGION AI: post plan callback prefix
