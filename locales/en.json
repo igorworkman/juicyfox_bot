@@ -10,7 +10,6 @@
   "life_link": "👀 My channel: {url}",
   "my_channel": "👀 My free channel: {link}",
   "choose_action": "Choose an action below:",
-  "choose_post_plan": "Choose action",
   "choose_cur": "Choose payment method: {amount}⭐",
   "choose_cur_usd": "Choose payment method: {amount}$",
   "choose_cur_stars": "Pay with Telegram Stars: {amount}⭐",
