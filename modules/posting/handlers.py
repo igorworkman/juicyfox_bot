@@ -136,11 +136,8 @@ async def cmd_post(msg: Message, state: FSMContext):
     await state.clear()
     # REGION AI: english planning prompt
     await msg.reply(
-        "🗓 Specify publication time:\n"
-        "• `now` — immediately\n"
-        "• `HH:MM` — today at given time\n"
-        "• `YYYY-MM-DD HH:MM`\n"
-        "• `+30m`, `+2h`",
+        "🗓 Enter publication time in format `DD.MM.YYYY HH:MM`\n"
+        "Например: `15.09.2025 19:00`",
         parse_mode=None,
     )
     # END REGION AI
@@ -148,9 +145,14 @@ async def cmd_post(msg: Message, state: FSMContext):
 
 @router.message(PostPlan.waiting_time)
 async def set_time(msg: Message, state: FSMContext):
-    ts = _parse_time(msg.text or "")
-    if not ts or ts < int(time.time()) - 30:
-        await msg.reply("⏰ Не понял время. Пример: `now`, `14:30`, `2025-08-30 20:00`, `+45m`.")
+    try:
+        ts_struct = time.strptime((msg.text or "").strip(), "%d.%m.%Y %H:%M")
+        ts = int(time.mktime(ts_struct))
+    except Exception:
+        await msg.reply("❌ Неверный формат. Пример: 15.09.2025 19:00")
+        return
+    if ts < int(time.time()):
+        await msg.reply("❌ Указано прошедшее время. Попробуйте снова.")
         return
     await state.update_data(run_at=ts)
     await _finalize_post(msg.reply, msg.bot, state)
@@ -229,11 +231,8 @@ async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
     await cq.answer()
     await state.update_data(channel="broadcast")
     await cq.message.edit_text(
-        "🗓 Specify publication time:\n"
-        "• `now` — immediately\n"
-        "• `HH:MM` — today at given time\n"
-        "• `YYYY-MM-DD HH:MM`\n"
-        "• `+30m`, `+2h`",
+        "🗓 Enter publication time in format `DD.MM.YYYY HH:MM`\n"
+        "Например: `15.09.2025 19:00`",
         parse_mode=None,
     )
     await state.set_state(PostPlan.waiting_time)
