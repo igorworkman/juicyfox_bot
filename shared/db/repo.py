@@ -113,6 +113,20 @@ _SCHEMA = [
     );
     """,
     # END REGION AI
+    # Очередь рассылок
+    """
+    CREATE TABLE IF NOT EXISTS mailings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id TEXT,
+        type TEXT,
+        file_id TEXT,
+        text TEXT,
+        run_at INTEGER,
+        status TEXT,
+        error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """,
 ]
 
 
@@ -554,4 +568,24 @@ async def get_user_by_group(group_id: int) -> Optional[int]:
         return user_id
     log.warning("get_user_by_group not found: group_id=%s", group_id)
     return None
+# END REGION AI
+
+
+# REGION AI: mailings helpers
+async def enqueue_mailing(job: Dict[str, Any]) -> int:
+    async with _db() as db:
+        cur = await db.execute(
+            "INSERT INTO mailings(chat_id, type, file_id, text, run_at, status, error) VALUES (?,?,?,?,?,?,?)",
+            (
+                job.get("chat_id"),
+                job.get("type"),
+                job.get("file_id"),
+                job.get("text"),
+                int(job.get("run_at") or 0),
+                "pending",
+                job.get("error"),
+            ),
+        )
+        await db.commit()
+        return int(cur.lastrowid)
 # END REGION AI
