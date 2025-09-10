@@ -166,27 +166,58 @@ async def _finalize_post(send, bot, state):
         lang = get_lang(getattr(msg_obj, "from_user", None))
         await send(i18n.tr(lang, "post_channel_not_specified"))
         return
-    chat_id = 0 if channel == "broadcast" else channel
-    if data.get("type"):
-        job = {
-            "chat_id": chat_id,
-            "type": data["type"],
-            "file_id": data.get("file_id"),
-            "text": data.get("caption"),
-            "run_at": int(data["run_at"]),
-        }
-        job_id = await _enqueue_post(job)
-        await state.clear()
-        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(job["run_at"]))
-        await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
-        if LOG_CHANNEL_ID:
-            try:
-                await bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={channel} at {when}")
-            except Exception:
-                pass
-    else:
+    if not data.get("type"):
         await send("Отправь содержимое поста (текст/фото/видео/документ со подписью).")
         await state.set_state(PostPlan.waiting_content)
+        return
+
+    run_at = int(data["run_at"])
+    when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run_at))
+
+    if channel == "broadcast":
+        try:
+            users = await db.get_all_relay_users()
+        except Exception:
+            users = []
+        if not users:
+            await send("❌ Нет пользователей в ID‑базе для рассылки")
+            return
+        for u in users:
+            job = {
+                "chat_id": int(u["user_id"]),
+                "type": data["type"],
+                "file_id": data.get("file_id"),
+                "text": data.get("caption"),
+                "run_at": run_at,
+            }
+            job_id = await _enqueue_post(job)
+            if LOG_CHANNEL_ID:
+                try:
+                    await bot.send_message(
+                        LOG_CHANNEL_ID,
+                        f"[post] queued id={job_id} → chat_id={u['user_id']} at {when}",
+                    )
+                except Exception:
+                    pass
+        await state.clear()
+        await send(f"✅ Пост поставлен в очередь для {len(users)} пользователей, время: {when}")
+        return
+
+    job = {
+        "chat_id": channel,
+        "type": data["type"],
+        "file_id": data.get("file_id"),
+        "text": data.get("caption"),
+        "run_at": run_at,
+    }
+    job_id = await _enqueue_post(job)
+    await state.clear()
+    await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
+    if LOG_CHANNEL_ID:
+        try:
+            await bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={channel} at {when}")
+        except Exception:
+            pass
 
 @router.callback_query(F.data.startswith("post:target:"), PostPlan.choosing_target)
 async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
