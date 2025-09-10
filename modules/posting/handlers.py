@@ -23,8 +23,8 @@ router = Router()
 log = logging.getLogger("juicyfox.posting.ui")
 
 # ── ENV ─────────────────────────────────────────────────────────────────────────
-POST_PLAN_GROUP_ID = int(os.getenv("POST_PLAN_GROUP_ID", "0"))     # где планируем
-DEFAULT_TARGET_ID  = int(os.getenv("LIFE_CHANNEL_ID", "0"))        # куда постим по умолчанию
+POST_PLAN_GROUP_ID = int(os.getenv("POST_PLAN_GROUP_ID", "0"))  # где планируем
+LIFE_CHANNEL_ID    = int(os.getenv("LIFE_CHANNEL_ID", "0"))     # основной канал
 VIP_CHANNEL_ID     = int(os.getenv("VIP_CHANNEL_ID", "0"))
 LOG_CHANNEL_ID     = int(os.getenv("LOG_CHANNEL_ID", "0"))
 DB_PATH            = os.getenv("DB_PATH", "/app/data/juicyfox.sqlite")
@@ -153,12 +153,7 @@ async def set_time(msg: Message, state: FSMContext):
         await msg.reply("⏰ Не понял время. Пример: `now`, `14:30`, `2025-08-30 20:00`, `+45m`.")
         return
     await state.update_data(run_at=ts)
-    data = await state.get_data()
-    if data.get("channel") is not None:
-        await _finalize_post(msg.reply, msg.bot, state)
-    else:
-        await msg.reply("Выбери цель публикации:", reply_markup=_target_kb().as_markup())
-        await state.set_state(PostPlan.choosing_target)
+    await _finalize_post(msg.reply, msg.bot, state)
 
 """Handlers for post planning."""
 
@@ -171,9 +166,10 @@ async def _finalize_post(send, bot, state):
         lang = get_lang(getattr(msg_obj, "from_user", None))
         await send(i18n.tr(lang, "post_channel_not_specified"))
         return
+    chat_id = 0 if channel == "broadcast" else channel
     if data.get("type"):
         job = {
-            "chat_id": channel,
+            "chat_id": chat_id,
             "type": data["type"],
             "file_id": data.get("file_id"),
             "text": data.get("caption"),
@@ -196,32 +192,28 @@ async def _finalize_post(send, bot, state):
 async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
     val = cq.data.split("post:target:", 1)[1]
     if val == "life":
-        chat_id = DEFAULT_TARGET_ID
+        channel = LIFE_CHANNEL_ID
     elif val == "vip":
-        chat_id = VIP_CHANNEL_ID
+        channel = VIP_CHANNEL_ID
     elif val == "broadcast":
-        chat_id = 0
+        channel = "broadcast"
     else:
         try:
-            chat_id = int(val)
+            channel = int(val)
         except Exception:
             await cq.answer("Некорректная цель", show_alert=True)
             return
     await cq.answer()
-    await state.update_data(channel=chat_id)
-    data = await state.get_data()
-    if data.get("run_at") is not None:
-        await _finalize_post(cq.message.edit_text, cq.bot, state)
-    else:
-        await cq.message.edit_text(
-            "🗓 Specify publication time:\n"
-            "• `now` — immediately\n"
-            "• `HH:MM` — today at given time\n"
-            "• `YYYY-MM-DD HH:MM`\n"
-            "• `+30m`, `+2h`",
-            parse_mode=None,
-        )
-        await state.set_state(PostPlan.waiting_time)
+    await state.update_data(channel=channel)
+    await cq.message.edit_text(
+        "🗓 Specify publication time:\n"
+        "• `now` — immediately\n"
+        "• `HH:MM` — today at given time\n"
+        "• `YYYY-MM-DD HH:MM`\n"
+        "• `+30m`, `+2h`",
+        parse_mode=None,
+    )
+    await state.set_state(PostPlan.waiting_time)
 
 @router.message(F.photo | F.video | F.document | F.animation)
 async def offer_post_plan(msg: Message):
