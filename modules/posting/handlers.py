@@ -177,32 +177,16 @@ async def _finalize_post(send, bot, state):
     when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run_at))
 
     if channel == "broadcast":
-        try:
-            users = await db.get_all_relay_users()
-        except Exception:
-            users = []
-        if not users:
-            await send("❌ Нет пользователей в ID‑базе для рассылки")
-            return
-        for u in users:
-            job = {
-                "chat_id": int(u["user_id"]),
-                "type": data["type"],
-                "file_id": data.get("file_id"),
-                "text": data.get("caption"),
-                "run_at": run_at,
-            }
-            job_id = await _enqueue_post(job)
-            if LOG_CHANNEL_ID:
-                try:
-                    await bot.send_message(
-                        LOG_CHANNEL_ID,
-                        f"[post] queued id={job_id} → chat_id={u['user_id']} at {when}",
-                    )
-                except Exception:
-                    pass
+        job = {
+            "chat_id": "broadcast",
+            "type": data["type"],
+            "file_id": data.get("file_id"),
+            "text": data.get("caption"),
+            "run_at": run_at,
+        }
+        await db.enqueue_mailing(job)  # type: ignore
         await state.clear()
-        await send(f"✅ Пост поставлен в очередь для {len(users)} пользователей, время: {when}")
+        await send(f"✅ Рассылка поставлена в очередь, время: {when}")
         return
 
     job = {
