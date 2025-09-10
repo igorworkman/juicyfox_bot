@@ -234,8 +234,9 @@ async def offer_post_plan(msg: Message):
     safe_fid = hashlib.sha256(fid.encode()).hexdigest()[:32]
     kb.button(text="POST PLAN", callback_data=f"post_plan:{safe_fid}")
     # END REGION AI
-    # REGION AI: localized choose post plan
-    await msg.reply(i18n.tr(get_lang(msg.from_user), "choose_post_plan"), reply_markup=kb.as_markup())
+    # REGION AI: localized choose post plan with fallback
+    text = i18n.tr(get_lang(msg.from_user), "choose_post_plan") or "Выберите действие"
+    await msg.reply(text, reply_markup=kb.as_markup())
     # END REGION AI
 
 # REGION AI: post plan callback prefix
