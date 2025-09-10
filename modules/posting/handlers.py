@@ -117,13 +117,11 @@ def _parse_time(s: str) -> Optional[int]:
     except Exception:
         return None
 
-def _targets_kb() -> InlineKeyboardBuilder:
+def _target_kb() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    if DEFAULT_TARGET_ID:
-        kb.button(text="Основной канал", callback_data=f"post:target:{DEFAULT_TARGET_ID}")
-    if VIP_CHANNEL_ID:
-        kb.button(text="VIP канал", callback_data=f"post:target:{VIP_CHANNEL_ID}")
-    kb.button(text="Другое (введите ID)", callback_data="post:target:other")
+    kb.button(text="LIFE", callback_data="post:target:life")
+    kb.button(text="VIP", callback_data="post:target:vip")
+    kb.button(text="📤 Mailing by ID base", callback_data="post:target:broadcast")
     kb.adjust(1)
     return kb
 
@@ -155,8 +153,12 @@ async def set_time(msg: Message, state: FSMContext):
         await msg.reply("⏰ Не понял время. Пример: `now`, `14:30`, `2025-08-30 20:00`, `+45m`.")
         return
     await state.update_data(run_at=ts)
-    await msg.reply("Выбери цель публикации или введи chat_id числом:", reply_markup=_targets_kb().as_markup())
-    await state.set_state(PostPlan.choosing_target)
+    data = await state.get_data()
+    if data.get("channel") is not None:
+        await _finalize_post(msg.reply, msg.bot, state)
+    else:
+        await msg.reply("Выбери цель публикации:", reply_markup=_target_kb().as_markup())
+        await state.set_state(PostPlan.choosing_target)
 
 """Handlers for post planning."""
 
@@ -193,23 +195,33 @@ async def _finalize_post(send, bot, state):
 @router.callback_query(F.data.startswith("post:target:"), PostPlan.choosing_target)
 async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
     val = cq.data.split("post:target:", 1)[1]
-    if val == "other":
-        await cq.message.edit_text("Введи числовой chat_id (пример: -1001234567890):")
-        return
-    try:
-        chat_id = int(val)
-    except Exception:
-        await cq.answer("Некорректный chat_id", show_alert=True); return
-    await cq.answer(); await state.update_data(channel=chat_id); await _finalize_post(cq.message.edit_text, cq.bot, state)
-
-@router.message(PostPlan.choosing_target)
-async def choose_target_text(msg: Message, state: FSMContext):
-    try:
-        chat_id = int(msg.text.strip())
-    except Exception:
-        await msg.reply("Это не похоже на chat_id. Попробуй ещё раз или нажми кнопку."); return
+    if val == "life":
+        chat_id = DEFAULT_TARGET_ID
+    elif val == "vip":
+        chat_id = VIP_CHANNEL_ID
+    elif val == "broadcast":
+        chat_id = 0
+    else:
+        try:
+            chat_id = int(val)
+        except Exception:
+            await cq.answer("Некорректная цель", show_alert=True)
+            return
+    await cq.answer()
     await state.update_data(channel=chat_id)
-    await _finalize_post(msg.reply, msg.bot, state)
+    data = await state.get_data()
+    if data.get("run_at") is not None:
+        await _finalize_post(cq.message.edit_text, cq.bot, state)
+    else:
+        await cq.message.edit_text(
+            "🗓 Specify publication time:\n"
+            "• `now` — immediately\n"
+            "• `HH:MM` — today at given time\n"
+            "• `YYYY-MM-DD HH:MM`\n"
+            "• `+30m`, `+2h`",
+            parse_mode=None,
+        )
+        await state.set_state(PostPlan.waiting_time)
 
 @router.message(F.photo | F.video | F.document | F.animation)
 async def offer_post_plan(msg: Message):
@@ -261,9 +273,6 @@ async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.update_data(type=tp, file_id=fid, caption=cap)
-    await cq.message.answer(
-        "🗓 Specify publication time:\n• `now` — immediately\n• `HH:MM` — today at given time\n• `YYYY-MM-DD HH:MM`\n• `+30m`, `+2h`",
-        parse_mode=None,
-    )
-    await state.set_state(PostPlan.waiting_time)
+    await cq.message.answer("Выбери цель публикации:", reply_markup=_target_kb().as_markup())
+    await state.set_state(PostPlan.choosing_target)
 # END REGION AI
