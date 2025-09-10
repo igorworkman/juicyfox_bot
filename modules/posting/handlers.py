@@ -154,9 +154,10 @@ async def set_time(msg: Message, state: FSMContext):
     if not ts or ts < int(time.time()) - 30:
         await msg.reply("⏰ Не понял время. Пример: `now`, `14:30`, `2025-08-30 20:00`, `+45m`.")
         return
+    # REGION AI: finalize post after time selection
     await state.update_data(run_at=ts)
-    await msg.reply("Выбери цель публикации или введи chat_id числом:", reply_markup=_targets_kb().as_markup())
-    await state.set_state(PostPlan.choosing_target)
+    await _finalize_post(msg.reply, msg.bot, state)
+    # END REGION AI
 
 """Handlers for post planning."""
 
@@ -170,16 +171,33 @@ async def _finalize_post(send, bot, state):
         await send(i18n.tr(lang, "post_channel_not_specified"))
         return
     if data.get("type"):
+        run_at = int(data["run_at"])
+        # REGION AI: handle broadcast queueing
+        if channel == "broadcast" and _HAS_SHARED_REPO and hasattr(db, "get_all_relay_users"):
+            users = [u["user_id"] for u in await db.get_all_relay_users()]  # type: ignore
+            base = {
+                "type": data["type"],
+                "file_id": data.get("file_id"),
+                "text": data.get("caption"),
+                "run_at": run_at,
+            }
+            for uid in users:
+                await _enqueue_post(dict(base, chat_id=uid))
+            await state.clear()
+            when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run_at))
+            await send(f"✅ Пост поставлен в очередь ({len(users)} users), время: {when}")
+            return
+        # END REGION AI
         job = {
             "chat_id": channel,
             "type": data["type"],
             "file_id": data.get("file_id"),
             "text": data.get("caption"),
-            "run_at": int(data["run_at"]),
+            "run_at": run_at,
         }
         job_id = await _enqueue_post(job)
         await state.clear()
-        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(job["run_at"]))
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(run_at))
         await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
         if LOG_CHANNEL_ID:
             try:
@@ -190,26 +208,24 @@ async def _finalize_post(send, bot, state):
         await send("Отправь содержимое поста (текст/фото/видео/документ со подписью).")
         await state.set_state(PostPlan.waiting_content)
 
+# REGION AI: choose target before time
 @router.callback_query(F.data.startswith("post:target:"), PostPlan.choosing_target)
 async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
     val = cq.data.split("post:target:", 1)[1]
-    if val == "other":
-        await cq.message.edit_text("Введи числовой chat_id (пример: -1001234567890):")
-        return
-    try:
-        chat_id = int(val)
-    except Exception:
-        await cq.answer("Некорректный chat_id", show_alert=True); return
-    await cq.answer(); await state.update_data(channel=chat_id); await _finalize_post(cq.message.edit_text, cq.bot, state)
-
-@router.message(PostPlan.choosing_target)
-async def choose_target_text(msg: Message, state: FSMContext):
-    try:
-        chat_id = int(msg.text.strip())
-    except Exception:
-        await msg.reply("Это не похоже на chat_id. Попробуй ещё раз или нажми кнопку."); return
-    await state.update_data(channel=chat_id)
-    await _finalize_post(msg.reply, msg.bot, state)
+    if val == "broadcast":
+        channel = "broadcast"
+    else:
+        try:
+            channel = int(val)
+        except Exception:
+            await cq.answer("Некорректный выбор", show_alert=True); return
+    await state.update_data(channel=channel)
+    await cq.answer()
+    await cq.message.edit_text(
+        "🗓 Specify publication time:\n• `now` — immediately\n• `HH:MM` — today at given time\n• `YYYY-MM-DD HH:MM`\n• `+30m`, `+2h`"
+    )
+    await state.set_state(PostPlan.waiting_time)
+# END REGION AI
 
 @router.message(F.photo | F.video | F.document | F.animation)
 async def offer_post_plan(msg: Message):
@@ -261,9 +277,15 @@ async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.update_data(type=tp, file_id=fid, caption=cap)
-    await cq.message.answer(
-        "🗓 Specify publication time:\n• `now` — immediately\n• `HH:MM` — today at given time\n• `YYYY-MM-DD HH:MM`\n• `+30m`, `+2h`",
-        parse_mode=None,
-    )
-    await state.set_state(PostPlan.waiting_time)
+    # REGION AI: ask target before time
+    kb = InlineKeyboardBuilder()
+    if DEFAULT_TARGET_ID:
+        kb.button(text="LIFE", callback_data=f"post:target:{DEFAULT_TARGET_ID}")
+    if VIP_CHANNEL_ID:
+        kb.button(text="VIP", callback_data=f"post:target:{VIP_CHANNEL_ID}")
+    kb.button(text="Рассылка всем", callback_data="post:target:broadcast")
+    kb.adjust(1)
+    await cq.message.answer("Выбери канал публикации:", reply_markup=kb.as_markup())
+    await state.set_state(PostPlan.choosing_target)
+    # END REGION AI
 # END REGION AI
