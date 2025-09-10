@@ -119,9 +119,9 @@ def _parse_time(s: str) -> Optional[int]:
 
 def _target_kb() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    kb.button(text="LIFE", callback_data="post:target:life")
-    kb.button(text="VIP", callback_data="post:target:vip")
+    # REGION AI: broadcast only button
     kb.button(text="📤 Mailing by ID base", callback_data="post:target:broadcast")
+    # END REGION AI
     kb.adjust(1)
     return kb
 
@@ -221,21 +221,13 @@ async def _finalize_post(send, bot, state):
 
 @router.callback_query(F.data.startswith("post:target:"), PostPlan.choosing_target)
 async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
+    # REGION AI: handle only broadcast target
     val = cq.data.split("post:target:", 1)[1]
-    if val == "life":
-        channel = LIFE_CHANNEL_ID
-    elif val == "vip":
-        channel = VIP_CHANNEL_ID
-    elif val == "broadcast":
-        channel = "broadcast"
-    else:
-        try:
-            channel = int(val)
-        except Exception:
-            await cq.answer("Некорректная цель", show_alert=True)
-            return
+    if val != "broadcast":
+        await cq.answer("Некорректная цель", show_alert=True)
+        return
     await cq.answer()
-    await state.update_data(channel=channel)
+    await state.update_data(channel="broadcast")
     await cq.message.edit_text(
         "🗓 Specify publication time:\n"
         "• `now` — immediately\n"
@@ -245,6 +237,7 @@ async def choose_target_cb(cq: CallbackQuery, state: FSMContext):
         parse_mode=None,
     )
     await state.set_state(PostPlan.waiting_time)
+    # END REGION AI
 
 @router.message(F.photo | F.video | F.document | F.animation)
 async def offer_post_plan(msg: Message):
