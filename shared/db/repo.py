@@ -575,16 +575,17 @@ async def get_user_by_group(group_id: int) -> Optional[int]:
 async def enqueue_mailing(job: Dict[str, Any]) -> int:
     async with _db() as db:
         cur = await db.execute(
-            "INSERT INTO mailings(chat_id, type, file_id, text, run_at, status, error) VALUES (?,?,?,?,?,?,?)",
+            # REGION AI: enqueue_mailing with segment
+            "INSERT INTO mailings (chat_id, type, file_id, text, run_at, status, segment) VALUES (?,?,?,?,?, 'pending', ?)",
             (
                 job.get("chat_id"),
                 job.get("type"),
                 job.get("file_id"),
                 job.get("text"),
                 int(job.get("run_at") or 0),
-                "pending",
-                job.get("error"),
+                job.get("segment", "all"),
             ),
+            # END REGION AI
         )
         await db.commit()
         return int(cur.lastrowid)
