@@ -117,14 +117,12 @@ _SCHEMA = [
     """
     CREATE TABLE IF NOT EXISTS mailings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        chat_id TEXT,
-        type TEXT,
+        chat_id TEXT NOT NULL,
+        type TEXT NOT NULL,
         file_id TEXT,
         text TEXT,
-        run_at INTEGER,
-        status TEXT,
-        error TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        run_at INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending'
     );
     """,
 ]
@@ -572,18 +570,16 @@ async def get_user_by_group(group_id: int) -> Optional[int]:
 
 
 # REGION AI: mailings helpers
-async def enqueue_mailing(job: Dict[str, Any]) -> int:
+async def enqueue_mailing(job: dict) -> int:
     async with _db() as db:
         cur = await db.execute(
-            "INSERT INTO mailings(chat_id, type, file_id, text, run_at, status, error) VALUES (?,?,?,?,?,?,?)",
+            "INSERT INTO mailings (chat_id, type, file_id, text, run_at, status) VALUES (?,?,?,?,?, 'pending')",
             (
-                job.get("chat_id"),
-                job.get("type"),
+                job["chat_id"],
+                job["type"],
                 job.get("file_id"),
                 job.get("text"),
-                int(job.get("run_at") or 0),
-                "pending",
-                job.get("error"),
+                int(job["run_at"]),
             ),
         )
         await db.commit()
