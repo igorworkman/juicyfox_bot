@@ -5,7 +5,7 @@ import asyncio
 import logging
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from aiogram import Bot
 from shared.db import repo
@@ -32,50 +32,73 @@ async def _send(bot: Bot, uid: int, m: Dict[str, Any]) -> None:
         raise RuntimeError(f"unsupported type: {typ}")
     await method(uid, fid, caption=text)
 
+
+# REGION AI: select users
+async def _select_users(segment: str) -> List[int]:
+    if segment == "all":
+        return [int(u["user_id"]) for u in await repo.get_all_relay_users()]
+    async with _db() as db:
+        cur = await db.execute("SELECT user_id FROM users WHERE status=?", (segment,))
+        return [int(r[0]) for r in await cur.fetchall()]
+# END REGION AI
+
 async def main() -> None:
     if not TOKEN:
         raise RuntimeError("TELEGRAM_TOKEN required")
     bot = Bot(TOKEN)
-    while True:
-        try:
-            async with _db() as db:
-                cur = await db.execute(
-                    "SELECT id, type, text, file_id FROM mailings "
-                    "WHERE status='pending' AND run_at<=?",
-                    (int(time.time()),),
-                )
-                mailings = [
-                    {"id": r[0], "type": r[1], "text": r[2], "file_id": r[3]}
-                    for r in await cur.fetchall()
-                ]
-            if not mailings:
-                await asyncio.sleep(10)
-                continue
-            users = [int(u["user_id"]) for u in await repo.get_all_relay_users()]
-            for m in mailings:
-                ok = fail = 0
-                for i in range(0, len(users), 20):
-                    res = await asyncio.gather(
-                        *(_send(bot, u, m) for u in users[i : i + 20]),
-                        return_exceptions=True,
-                    )
-                    ok += sum(not isinstance(r, Exception) for r in res)
-                    fail += sum(isinstance(r, Exception) for r in res)
-                    if i + 20 < len(users):
-                        await asyncio.sleep(1)
+    try:
+        while True:
+            try:
                 async with _db() as db:
-                    await db.execute(
-                        "UPDATE mailings SET status='done' WHERE id=?",
-                        (m["id"],),
+                    cur = await db.execute(
+                        "SELECT id, type, text, file_id, segment FROM mailings "
+                        "WHERE status='pending' AND run_at<=?",
+                        (int(time.time()),),
                     )
-                    await db.commit()
-                report = f"mailing {m['id']}: {ok} ok, {fail} fail"
-                log.info(report)
-                if ADMIN:
-                    await bot.send_message(ADMIN, report)
-        except Exception as e:  # pragma: no cover
-            log.exception("loop error: %s", e)
-        await asyncio.sleep(10)
+                    mailings = [
+                        {
+                            "id": r[0],
+                            "type": r[1],
+                            "text": r[2],
+                            "file_id": r[3],
+                            "segment": r[4] or "all",
+                        }
+                        for r in await cur.fetchall()
+                    ]
+                if not mailings:
+                    await asyncio.sleep(10)
+                    continue
+                for m in mailings:
+                    users = await _select_users(m.get("segment", "all"))
+                    ok = fail = 0
+                    for i in range(0, len(users), 20):
+                        res = await asyncio.gather(
+                            *(_send(bot, u, m) for u in users[i : i + 20]),
+                            return_exceptions=True,
+                        )
+                        ok += sum(not isinstance(r, Exception) for r in res)
+                        fail += sum(isinstance(r, Exception) for r in res)
+                        if i + 20 < len(users):
+                            await asyncio.sleep(1)
+                    async with _db() as db:
+                        status = "done" if fail == 0 else ("failed" if ok == 0 else "partial")
+                        await db.execute(
+                            "UPDATE mailings SET status=? WHERE id=?",
+                            (status, m["id"]),
+                        )
+                        await db.commit()
+                    report = (
+                        f"Рассылка {m['id']} завершена: {ok} доставлено, {fail} неактивных, всего {len(users)}."
+                    )
+                    log.info(report)
+                    if ADMIN:
+                        await bot.send_message(ADMIN, report)
+            except Exception as e:  # pragma: no cover
+                log.exception("loop error: %s", e)
+            await asyncio.sleep(10)
+    finally:
+        await bot.session.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
