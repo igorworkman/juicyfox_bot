@@ -51,7 +51,7 @@ async def main() -> None:
             try:
                 async with _db() as db:
                     cur = await db.execute(
-                        "SELECT id, type, text, file_id, segment FROM mailings "
+                        "SELECT id, type, text, file_id, chat_id, segment FROM mailings "
                         "WHERE status='pending' AND run_at<=?",
                         (int(time.time()),),
                     )
@@ -61,7 +61,8 @@ async def main() -> None:
                             "type": r[1],
                             "text": r[2],
                             "file_id": r[3],
-                            "segment": r[4] or "all",
+                            "chat_id": r[4] or "broadcast",
+                            "segment": r[5] or "all",
                         }
                         for r in await cur.fetchall()
                     ]
@@ -69,7 +70,8 @@ async def main() -> None:
                     await asyncio.sleep(10)
                     continue
                 for m in mailings:
-                    users = await _select_users(m.get("segment", "all"))
+                    is_personal = m.get("chat_id") != "broadcast"
+                    users = [int(m["chat_id"])] if is_personal else await _select_users(m.get("segment", "all"))
                     ok = fail = 0
                     for i in range(0, len(users), 20):
                         res = await asyncio.gather(
@@ -88,7 +90,9 @@ async def main() -> None:
                         )
                         await db.commit()
                     report = (
-                        f"Рассылка {m['id']} завершена: {ok} доставлено, {fail} неактивных, всего {len(users)}."
+                        f"📤 Персональная рассылка {m['id']} → {m['chat_id']}"
+                        if is_personal
+                        else f"📤 Рассылка {m['id']}: {ok} доставлено, {fail} ошибок, всего {len(users)}"
                     )
                     log.info(report)
                     if ADMIN:
