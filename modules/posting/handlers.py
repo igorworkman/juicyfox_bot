@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import time
 import logging
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from aiogram import Router, F
 from aiogram.filters import Command
@@ -17,6 +17,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from modules.common import i18n
 from shared.utils.lang import get_lang
 import hashlib
+from shared import db
 # END REGION AI
 
 router = Router()
@@ -27,56 +28,6 @@ POST_PLAN_GROUP_ID = int(os.getenv("POST_PLAN_GROUP_ID", "0"))  # где пла�
 LIFE_CHANNEL_ID    = int(os.getenv("LIFE_CHANNEL_ID", "0"))     # основной канал
 VIP_CHANNEL_ID     = int(os.getenv("VIP_CHANNEL_ID", "0"))
 LOG_CHANNEL_ID     = int(os.getenv("LOG_CHANNEL_ID", "0"))
-DB_PATH            = os.getenv("DB_PATH", "/app/data/juicyfox.sqlite")
-
-# ── репозиторий: shared.db.repo если есть; иначе локальная таблица post_queue ──
-try:
-    from shared.db import repo as db  # type: ignore
-    _HAS_SHARED_REPO = True
-except Exception:
-    _HAS_SHARED_REPO = False
-
-async def _ensure_local_table():
-    if _HAS_SHARED_REPO:
-        return
-    import aiosqlite
-    async with aiosqlite.connect(DB_PATH) as conn:
-        await conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS post_queue (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chat_id INTEGER NOT NULL,
-                type TEXT NOT NULL,
-                text TEXT,
-                file_id TEXT,
-                run_at INTEGER NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending',
-                retries INTEGER NOT NULL DEFAULT 0,
-                error TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        await conn.commit()
-
-async def _enqueue_post(job: Dict[str, Any]) -> int:
-    """
-    job: {chat_id, type, text?, file_id?, run_at}
-    return: job_id
-    """
-    if _HAS_SHARED_REPO and hasattr(db, "enqueue_post"):
-        return await db.enqueue_post(job)  # type: ignore
-
-    # локальный fallback
-    await _ensure_local_table()
-    import aiosqlite
-    async with aiosqlite.connect(DB_PATH) as conn:
-        cur = await conn.execute(
-            "INSERT INTO post_queue(chat_id, type, text, file_id, run_at) VALUES (?,?,?,?,?)",
-            (int(job["chat_id"]), job["type"], job.get("text"), job.get("file_id"), int(job["run_at"]))
-        )
-        await conn.commit()
-        return int(cur.lastrowid)
 
 # ── FSM ─────────────────────────────────────────────────────────────────────────
 class PostPlan(StatesGroup):
@@ -192,7 +143,7 @@ async def _finalize_post(send, bot, state):
                 "text": data.get("caption"),
                 "run_at": run_at,
             }
-            job_id = await _enqueue_post(job)
+            job_id = await db.enqueue_mailing(job)
             if LOG_CHANNEL_ID:
                 try:
                     await bot.send_message(
@@ -212,7 +163,7 @@ async def _finalize_post(send, bot, state):
         "text": data.get("caption"),
         "run_at": run_at,
     }
-    job_id = await _enqueue_post(job)
+    job_id = await db.enqueue_mailing(job)
     await state.clear()
     await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
     if LOG_CHANNEL_ID:
