@@ -78,10 +78,14 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         caption=tr(lang, "menu", name=message.from_user.first_name),
     )
     if LIFE_URL:
+        # REGION AI: inline link with no preview
         await message.answer(
-            tr(lang, "my_channel", link=LIFE_URL),
+            tr(lang, "my_channel"),
             reply_markup=reply_menu(lang),
+            parse_mode="Markdown",
+            disable_web_page_preview=True,
         )
+        # END REGION AI
     else:
         await message.answer(
             tr(lang, "choose_action"),
@@ -513,7 +517,14 @@ async def life_link(cq: CallbackQuery):
     lang = get_lang(cq.from_user)
     kb = InlineKeyboardBuilder()
     kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
-    await cq.message.edit_text(tr(lang, "life", my_channel=LIFE_URL), reply_markup=kb.as_markup())
+    # REGION AI: inline link with no preview
+    await cq.message.edit_text(
+        tr(lang, "life", my_channel=tr(lang, "my_channel")),
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown",
+        disable_web_page_preview=True,
+    )
+    # END REGION AI
 
 @router.message(
     lambda m: _norm(m.text) == _norm(tr(get_lang(m.from_user), "btn_chat"))
