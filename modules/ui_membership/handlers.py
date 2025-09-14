@@ -112,9 +112,10 @@ async def back_to_main(cq: CallbackQuery, state: FSMContext) -> None:
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     # REGION AI: vip club banner
+    # fix: ensure FSInputFile receives string path for VIP banner
     await cq.message.delete()
     await cq.message.answer_photo(
-        FSInputFile(VIP_PHOTO),
+        FSInputFile(str(VIP_PHOTO)),
         caption=tr(lang, "vip_club_description"),
         reply_markup=vip_currency_kb(lang),
         parse_mode="HTML",
