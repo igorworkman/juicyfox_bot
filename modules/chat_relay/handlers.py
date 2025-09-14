@@ -11,6 +11,7 @@ import asyncio
 from aiogram.exceptions import TelegramNetworkError
 from modules.common.i18n import tr
 from shared.utils.lang import get_lang
+from modules.ui_membership.keyboards import vip_currency_kb
 try:
     from shared.db.repo import (
         get_active_invoice,
@@ -241,6 +242,20 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
 
 # END REGION AI
 
+# REGION AI: vip club handler
+@router.message(F.chat.type == "private", F.text == "VIP CLUB 🔞 - 19 $")
+async def vip_club(msg: Message) -> None:
+    lang = get_lang(msg.from_user)
+    with open("data/vip_banner.jpg", "rb") as photo:
+        await msg.answer_photo(
+            photo,
+            caption=tr(lang, "vip_club_description"),
+            reply_markup=vip_currency_kb(lang),
+            parse_mode="HTML",
+        )
+
+
+# END REGION AI
 # ========== Входящие от пользователя → в рабочую группу ==========
 @router.message(F.chat.type == "private")
 async def relay_incoming_to_group(msg: Message):
