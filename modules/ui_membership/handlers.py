@@ -77,11 +77,10 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         caption=tr(lang, "menu", name=message.from_user.first_name),
     )
     if LIFE_URL:
-        # REGION AI: free channel link without preview
+        # REGION AI: life promo link without preview
         await message.answer(
-            tr(lang, "my_channel"),
-            reply_markup=reply_menu(lang),
-            parse_mode="Markdown",
+            tr(lang, "life_promo"),
+            parse_mode="HTML",
             disable_web_page_preview=True,
         )
         # END REGION AI
