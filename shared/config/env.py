@@ -201,7 +201,7 @@ def load_config(bot_id: Optional[str] = None) -> Config:
             env,
             "LIFE_URL",
             "LIVE_URL",
-            default=yaml_data.get("life_url") or "https://t.me/JuisyFoxOfficialLife",
+            default=yaml_data.get("life_url") or "https://t.me/JuicyFoxOfficialLife",
         ),
         # END REGION AI
         vip_price_usd=float(_get_alias(env, "VIP_PRICE_USD", "VIP_30D_USD", default=yaml_data.get("vip_price_usd", 35))),
