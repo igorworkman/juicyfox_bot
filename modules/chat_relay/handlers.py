@@ -243,7 +243,10 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
 # END REGION AI
 
 # REGION AI: vip club handler
-@router.message(F.chat.type == "private", F.text == "VIP CLUB 🔞 - 19 $")
+@router.message(
+    F.chat.type == "private",
+    F.text.startswith("/vip") | F.text.startswith("VIP CLUB"),
+)
 async def vip_club(msg: Message) -> None:
     lang = get_lang(msg.from_user)
     with open("data/vip_banner.jpg", "rb") as photo:
