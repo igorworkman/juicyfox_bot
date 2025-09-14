@@ -5,6 +5,13 @@ from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
 
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
+# REGION: imports
+from shared.config.env import config
+# END REGION
+
+# REGION AI: life channel url
+LIFE_CHANNEL_URL = config.life_url or ""
+# END REGION AI
 
 
 # ---------- INLINE КНОПКИ (стабильные callback'и) ----------
@@ -12,7 +19,9 @@ from modules.constants.currencies import CURRENCIES
 def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     """Главное меню: Life, Luxury, VIP, Chat."""
     b = InlineKeyboardBuilder()
-    b.button(text=tr(lang, "btn_life"), callback_data="ui:life")
+    # REGION AI: direct life channel link
+    b.button(text=tr(lang, "btn_life"), url=LIFE_CHANNEL_URL)
+    # END REGION AI
     # b.button(text=tr(lang, "btn_lux"), callback_data="ui:luxury")  # temporarily hidden
     b.button(text=tr(lang, "btn_vip"), callback_data="ui:vip")
     b.button(text=tr(lang, "btn_chat"), callback_data="ui:chat")
