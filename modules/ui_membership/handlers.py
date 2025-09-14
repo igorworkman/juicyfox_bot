@@ -545,7 +545,13 @@ async def vip_secret_reply(msg: Message):
     key = descriptions.get(text, "vip_club_description")
 
     log.info(f"Handler: vip_club_reply / plan={key}")
-    await msg.answer(tr(lang, key), reply_markup=vip_currency_kb(lang))
+    # REGION AI: vip description parse mode
+    await msg.answer(
+        tr(lang, key),
+        reply_markup=vip_currency_kb(lang),
+        parse_mode="HTML",
+    )
+    # END REGION AI
 
 
 @router.callback_query(F.data == "tip_menu")
