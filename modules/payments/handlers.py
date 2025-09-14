@@ -77,7 +77,9 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
             **{data_key: invoice.get("price")},
         )
 
-    await callback.message.edit_text(desc, reply_markup=kb)
+    # REGION AI: ensure HTML parse mode for descriptions
+    await callback.message.edit_text(desc, reply_markup=kb, parse_mode="HTML")
+    # END REGION AI
 
 
 # REGION AI: Telegram Stars payments
