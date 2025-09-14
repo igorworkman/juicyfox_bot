@@ -9,7 +9,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import CallbackQuery, Message, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # текст/локализация и валюты берём из актуальных модулей
@@ -26,9 +26,6 @@ from shared.db.repo import (
 )
 
 from shared.utils.lang import get_lang
-
-log = logging.getLogger("juicyfox.ui_membership.handlers")
-
 # Клавиатуры текущего модуля
 from .keyboards import (
     main_menu_kb,
@@ -42,6 +39,8 @@ from .keyboards import (
 from .chat_keyboards import chat_tariffs_kb
 from .chat_handlers import router as chat_router
 from .utils import BOT_ID, _build_meta
+
+log = logging.getLogger("juicyfox.ui_membership.handlers")
 
 router = Router()
 router.include_router(chat_router)
@@ -122,17 +121,6 @@ async def cmd_currency(message: Message) -> None:
         tr(lang, "choose_cur", amount=VIP_PRICE_USD),
         reply_markup=vip_currency_kb(lang),
     )
-
-
-@router.callback_query(F.data.in_({"ui:life", "life"}))
-async def show_life_link(cq: CallbackQuery) -> None:
-    lang = get_lang(cq.from_user)
-    if not LIFE_URL:
-        await cq.answer(tr(lang, "link_is_missing"), show_alert=True)
-        return
-    await cq.message.answer(tr(lang, "life_room_link"))
-    await cq.message.answer(LIFE_URL)
-
 
 # =======================
 # Оплата подписок (VIP/Chat)
@@ -511,20 +499,6 @@ async def legacy_reply_luxury(msg: Message) -> None:
         kb.button(text=title, callback_data=f"paymem:chat_30:{code}")
     kb.adjust(2)
     await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
-
-@router.callback_query(F.data == "life")
-async def life_link(cq: CallbackQuery):
-    lang = get_lang(cq.from_user)
-    kb = InlineKeyboardBuilder()
-    kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
-    # REGION AI: embed free channel link with markdown and no preview
-    await cq.message.edit_text(
-        tr(lang, "life", my_channel=tr(lang, "my_channel")),
-        reply_markup=kb.as_markup(),
-        parse_mode="Markdown",
-        disable_web_page_preview=True,
-    )
-    # END REGION AI
 
 @router.message(
     lambda m: _norm(m.text) == _norm(tr(get_lang(m.from_user), "btn_chat"))
