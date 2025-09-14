@@ -16,7 +16,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
 from modules.constants.prices import VIP_PRICE_USD
-from modules.constants.paths import START_PHOTO
+# REGION AI: imports
+from modules.constants.paths import START_PHOTO, VIP_PHOTO
+# END REGION AI
 from modules.payments import create_invoice
 
 from shared.db.repo import (
@@ -109,7 +111,15 @@ async def back_to_main(cq: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data.in_({"ui:vip", "vip"}))
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
-    await cq.message.edit_text(tr(lang, "vip_club_description"), reply_markup=vip_currency_kb(lang))
+    # REGION AI: vip club banner
+    await cq.message.delete()
+    await cq.message.answer_photo(
+        FSInputFile(VIP_PHOTO),
+        caption=tr(lang, "vip_club_description"),
+        reply_markup=vip_currency_kb(lang),
+        parse_mode="HTML",
+    )
+    # END REGION AI
 
 
 @router.message(Command("currency"))
