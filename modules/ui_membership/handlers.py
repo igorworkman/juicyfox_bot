@@ -116,15 +116,20 @@ async def show_vip(cq: CallbackQuery) -> None:
     await cq.answer()
     await cq.message.delete()
     if VIP_PHOTO.exists():
-        photo: FSInputFile | str = FSInputFile(VIP_PHOTO)
+        photo = FSInputFile(VIP_PHOTO)
+        await cq.message.answer_photo(
+            photo,
+            caption=tr(lang, "vip_club_description"),
+            reply_markup=vip_currency_kb(lang),
+            parse_mode="HTML",
+        )
     else:
-        photo = VIP_BANNER_FILE_ID
-    await cq.message.answer_photo(
-        photo,
-        caption=tr(lang, "vip_club_description"),
-        reply_markup=vip_currency_kb(lang),
-        parse_mode="HTML",
-    )
+        _ = VIP_BANNER_FILE_ID
+        await cq.message.answer(
+            tr(lang, "vip_club_description"),
+            reply_markup=vip_currency_kb(lang),
+            parse_mode="HTML",
+        )
     # END REGION AI
 
 
