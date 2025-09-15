@@ -23,7 +23,10 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     b.button(text=tr(lang, "btn_life"), url=LIFE_CHANNEL_URL)
     # END REGION AI
     # b.button(text=tr(lang, "btn_lux"), callback_data="ui:luxury")  # temporarily hidden
-    b.button(text=tr(lang, "btn_vip"), callback_data="ui:vip")
+    # REGION AI: remove price from VIP button
+    vip_label = tr(lang, "btn_vip").replace(" – ", " - ").split(" - ", 1)[0]
+    b.button(text=vip_label, callback_data="ui:vip")
+    # END REGION AI
     b.button(text=tr(lang, "btn_chat"), callback_data="ui:chat")
     b.button(text=tr(lang, "btn_donate"), callback_data="ui:donate")
     b.adjust(2, 2)
@@ -143,7 +146,9 @@ def reply_menu(lang: str) -> ReplyKeyboardMarkup:
     """
     chat_label = tr(lang, "btn_chat")
     # luxury_label = tr(lang, "btn_lux")  # temporarily hidden
-    vip_label = tr(lang, "btn_vip")
+    # REGION AI: remove price from VIP button
+    vip_label = tr(lang, "btn_vip").replace(" – ", " - ").split(" - ", 1)[0]
+    # END REGION AI
     donate_label = tr(lang, "btn_donate")
 
     return ReplyKeyboardMarkup(
