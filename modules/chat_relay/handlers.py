@@ -13,6 +13,8 @@ from modules.common.i18n import tr
 from shared.utils.lang import get_lang
 from modules.ui_membership.keyboards import vip_currency_kb
 from modules.constants.paths import VIP_PHOTO
+
+VIP_BANNER_FILE_ID = "AgACAgIAAxkBAAICb2an0wyGQ8nH8y1vQw0N_UuSFNwAAhg0MRsmKMhKqVn__boBDwQBAAMCAANzAAM2QQACHgQ"
 try:
     from shared.db.repo import (
         get_active_invoice,
@@ -39,9 +41,9 @@ except Exception:  # pragma: no cover
     config = None  # type: ignore
 # END REGION AI
 
-from aiogram import Router, F
-from aiogram.filters import Command, CommandObject
-from aiogram.types import Message
+from aiogram import Router, F  # noqa: E402
+from aiogram.filters import Command, CommandObject  # noqa: E402
+from aiogram.types import Message, FSInputFile  # noqa: E402
 
 router = Router()
 log = logging.getLogger("juicyfox.chat_relay")
@@ -250,13 +252,16 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
 )
 async def vip_club(msg: Message) -> None:
     lang = get_lang(msg.from_user)
-    with open(VIP_PHOTO, "rb") as photo:
-        await msg.answer_photo(
-            photo,
-            caption=tr(lang, "vip_club_description"),
-            reply_markup=vip_currency_kb(lang),
-            parse_mode="HTML",
-        )
+    if VIP_PHOTO.exists():
+        photo: FSInputFile | str = FSInputFile(VIP_PHOTO)
+    else:
+        photo = VIP_BANNER_FILE_ID
+    await msg.answer_photo(
+        photo,
+        caption=tr(lang, "vip_club_description"),
+        reply_markup=vip_currency_kb(lang),
+        parse_mode="HTML",
+    )
 
 
 # END REGION AI
