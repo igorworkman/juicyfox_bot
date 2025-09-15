@@ -15,8 +15,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 # текст/локализация и валюты берём из актуальных модулей
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
-from modules.constants.prices import VIP_PRICE_USD
-# REGION AI: imports
+# REGION AI: VIP price from config
+from shared.config.env import config
 from modules.constants.paths import START_PHOTO, VIP_PHOTO
 # END REGION AI
 from modules.payments import create_invoice
@@ -116,13 +116,13 @@ async def show_vip(cq: CallbackQuery) -> None:
         photo = FSInputFile(VIP_PHOTO)
         await cq.message.answer_photo(
             photo,
-            caption=tr(lang, "vip_club_description"),
+            caption=tr(lang, "vip_club_description", amount=int(config.vip_price_usd)),
             reply_markup=vip_currency_kb(lang),
             parse_mode="HTML",
         )
     else:
         await cq.message.answer(
-            tr(lang, "vip_club_description"),
+            tr(lang, "vip_club_description", amount=int(config.vip_price_usd)),
             reply_markup=vip_currency_kb(lang),
             parse_mode="HTML",
         )
@@ -134,7 +134,7 @@ async def cmd_currency(message: Message) -> None:
     """Show currency menu for VIP subscription."""
     lang = get_lang(message.from_user)
     await message.answer(
-        tr(lang, "choose_cur", amount=VIP_PRICE_USD),
+        tr(lang, "choose_cur", amount=config.vip_price_usd),
         reply_markup=vip_currency_kb(lang),
     )
 
@@ -154,7 +154,7 @@ def _invoice_url(inv: Any) -> Optional[str]:
 async def pay_vip(callback: CallbackQuery, state: FSMContext) -> None:
     lang = get_lang(callback.from_user)
     currency = "USDT"
-    amount = VIP_PRICE_USD
+    amount = config.vip_price_usd
     await state.update_data(
         plan_name="VIP CLUB",
         price=float(amount),
@@ -213,11 +213,11 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
         "vipay_currency: user=%s currency=%s amount=%s",
         callback.from_user.id,
         cur,
-        VIP_PRICE_USD,
+        config.vip_price_usd,
     )
     await state.update_data(
         plan_name="VIP CLUB",
-        price=float(VIP_PRICE_USD),
+        price=float(config.vip_price_usd),
         period=30,
         plan_callback="vipay",
     )
@@ -226,7 +226,7 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
     inv = await create_invoice(
         user_id=callback.from_user.id,
         plan_code="vip_30d",
-        amount_usd=float(VIP_PRICE_USD),
+        amount_usd=float(config.vip_price_usd),
         meta=_build_meta(callback.from_user.id, "vip_30d", cur),
         asset=cur,
     )
@@ -240,7 +240,7 @@ async def vipay_currency(callback: CallbackQuery, state: FSMContext) -> None:
             cur,
             "vipay",
             "VIP CLUB",
-            float(VIP_PRICE_USD),
+            float(config.vip_price_usd),
             30,
         )
     url = _invoice_url(inv)

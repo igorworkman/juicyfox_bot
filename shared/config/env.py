@@ -73,7 +73,9 @@ class Config:
     model_name: str = "Juicy Fox"
     vip_url: Optional[str] = None
     life_url: Optional[str] = None
-    vip_price_usd: float = 35.0
+    # REGION AI: default VIP price
+    vip_price_usd: float = 19.0
+    # END REGION AI
     chat_price_usd: float = 15.0
     chat_group_id: int = 0
     history_group_id: Optional[int] = None
@@ -204,7 +206,16 @@ def load_config(bot_id: Optional[str] = None) -> Config:
             default=yaml_data.get("life_url") or "https://t.me/JuicyFoxOfficialLife",
         ),
         # END REGION AI
-        vip_price_usd=float(_get_alias(env, "VIP_PRICE_USD", "VIP_30D_USD", default=yaml_data.get("vip_price_usd", 35))),
+        # REGION AI: VIP price default 19
+        vip_price_usd=float(
+            _get_alias(
+                env,
+                "VIP_PRICE_USD",
+                "VIP_30D_USD",
+                default=yaml_data.get("vip_price_usd", 19),
+            )
+        ),
+        # END REGION AI
         chat_price_usd=float(_get_alias(env, "CHAT_PRICE_USD", "CHAT_30D_USD", default=yaml_data.get("chat_price_usd", 15))),
         chat_group_id=int(_get_alias(env, "CHAT_GROUP_ID", default=_yaml_int("chat_group_id", 0) or 0) or 0),
         history_group_id=_yaml_int("history_group_id") or int(_get_alias(env, "HISTORY_GROUP_ID", default="0") or 0) or None,
