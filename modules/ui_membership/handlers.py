@@ -113,6 +113,7 @@ async def back_to_main(cq: CallbackQuery, state: FSMContext) -> None:
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     # REGION AI: vip club banner
+    await cq.answer()
     await cq.message.delete()
     if VIP_PHOTO.exists():
         photo: FSInputFile | str = FSInputFile(VIP_PHOTO)

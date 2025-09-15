@@ -252,13 +252,13 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
 )
 async def vip_club(msg: Message) -> None:
     lang = get_lang(msg.from_user)
-    banner: FSInputFile | str
+    photo: FSInputFile | str
     if VIP_PHOTO.exists():
-        banner = FSInputFile(VIP_PHOTO)
+        photo = FSInputFile(VIP_PHOTO)
     else:
-        banner = VIP_BANNER_FILE_ID
+        photo = VIP_BANNER_FILE_ID
     await msg.answer_photo(
-        banner,
+        photo,
         caption=tr(lang, "vip_club_description"),
         reply_markup=vip_currency_kb(lang),
         parse_mode="HTML",
