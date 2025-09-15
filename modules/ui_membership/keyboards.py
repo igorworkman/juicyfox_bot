@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# fix: update Juicy Life button text and link
+# fix: correct Juicy Life channel link
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton
 
@@ -10,18 +10,13 @@ from modules.constants.currencies import CURRENCIES
 from shared.config.env import config
 # END REGION
 
-# REGION AI: life channel url
-LIFE_CHANNEL_URL = config.life_url or "https://t.me/JuicyFoxOfficialLife"
-# END REGION AI
-
-
 # ---------- INLINE КНОПКИ (стабильные callback'и) ----------
 
 def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     """Главное меню: Life, Luxury, VIP, Chat."""
     b = InlineKeyboardBuilder()
     # REGION AI: direct life channel link
-    b.button(text="JUICY LIFE 👀", url=LIFE_CHANNEL_URL)
+    b.button(text="JUICY LIFE 👀", url=config.life_url or "https://t.me/JuicyFoxOfficialLife")
     # END REGION AI
     # b.button(text=tr(lang, "btn_lux"), callback_data="ui:luxury")  # temporarily hidden
     # REGION AI: remove price from VIP button
