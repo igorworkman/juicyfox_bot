@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import CallbackQuery
 
 from modules.common.i18n import tr
 from modules.constants.currencies import CURRENCIES
@@ -19,8 +19,9 @@ router = Router()
 
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
-PLAN_ALIAS = {"7d": "chat_7", "15d": "chat_15", "30d": "chat_30"}
-PLAN_TITLES = {"chat_7": "Chat 7", "chat_15": "Chat 15", "chat_30": "Chat 30"}
+PLAN_ALIAS = {"10d": "chat_10d", "20d": "chat_20d", "30d": "chat_30d"}
+PLAN_TITLES = {"chat_10d": "Chat 10", "chat_20d": "Chat 20", "chat_30d": "Chat 30"}
+PLAN_PRICES = {k: CHAT_PRICES_USD.get(k, v) for k, v in {"chat_10d": 9.0, "chat_20d": 17.0, "chat_30d": 25.0}.items()}
 
 
 def _invoice_url(inv: Any) -> Optional[str]:
@@ -48,7 +49,7 @@ async def choose_chat_currency(cq: CallbackQuery) -> None:
     if not plan_code:
         await cq.answer("Unknown plan", show_alert=True)
         return
-    amount = CHAT_PRICES_USD.get(plan_code)
+    amount = PLAN_PRICES.get(plan_code)
     if amount is None:
         await cq.answer("Unknown plan", show_alert=True)
         return
@@ -70,7 +71,7 @@ async def paymem_currency(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer("Unsupported currency", show_alert=True)
         return
 
-    amount = CHAT_PRICES_USD.get(plan_code)
+    amount = PLAN_PRICES.get(plan_code)
     if amount is None:
         await callback.answer("Unknown plan", show_alert=True)
         return

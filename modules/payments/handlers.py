@@ -88,9 +88,8 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
 
 # REGION AI: Telegram Stars payments
 CHAT_STAR_PLANS = {
-    "chat_7d": ("Chat 7", 7, CHAT_PRICES_USD.get("chat_7", 5.0)),
-    "chat_15d": ("Chat 15", 15, CHAT_PRICES_USD.get("chat_15", 9.0)),
-    "chat_30d": ("Chat 30", 30, CHAT_PRICES_USD.get("chat_30", 15.0)),
+    k: (f"Chat {d}", d, CHAT_PRICES_USD.get(k, p))
+    for k, (d, p) in {"chat_10d": (10, 9.0), "chat_20d": (20, 17.0), "chat_30d": (30, 25.0)}.items()
 }
 
 
@@ -149,7 +148,7 @@ async def stars_success(message: Message) -> None:
     lang = get_lang(message.from_user)
     purchase, _, plan_code = message.successful_payment.invoice_payload.partition(":")
     if purchase in {"vip", "chat"}:
-        default_code = "vip_30d" if purchase == "vip" else "chat_7d"
+        default_code = "vip_30d" if purchase == "vip" else "chat_10d"
         await grant(message.from_user.id, plan_code or default_code, bot=message.bot)
         await message.answer(tr(lang, "pay_conf"))
     else:
