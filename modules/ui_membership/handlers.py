@@ -77,10 +77,13 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         photo = FSInputFile(START_PHOTO)
     else:
         photo = "https://files.catbox.moe/cqckle.jpg"
+    # REGION AI: show start photo with reply keyboard
     await message.answer_photo(
         photo,
         caption=tr(lang, "menu", name=message.from_user.first_name),
+        reply_markup=reply_menu(lang),
     )
+    # END REGION AI
     if LIFE_URL:
         # REGION AI: life promo link without preview
         await message.answer(
@@ -89,11 +92,6 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
             disable_web_page_preview=True,
         )
         # END REGION AI
-    else:
-        await message.answer(
-            tr(lang, "choose_action"),
-            reply_markup=reply_menu(lang),
-        )
     # Inline menu is not shown at start; it will appear on Back button
 
 
