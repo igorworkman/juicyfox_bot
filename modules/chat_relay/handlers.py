@@ -13,8 +13,6 @@ from modules.common.i18n import tr
 from shared.utils.lang import get_lang
 from modules.ui_membership.keyboards import vip_currency_kb
 from modules.constants.paths import VIP_PHOTO
-
-VIP_BANNER_FILE_ID = "AgACAgIAAxkBAAICb2an0wyGQ8nH8y1vQw0N_UuSFNwAAhg0MRsmKMhKqVn__boBDwQBAAMCAANzAAM2QQACHgQ"
 try:
     from shared.db.repo import (
         get_active_invoice,
@@ -261,7 +259,6 @@ async def vip_club(msg: Message) -> None:
             parse_mode="HTML",
         )
     else:
-        _ = VIP_BANNER_FILE_ID
         await msg.answer(
             tr(lang, "vip_club_description"),
             reply_markup=vip_currency_kb(lang),

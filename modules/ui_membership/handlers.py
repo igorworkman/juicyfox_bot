@@ -54,9 +54,6 @@ _donate_cancelled: Set[int] = set()
 VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
 
-# Предварительно загруженный баннер VIP для fallback
-VIP_BANNER_FILE_ID = "AgACAgIAAxkBAAICb2an0wyGQ8nH8y1vQw0N_UuSFNwAAhg0MRsmKMhKqVn__boBDwQBAAMCAANzAAM2QQACHgQ"
-
 # Набор доступных кодов активов (например, "USDT", "BTC")
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
@@ -124,7 +121,6 @@ async def show_vip(cq: CallbackQuery) -> None:
             parse_mode="HTML",
         )
     else:
-        _ = VIP_BANNER_FILE_ID
         await cq.message.answer(
             tr(lang, "vip_club_description"),
             reply_markup=vip_currency_kb(lang),
