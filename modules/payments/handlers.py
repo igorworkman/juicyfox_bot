@@ -8,6 +8,9 @@ from aiogram.types import CallbackQuery
 # REGION AI: imports
 from aiogram.types import Message, LabeledPrice
 from modules.access import grant
+# REGION AI: price constants
+from modules.constants.prices import VIP_PRICE_USD
+# END REGION AI
 # END REGION AI
 from modules.common.i18n import tr
 from modules.ui_membership.chat_keyboards import chat_currency_kb
@@ -112,15 +115,23 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
             await state.update_data(
                 plan_code="vip_30d",
                 plan_callback="vip",
-                plan_name="VIP CLUB - 19$",
-                stars=1000,
+                plan_name=f"VIP CLUB - {int(VIP_PRICE_USD)}$",
+                stars=int(VIP_PRICE_USD * 100),
             )
             data = await state.get_data()
             plan_code = data.get("plan_code") or ""
             plan_callback = data.get("plan_callback") or ""
-        purchase = "vip" if plan_callback == "vip" or plan_code.startswith("vip") else "donate"
-        title = data.get("plan_name") or ("VIP CLUB - 19$" if purchase == "vip" else purchase)
-        stars = int(data.get("stars") or 100)
+        purchase = (
+            "vip"
+            if plan_callback == "vip" or plan_code.startswith("vip")
+            else "donate"
+        )
+        title = data.get("plan_name") or (
+            f"VIP CLUB - {int(VIP_PRICE_USD)}$"
+            if purchase == "vip"
+            else purchase
+        )
+        stars = int(data.get("stars") or int(VIP_PRICE_USD * 100))
     await callback.message.answer_invoice(
         title=title,
         description=tr(lang, "stars_payment_desc"),
