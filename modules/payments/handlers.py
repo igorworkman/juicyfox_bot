@@ -10,6 +10,7 @@ from aiogram.types import Message, LabeledPrice
 from modules.access import grant
 # REGION AI: price constants
 from shared.config.env import config
+from modules.constants.prices import CHAT_PRICES_USD
 # END REGION AI
 # END REGION AI
 from modules.common.i18n import tr
@@ -87,9 +88,9 @@ async def cancel_payment(callback: CallbackQuery, state: FSMContext) -> None:
 
 # REGION AI: Telegram Stars payments
 CHAT_STAR_PLANS = {
-    "chat_7d": ("Chat 7", 7, 250),
-    "chat_15d": ("Chat 15", 15, 450),
-    "chat_30d": ("Chat 30", 30, 750),
+    "chat_7d": ("Chat 7", 7, CHAT_PRICES_USD.get("chat_7", 5.0)),
+    "chat_15d": ("Chat 15", 15, CHAT_PRICES_USD.get("chat_15", 9.0)),
+    "chat_30d": ("Chat 30", 30, CHAT_PRICES_USD.get("chat_30", 15.0)),
 }
 
 
@@ -100,7 +101,8 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
     _, _, plan_code = callback.data.partition(":")
     plan_callback = data.get("plan_callback") or ""
     if plan_code in CHAT_STAR_PLANS:
-        title, period, stars = CHAT_STAR_PLANS[plan_code]
+        title, period, price_usd = CHAT_STAR_PLANS[plan_code]
+        stars = int(price_usd * 100)
         await state.update_data(
             plan_name=title,
             period=period,
