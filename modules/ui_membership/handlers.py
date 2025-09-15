@@ -54,6 +54,9 @@ _donate_cancelled: Set[int] = set()
 VIP_URL = os.getenv("VIP_URL")
 LIFE_URL = os.getenv("LIFE_URL")
 
+# Предварительно загруженный баннер VIP для fallback
+VIP_BANNER_FILE_ID = "AgACAgIAAxkBAAICb2an0wyGQ8nH8y1vQw0N_UuSFNwAAhg0MRsmKMhKqVn__boBDwQBAAMCAANzAAM2QQACHgQ"
+
 # Набор доступных кодов активов (например, "USDT", "BTC")
 CURRENCY_CODES = {code.upper() for _, code in CURRENCIES}
 
@@ -112,10 +115,13 @@ async def back_to_main(cq: CallbackQuery, state: FSMContext) -> None:
 async def show_vip(cq: CallbackQuery) -> None:
     lang = get_lang(cq.from_user)
     # REGION AI: vip club banner
-    # fix: use string path to load VIP banner
     await cq.message.delete()
+    if VIP_PHOTO.exists():
+        photo: FSInputFile | str = FSInputFile(VIP_PHOTO)
+    else:
+        photo = VIP_BANNER_FILE_ID
     await cq.message.answer_photo(
-        FSInputFile(str(VIP_PHOTO)),
+        photo,
         caption=tr(lang, "vip_club_description"),
         reply_markup=vip_currency_kb(lang),
         parse_mode="HTML",
