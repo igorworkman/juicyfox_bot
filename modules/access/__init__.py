@@ -11,12 +11,10 @@ from aiogram import Bot
 log = logging.getLogger("juicyfox.access")
 
 # Карта планов → переменная окружения с chat_id и срок действия (дней)
+# plan to chat_id mapping
 PLAN_MAP: Dict[str, Dict[str, Any]] = {
-    "vip_30d":  {"env": "VIP_CHANNEL_ID",  "days": 30},
-    "chat_7":  {"env": "CHAT_GROUP_ID", "days": 7},
-    "chat_15": {"env": "CHAT_GROUP_ID", "days": 15},
-    "chat_30": {"env": "CHAT_GROUP_ID", "days": 30},
-    # при необходимости добавишь: "club_30d": {"env": "LUXURY_CHANNEL_ID", "days": 30}
+    "vip_30d": {"env": "VIP_CHANNEL_ID", "days": 30}, "chat_10d": {"env": "CHAT_GROUP_ID", "days": 10},
+    "chat_20d": {"env": "CHAT_GROUP_ID", "days": 20}, "chat_30d": {"env": "CHAT_GROUP_ID", "days": 30}
 }
 
 class AccessError(Exception):
