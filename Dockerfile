@@ -34,6 +34,9 @@ COPY --from=deps /install /usr/local
 
 # код приложения
 COPY . /app
+# REGION AI: copy data directory
+COPY data/ /app/data/
+# END REGION AI
 
 # директории для данных/логов
 RUN mkdir -p /app/data /app/logs \
