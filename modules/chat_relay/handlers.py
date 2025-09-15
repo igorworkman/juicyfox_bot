@@ -12,6 +12,7 @@ from aiogram.exceptions import TelegramNetworkError
 from modules.common.i18n import tr
 from shared.utils.lang import get_lang
 from modules.ui_membership.keyboards import vip_currency_kb
+from modules.constants.paths import VIP_PHOTO
 try:
     from shared.db.repo import (
         get_active_invoice,
@@ -249,7 +250,7 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
 )
 async def vip_club(msg: Message) -> None:
     lang = get_lang(msg.from_user)
-    with open("data/vip_banner.jpg", "rb") as photo:
+    with open(VIP_PHOTO, "rb") as photo:
         await msg.answer_photo(
             photo,
             caption=tr(lang, "vip_club_description"),
