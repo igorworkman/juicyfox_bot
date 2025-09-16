@@ -14,7 +14,7 @@ from . import InvoiceResponse, ProviderError
 log = logging.getLogger("juicyfox.payments.service")
 
 # --- Провайдеры / ENV ---
-CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN")
+CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN") or os.getenv("CRYPTO_BOT_TOKEN")
 CRYPTOBOT_API = os.getenv("CRYPTOBOT_API", "https://pay.crypt.bot/api")
 PAYMENT_PROVIDER = os.getenv("PAYMENT_PROVIDER", "cryptobot").lower()
 
