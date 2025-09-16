@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 
 from aiogram import Bot
 
+from shared.utils.telegram import send_with_retry
+
 log = logging.getLogger("juicyfox.access")
 
 # Карта планов → переменная окружения с chat_id и срок действия (дней)
@@ -75,10 +77,12 @@ async def grant(user_id: int, plan_code: str, *, bot: Optional[Bot] = None) -> D
 
     # Мягко отправим пользователю ссылку
     try:
-        await bot.send_message(
-            chat_id=user_id,
-            text=f"✅ Доступ по плану **{plan_code}**. Срок до {until.date()}\nСсылка: {link.invite_link}",
+        await send_with_retry(
+            bot.send_message,
+            user_id,
+            f"✅ Доступ по плану **{plan_code}**. Срок до {until.date()}\nСсылка: {link.invite_link}",
             parse_mode="Markdown",
+            logger=log,
         )
     except Exception as e:
         log.warning("cannot DM user %s invite link (maybe user never started bot): %s", user_id, e)

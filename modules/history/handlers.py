@@ -31,6 +31,8 @@ from aiogram import Router, Bot
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
+from shared.utils.telegram import send_with_retry
+
 logger = logging.getLogger("juicyfox.history")
 
 router = Router()
@@ -130,26 +132,31 @@ async def _send_record(bot: Bot, chat_id: int, rec: Dict[str, Any]) -> None:
     file_id = rec.get("file_id") or None
     try:
         if typ == "text" or (typ is None and not file_id):
-            await bot.send_message(chat_id, text or "")
+            await send_with_retry(bot.send_message, chat_id, text or "", logger=logger)
         elif typ == "photo":
-            await bot.send_photo(chat_id, file_id, caption=text)
+            await send_with_retry(bot.send_photo, chat_id, file_id, caption=text, logger=logger)
         elif typ == "video":
-            await bot.send_video(chat_id, file_id, caption=text)
+            await send_with_retry(bot.send_video, chat_id, file_id, caption=text, logger=logger)
         elif typ == "voice":
-            await bot.send_voice(chat_id, file_id, caption=text)
+            await send_with_retry(bot.send_voice, chat_id, file_id, caption=text, logger=logger)
         elif typ == "animation":
-            await bot.send_animation(chat_id, file_id, caption=text)
+            await send_with_retry(bot.send_animation, chat_id, file_id, caption=text, logger=logger)
         elif typ == "document":
-            await bot.send_document(chat_id, file_id, caption=text)
+            await send_with_retry(bot.send_document, chat_id, file_id, caption=text, logger=logger)
         elif typ == "audio":
-            await bot.send_audio(chat_id, file_id, caption=text)
+            await send_with_retry(bot.send_audio, chat_id, file_id, caption=text, logger=logger)
         elif typ == "video_note":
-            await bot.send_video_note(chat_id, file_id)
+            await send_with_retry(bot.send_video_note, chat_id, file_id, logger=logger)
         elif typ == "sticker":
-            await bot.send_sticker(chat_id, file_id)
+            await send_with_retry(bot.send_sticker, chat_id, file_id, logger=logger)
         else:
             # Unknown or unsupported type; send the text with a marker
-            await bot.send_message(chat_id, f"[{typ}] {text or ''}")
+            await send_with_retry(
+                bot.send_message,
+                chat_id,
+                f"[{typ}] {text or ''}",
+                logger=logger,
+            )
     except Exception as e:
         logger.warning("history: failed to send record (%s): %s", typ, e)
 

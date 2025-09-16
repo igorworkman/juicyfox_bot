@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Tuple
 import aiosqlite
 from aiogram import Bot
 
+from shared.utils.telegram import send_with_retry
+
 log = logging.getLogger("juicyfox.posting.worker")
 
 DB_PATH = os.getenv("DB_PATH", "/app/data/juicyfox.sqlite")
@@ -99,15 +101,15 @@ async def _send(bot: Bot, job: Dict[str, Any]) -> None:
     file_id = job.get("file_id")
 
     if typ == "text":
-        await bot.send_message(chat_id, text or "")
+        await send_with_retry(bot.send_message, chat_id, text or "", logger=log)
     elif typ == "photo":
-        await bot.send_photo(chat_id, file_id, caption=text)
+        await send_with_retry(bot.send_photo, chat_id, file_id, caption=text, logger=log)
     elif typ == "video":
-        await bot.send_video(chat_id, file_id, caption=text)
+        await send_with_retry(bot.send_video, chat_id, file_id, caption=text, logger=log)
     elif typ == "document":
-        await bot.send_document(chat_id, file_id, caption=text)
+        await send_with_retry(bot.send_document, chat_id, file_id, caption=text, logger=log)
     elif typ == "animation":
-        await bot.send_animation(chat_id, file_id, caption=text)
+        await send_with_retry(bot.send_animation, chat_id, file_id, caption=text, logger=log)
     else:
         raise RuntimeError(f"unsupported type: {typ}")
 

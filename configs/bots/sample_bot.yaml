@@ -24,6 +24,8 @@ features:
 # Pricing configuration.  If omitted, default values are used.
 vip_price_usd: 35
 chat_price_usd: 15
+telegram_send_attempts: 3
+telegram_send_base_delay: 1.0
 
 # Identifiers for groups/channels used by the bot.  These should be
 # integers corresponding to Telegram chat IDs.  Negative values indicate

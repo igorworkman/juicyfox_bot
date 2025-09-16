@@ -16,6 +16,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 # fix: correct localization call for post plan button
 from modules.common import i18n
 from shared.utils.lang import get_lang
+from shared.utils.telegram import send_with_retry
 import hashlib
 from shared import db
 # END REGION AI
@@ -146,9 +147,11 @@ async def _finalize_post(send, bot, state):
             job_id = await db.enqueue_mailing(job)
             if LOG_CHANNEL_ID:
                 try:
-                    await bot.send_message(
+                    await send_with_retry(
+                        bot.send_message,
                         LOG_CHANNEL_ID,
                         f"[post] queued id={job_id} → chat_id={u['user_id']} at {when}",
+                        logger=log,
                     )
                 except Exception:
                     pass
@@ -168,7 +171,12 @@ async def _finalize_post(send, bot, state):
     await send(f"✅ Пост поставлен в очередь (id={job_id}), время: {when}")
     if LOG_CHANNEL_ID:
         try:
-            await bot.send_message(LOG_CHANNEL_ID, f"[post] queued id={job_id} → chat_id={channel} at {when}")
+            await send_with_retry(
+                bot.send_message,
+                LOG_CHANNEL_ID,
+                f"[post] queued id={job_id} → chat_id={channel} at {when}",
+                logger=log,
+            )
         except Exception:
             pass
 
@@ -239,6 +247,11 @@ async def post_plan_cb(cq: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.update_data(type=tp, file_id=fid, caption=cap)
-    await cq.message.answer("Выбери цель публикации:", reply_markup=_target_kb().as_markup())
+    await send_with_retry(
+        cq.message.answer,
+        "Выбери цель публикации:",
+        reply_markup=_target_kb().as_markup(),
+        logger=log,
+    )
     await state.set_state(PostPlan.choosing_target)
 # END REGION AI

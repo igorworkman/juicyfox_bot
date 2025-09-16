@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 
-__all__ = ["logging", "time", "idempotency", "metrics"]
+__all__ = ["logging", "time", "idempotency", "metrics", "telegram"]
 
 # Attempt to import submodules.  Failures are suppressed to allow
 # optional dependencies (e.g. prometheus_client) to be absent.
@@ -33,3 +33,5 @@ with suppress(Exception):
     from . import idempotency  # type: ignore  # noqa: F401
 with suppress(Exception):
     from . import metrics  # type: ignore  # noqa: F401
+with suppress(Exception):
+    from . import telegram  # type: ignore  # noqa: F401
