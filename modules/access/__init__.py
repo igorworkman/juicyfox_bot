@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 
 from aiogram import Bot
 
+from shared.db.repo import claim_idempotency_key
+from shared.utils.idempotency import provider_key
 from shared.utils.telegram import send_with_retry
 
 log = logging.getLogger("juicyfox.access")
@@ -110,6 +112,16 @@ async def process_payment_event(event: Dict[str, Any]) -> Dict[str, Any]:
         return {"handled": False, "reason": f"status={status}", "duplicate": duplicate}
 
     try:
+        invoice_id = str(meta.get("invoice_id") or event.get("invoice_id") or "")
+        provider = str(event.get("provider") or "")
+        idem_key = provider_key(provider, invoice_id or f"{user_id}:{plan_code}")
+
+        is_new = await claim_idempotency_key(idem_key)
+        if not is_new:
+            duplicate = True
+            log.info("duplicate payment skipped: %s", idem_key)
+            return {"handled": False, "duplicate": duplicate}
+
         granted = await grant(user_id=user_id, plan_code=plan_code)
         return {"handled": True, "duplicate": duplicate, **granted}
     except Exception as e:
