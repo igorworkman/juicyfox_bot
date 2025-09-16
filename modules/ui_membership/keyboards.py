@@ -16,7 +16,12 @@ def main_menu_kb(lang: str) -> InlineKeyboardMarkup:
     """Главное меню: Life, Luxury, VIP, Chat."""
     b = InlineKeyboardBuilder()
     # REGION AI: direct life channel link
-    b.button(text="JUICY LIFE 👀", url=config.life_url or "https://t.me/JuicyFoxOfficialLife")
+    b.add(
+        InlineKeyboardButton(
+            text="JUICY LIFE 👀",
+            url=config.life_url or "https://t.me/JuicyFoxOfficialLife",
+        )
+    )
     # END REGION AI
     # b.button(text=tr(lang, "btn_lux"), callback_data="ui:luxury")  # temporarily hidden
     # REGION AI: remove price from VIP button
