@@ -7,10 +7,9 @@ import time
 from typing import Optional, Dict, Any, List
 
 # REGION AI: imports
-import asyncio
-from aiogram.exceptions import TelegramNetworkError
 from modules.common.i18n import tr
 from shared.utils.lang import get_lang
+from shared.utils.telegram import send_with_retry
 from modules.ui_membership.keyboards import vip_currency_kb
 from modules.constants.paths import VIP_PHOTO
 try:
@@ -171,22 +170,6 @@ def _now_ts() -> int:
     return int(time.time())
 
 
-# REGION AI: relay helpers
-async def _send_with_retry(func, *args, **kwargs) -> None:
-    for attempt in range(3):
-        try:
-            await func(*args, **kwargs)
-            return
-        except TelegramNetworkError as e:
-            if attempt == 2:
-                log.exception("relay send failed: %s", e)
-            else:
-                await asyncio.sleep(1)
-        except Exception as e:
-            log.exception("relay send failed: %s", e)
-            return
-
-
 async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None = None) -> None:
     header = header or _fmt_from(msg)
     text = (msg.text or msg.caption or "").strip()
@@ -195,46 +178,84 @@ async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None 
     media_id: Optional[str] = None
 
     if msg.text:
-        await _send_with_retry(bot.send_message, chat_id, f"{header}\n\n{text}")
+        await send_with_retry(
+            bot.send_message,
+            chat_id,
+            f"{header}\n\n{text}",
+            logger=log,
+        )
         rec["text"] = text
     elif msg.photo:
         media_id = msg.photo[-1].file_id
         cap = f"{header}\n\n{text}" if text else header
-        await _send_with_retry(bot.send_photo, chat_id, media_id, caption=cap)
+        await send_with_retry(
+            bot.send_photo,
+            chat_id,
+            media_id,
+            caption=cap,
+            logger=log,
+        )
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.video:
         media_id = msg.video.file_id
         cap = f"{header}\n\n{text}" if text else header
-        await _send_with_retry(bot.send_video, chat_id, media_id, caption=cap)
+        await send_with_retry(
+            bot.send_video,
+            chat_id,
+            media_id,
+            caption=cap,
+            logger=log,
+        )
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.voice:
         media_id = msg.voice.file_id
         cap = f"{header}\n\n{text}" if text else header
-        await _send_with_retry(bot.send_voice, chat_id, media_id, caption=cap)
+        await send_with_retry(
+            bot.send_voice,
+            chat_id,
+            media_id,
+            caption=cap,
+            logger=log,
+        )
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.document:
         media_id = msg.document.file_id
         cap = f"{header}\n\n{text}" if text else header
-        await _send_with_retry(bot.send_document, chat_id, media_id, caption=cap)
+        await send_with_retry(
+            bot.send_document,
+            chat_id,
+            media_id,
+            caption=cap,
+            logger=log,
+        )
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.animation:
         media_id = msg.animation.file_id
         cap = f"{header}\n\n{text}" if text else header
-        await _send_with_retry(bot.send_animation, chat_id, media_id, caption=cap)
+        await send_with_retry(
+            bot.send_animation,
+            chat_id,
+            media_id,
+            caption=cap,
+            logger=log,
+        )
         rec.update({"file_id": media_id, "text": text or None})
     elif msg.sticker:
         media_id = msg.sticker.file_id
-        await _send_with_retry(bot.send_message, chat_id, header)
-        await _send_with_retry(bot.send_sticker, chat_id, media_id)
+        await send_with_retry(bot.send_message, chat_id, header, logger=log)
+        await send_with_retry(bot.send_sticker, chat_id, media_id, logger=log)
         rec.update({"file_id": media_id, "text": msg.sticker.emoji or None})
     elif msg.video_note:
         media_id = msg.video_note.file_id
-        await _send_with_retry(bot.send_message, chat_id, header)
-        await _send_with_retry(bot.send_video_note, chat_id, media_id)
+        await send_with_retry(bot.send_message, chat_id, header, logger=log)
+        await send_with_retry(bot.send_video_note, chat_id, media_id, logger=log)
         rec["file_id"] = media_id
     else:
-        await _send_with_retry(
-            bot.send_message, chat_id, f"{header}\n\n[unsupported content]"
+        await send_with_retry(
+            bot.send_message,
+            chat_id,
+            f"{header}\n\n[unsupported content]",
+            logger=log,
         )
         rec["type"] = "unknown"
 
@@ -252,17 +273,21 @@ async def vip_club(msg: Message) -> None:
     lang = get_lang(msg.from_user)
     if VIP_PHOTO.exists():
         photo = FSInputFile(VIP_PHOTO)
-        await msg.answer_photo(
+        await send_with_retry(
+            msg.answer_photo,
             photo,
             caption=tr(lang, "vip_club_description"),
             reply_markup=vip_currency_kb(lang),
             parse_mode="HTML",
+            logger=log,
         )
     else:
-        await msg.answer(
+        await send_with_retry(
+            msg.answer,
             tr(lang, "vip_club_description"),
             reply_markup=vip_currency_kb(lang),
             parse_mode="HTML",
+            logger=log,
         )
 
 
@@ -296,7 +321,11 @@ async def relay_incoming_to_group(msg: Message):
         pass
     if status != "active":
         try:
-            await msg.answer("⛔️ Подписка закончилась, продлите её")
+            await send_with_retry(
+                msg.answer,
+                "⛔️ Подписка закончилась, продлите её",
+                logger=log,
+            )
         except Exception:
             pass
         await _repo.log_message(
@@ -317,7 +346,11 @@ async def relay_incoming_to_group(msg: Message):
     streak = await _repo.inc_streak(uid)
     if streak > USER_STREAK_LIMIT:
         try:
-            await msg.answer(f"Пожалуйста, дождись моего ответа 😘\nТвоё сообщение получено.\n— {MODEL_NAME}")
+            await send_with_retry(
+                msg.answer,
+                f"Пожалуйста, дождись моего ответа 😘\nТвоё сообщение получено.\n— {MODEL_NAME}",
+                logger=log,
+            )
         except Exception:
             pass
         # историю всё равно логируем, но в группу не шлём, чтобы не спамить
@@ -448,7 +481,12 @@ async def reply_from_group(cmd: Message, command: CommandObject):
             user_id = int(parts[0])
             text = parts[1]
             try:
-                await cmd.bot.send_message(user_id, text)
+                await send_with_retry(
+                    cmd.bot.send_message,
+                    user_id,
+                    text,
+                    logger=log,
+                )
                 await _repo.log_message(user_id, "out", {"type": "text", "text": text, "ts": _now_ts()})
                 await cmd.reply("✅ Отправлено")
             finally:
@@ -463,7 +501,12 @@ async def reply_from_group(cmd: Message, command: CommandObject):
             try:
                 user_id = int(lines[0].split()[1])
                 try:
-                    await cmd.bot.send_message(user_id, args)
+                    await send_with_retry(
+                        cmd.bot.send_message,
+                        user_id,
+                        args,
+                        logger=log,
+                    )
                     await _repo.log_message(user_id, "out", {"type": "text", "text": args, "ts": _now_ts()})
                     await cmd.reply("✅ Отправлено")
                 finally:

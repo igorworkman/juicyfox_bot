@@ -83,6 +83,8 @@ class Config:
     life_channel_id: int = 0
     vip_channel_id: int = 0
     log_channel_id: int = 0
+    telegram_send_attempts: int = 3
+    telegram_send_base_delay: float = 1.0
     cryptobot_token: str = ""
     cryptobot_api: str = "https://pay.crypt.bot/api"
     post_worker_interval: int = 5
@@ -115,6 +117,19 @@ class Config:
         self.log_channel_id = _ensure_int(self.log_channel_id) or 0
         self.post_worker_interval = _ensure_int(self.post_worker_interval) or 5
         self.post_worker_batch = _ensure_int(self.post_worker_batch) or 20
+
+        attempts = _ensure_int(self.telegram_send_attempts) or 3
+        if attempts < 1:
+            attempts = 1
+        self.telegram_send_attempts = attempts
+
+        try:
+            delay = float(self.telegram_send_base_delay)
+        except Exception:
+            delay = 1.0
+        if delay < 0:
+            delay = 0.0
+        self.telegram_send_base_delay = delay
 
 
 def _load_yaml_config(bot_id: str) -> Dict[str, Any]:
@@ -188,6 +203,15 @@ def load_config(bot_id: Optional[str] = None) -> Config:
         except Exception:
             return default
 
+    def _yaml_float(key: str, default: Optional[float] = None) -> Optional[float]:
+        val = yaml_data.get(key) if isinstance(yaml_data, dict) else None
+        if isinstance(val, (int, float)):
+            return float(val)
+        try:
+            return float(val)
+        except Exception:
+            return default
+
     cfg = Config(
         telegram_token=_get_alias(env, "TELEGRAM_TOKEN", default=yaml_data.get("telegram_token", "")),
         bot_id=resolved_bot_id,
@@ -223,6 +247,22 @@ def load_config(bot_id: Optional[str] = None) -> Config:
         life_channel_id=int(_get_alias(env, "LIFE_CHANNEL_ID", default=_yaml_int("life_channel_id", 0) or 0) or 0),
         vip_channel_id=int(_get_alias(env, "VIP_CHANNEL_ID", default=_yaml_int("vip_channel_id", 0) or 0) or 0),
         log_channel_id=int(_get_alias(env, "LOG_CHANNEL_ID", default=_yaml_int("log_channel_id", 0) or 0) or 0),
+        telegram_send_attempts=int(
+            _get_alias(
+                env,
+                "TELEGRAM_SEND_ATTEMPTS",
+                default=_yaml_int("telegram_send_attempts", 3) or 3,
+            )
+            or 3
+        ),
+        telegram_send_base_delay=float(
+            _get_alias(
+                env,
+                "TELEGRAM_SEND_BASE_DELAY",
+                default=_yaml_float("telegram_send_base_delay", 1.0) or 1.0,
+            )
+            or 1.0
+        ),
         cryptobot_token=_get_alias(env, "CRYPTOBOT_TOKEN", "CRYPTO_BOT_TOKEN", default=yaml_data.get("cryptobot_token", "")),
         cryptobot_api=_get_alias(env, "CRYPTOBOT_API", default=yaml_data.get("cryptobot_api", "https://pay.crypt.bot/api")),
         post_worker_interval=int(_get_alias(env, "POST_WORKER_INTERVAL", default=_yaml_int("post_worker_interval", 5) or 5) or 5),

@@ -28,6 +28,7 @@ from shared.db.repo import (
 )
 
 from shared.utils.lang import get_lang
+from shared.utils.telegram import send_with_retry
 # Клавиатуры текущего модуля
 from .keyboards import (
     main_menu_kb,
@@ -75,18 +76,22 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
     else:
         photo = "https://files.catbox.moe/cqckle.jpg"
     # REGION AI: show start photo with reply keyboard
-    await message.answer_photo(
+    await send_with_retry(
+        message.answer_photo,
         photo,
         caption=tr(lang, "menu", name=message.from_user.first_name),
         reply_markup=reply_menu(lang),
+        logger=log,
     )
     # END REGION AI
     if LIFE_URL:
         # REGION AI: life promo link without preview
-        await message.answer(
+        await send_with_retry(
+            message.answer,
             tr(lang, "life_promo"),
             parse_mode="HTML",
             disable_web_page_preview=True,
+            logger=log,
         )
         # END REGION AI
     # Inline menu is not shown at start; it will appear on Back button
@@ -114,17 +119,21 @@ async def show_vip(cq: CallbackQuery) -> None:
     await cq.message.delete()
     if VIP_PHOTO.exists():
         photo = FSInputFile(VIP_PHOTO)
-        await cq.message.answer_photo(
+        await send_with_retry(
+            cq.message.answer_photo,
             photo,
             caption=tr(lang, "vip_club_description", amount=int(config.vip_price_usd)),
             reply_markup=vip_currency_kb(lang),
             parse_mode="HTML",
+            logger=log,
         )
     else:
-        await cq.message.answer(
+        await send_with_retry(
+            cq.message.answer,
             tr(lang, "vip_club_description", amount=int(config.vip_price_usd)),
             reply_markup=vip_currency_kb(lang),
             parse_mode="HTML",
+            logger=log,
         )
     # END REGION AI
 
@@ -133,9 +142,11 @@ async def show_vip(cq: CallbackQuery) -> None:
 async def cmd_currency(message: Message) -> None:
     """Show currency menu for VIP subscription."""
     lang = get_lang(message.from_user)
-    await message.answer(
+    await send_with_retry(
+        message.answer,
         tr(lang, "choose_cur", amount=config.vip_price_usd),
         reply_markup=vip_currency_kb(lang),
+        logger=log,
     )
 
 # =======================
@@ -273,9 +284,11 @@ async def donate_menu_legacy(msg: Message, state: FSMContext) -> None:
     """Legacy reply-keyboard support."""
     await state.set_state(None)
     lang = get_lang(msg.from_user)
-    await msg.answer(
+    await send_with_retry(
+        msg.answer,
         tr(lang, "donate_menu"),
         reply_markup=donate_keyboard(lang),
+        logger=log,
     )
 
 @router.callback_query(F.data.regexp(r"^donate_\d+$"))
@@ -322,7 +335,11 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
         )
     except Exception:
         log.exception("donate_set_currency: create_invoice failed")
-        await cq.message.answer(tr(lang, "donate_error"))
+        await send_with_retry(
+            cq.message.answer,
+            tr(lang, "donate_error"),
+            logger=log,
+        )
         return
 
     invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
@@ -343,7 +360,11 @@ async def donate_set_currency(cq: CallbackQuery, state: FSMContext) -> None:
                 )
             except Exception:
                 log.exception("donate_set_currency: save_pending_invoice failed")
-                await cq.message.answer(tr(lang, "donate_error"))
+                await send_with_retry(
+                    cq.message.answer,
+                    tr(lang, "donate_error"),
+                    logger=log,
+                )
                 return
 
 
@@ -388,7 +409,11 @@ async def _create_donate_invoice(
         invoice_id = inv.get("invoice_id") if isinstance(inv, dict) else None
         invoice_url = _invoice_url(inv)
         if not invoice_url or not invoice_id:
-            await cq.message.answer(tr(lang, "inv_err"))
+            await send_with_retry(
+                cq.message.answer,
+                tr(lang, "inv_err"),
+                logger=log,
+            )
             return
 
         await save_pending_invoice(
@@ -419,7 +444,11 @@ async def _create_donate_invoice(
     except Exception:
         log.exception("donation invoice failed: user_id=%s", user_id)
         try:
-            await cq.message.answer(tr(lang, "donate_error"))
+            await send_with_retry(
+                cq.message.answer,
+                tr(lang, "donate_error"),
+                logger=log,
+            )
         except Exception:
             log.exception("failed to send donate_error message: user_id=%s", user_id)
     finally:
@@ -514,7 +543,12 @@ async def legacy_reply_luxury(msg: Message) -> None:
     for title, code in CURRENCIES:
         kb.button(text=title, callback_data=f"paymem:chat_30:{code}")
     kb.adjust(2)
-    await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
+    await send_with_retry(
+        msg.answer,
+        tr(lang, "luxury_room_desc"),
+        reply_markup=kb.as_markup(),
+        logger=log,
+    )
 
 @router.message(
     lambda m: _norm(m.text) == _norm(tr(get_lang(m.from_user), "btn_chat"))
@@ -522,7 +556,12 @@ async def legacy_reply_luxury(msg: Message) -> None:
 async def handle_chat_btn(msg: Message, state: FSMContext):
     await state.clear()
     lang = get_lang(msg.from_user)
-    await msg.answer(tr(lang, "chat_access"), reply_markup=chat_tariffs_kb(lang))
+    await send_with_retry(
+        msg.answer,
+        tr(lang, "chat_access"),
+        reply_markup=chat_tariffs_kb(lang),
+        logger=log,
+    )
 
 
 @router.message(F.text == "💎 Luxury Room – 15$")
@@ -533,7 +572,12 @@ async def luxury_room_reply(msg: Message):
         kb.button(text=title, callback_data=f"payc:club:{code}")
     kb.button(text=tr(lang, "btn_back"), callback_data="ui:back")
     kb.adjust(2)
-    await msg.answer(tr(lang, "luxury_room_desc"), reply_markup=kb.as_markup())
+    await send_with_retry(
+        msg.answer,
+        tr(lang, "luxury_room_desc"),
+        reply_markup=kb.as_markup(),
+        logger=log,
+    )
 
 @router.message(
     lambda m: _norm(m.text) in {
@@ -552,10 +596,12 @@ async def vip_secret_reply(msg: Message):
 
     log.info(f"Handler: vip_club_reply / plan={key}")
     # REGION AI: vip description parse mode
-    await msg.answer(
+    await send_with_retry(
+        msg.answer,
         tr(lang, key),
         reply_markup=vip_currency_kb(lang),
         parse_mode="HTML",
+        logger=log,
     )
     # END REGION AI
 
@@ -563,4 +609,9 @@ async def vip_secret_reply(msg: Message):
 @router.callback_query(F.data == "tip_menu")
 async def tip_menu(cq: CallbackQuery):
     lang = get_lang(cq.from_user)
-    await cq.message.answer(tr(lang, "choose_action"), reply_markup=main_menu_kb(lang))
+    await send_with_retry(
+        cq.message.answer,
+        tr(lang, "choose_action"),
+        reply_markup=main_menu_kb(lang),
+        logger=log,
+    )

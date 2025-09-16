@@ -18,6 +18,7 @@ from modules.ui_membership.chat_keyboards import chat_currency_kb
 from modules.ui_membership.keyboards import vip_currency_kb, donate_currency_keyboard
 from shared.utils.lang import get_lang
 from shared.db.repo import get_active_invoice, delete_pending_invoice
+from shared.utils.telegram import send_with_retry
 
 
 log = logging.getLogger("juicyfox.payments.handlers")
@@ -133,13 +134,15 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext) -> None:
             else purchase
         )
         stars = int(data.get("stars") or int(config.vip_price_usd * 100))
-    await callback.message.answer_invoice(
+    await send_with_retry(
+        callback.message.answer_invoice,
         title=title,
         description=tr(lang, "stars_payment_desc"),
         payload=f"{purchase}:{plan_code}",
         provider_token="",
         currency="XTR",
         prices=[LabeledPrice(label=title, amount=stars)],
+        logger=log,
     )
 
 
@@ -150,8 +153,12 @@ async def stars_success(message: Message) -> None:
     if purchase in {"vip", "chat"}:
         default_code = "vip_30d" if purchase == "vip" else "chat_10d"
         await grant(message.from_user.id, plan_code or default_code, bot=message.bot)
-        await message.answer(tr(lang, "pay_conf"))
+        await send_with_retry(message.answer, tr(lang, "pay_conf"), logger=log)
     else:
         amount = message.successful_payment.total_amount
-        await message.answer(tr(lang, "donate_thanks", amount=amount))
+        await send_with_retry(
+            message.answer,
+            tr(lang, "donate_thanks", amount=amount),
+            logger=log,
+        )
 # END REGION AI
