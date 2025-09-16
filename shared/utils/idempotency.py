@@ -19,8 +19,10 @@ operations.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Mapping
 
 
 def provider_key(provider: str, ext_id: Any) -> str:
@@ -62,3 +64,42 @@ def user_channel_key(user_id: Any, channel_id: Any) -> str:
     :returns: A string key combining user and channel IDs.
     """
     return f"user:{user_id}:channel:{channel_id}"
+
+
+def telegram_update_key(bot_id: Any, update: Any) -> str:
+    """Return an idempotency key for a Telegram update.
+
+    The primary identifier is :attr:`Update.update_id`.  If the update lacks
+    this field (which should be rare), we fall back to hashing the payload so
+    that structurally identical updates map to the same key.
+
+    :param bot_id: Identifier of the bot handling the update.  Including the
+        bot ID prevents collisions when multiple bots share the same storage.
+    :param update: Either an :class:`aiogram.types.Update` instance or the raw
+        decoded JSON dictionary received from Telegram.
+    :returns: A deterministic idempotency key.
+    """
+
+    update_id = getattr(update, "update_id", None)
+    if update_id is None and isinstance(update, Mapping):
+        update_id = update.get("update_id")
+
+    if update_id is not None:
+        return f"telegram:{bot_id}:{update_id}"
+
+    if isinstance(update, Mapping):
+        # ``json.dumps`` provides a stable representation so that two
+        # equivalent payloads yield the same digest and, consequently, the
+        # same idempotency key.
+        payload = json.dumps(
+            update,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            default=str,
+        )
+    else:
+        payload = repr(update)
+
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return f"telegram:{bot_id}:payload:{digest}"
