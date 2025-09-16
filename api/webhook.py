@@ -1,10 +1,17 @@
 import logging
+import os
 
 from fastapi import APIRouter, Request, Response, status
 from aiogram.types import Update
 
+from shared.db import repo as db_repo
+from shared.utils import idempotency
+
 router = APIRouter()
 log = logging.getLogger("juicyfox.api.webhook")
+
+BOT_ID = os.getenv("BOT_ID", "telegram")
+IDEMPOTENCY_TTL_SECONDS = 300
 
 @router.post("/webhook")
 async def telegram_webhook(request: Request) -> Response:
@@ -22,8 +29,15 @@ async def telegram_webhook(request: Request) -> Response:
         # Ленивый импорт, чтобы не ловить циклические зависимости
         from apps.bot_core.main import bot, dp
 
-        # Валидируем и прокармливаем апдейт диспетчеру
+        # Валидируем апдейт и проверяем идемпотентность перед передачей
         update = Update.model_validate(data, context={"bot": bot})
+        idem_key = idempotency.telegram_update_key(BOT_ID, update)
+        is_new = await db_repo.claim_idempotency_key(idem_key, ttl_seconds=IDEMPOTENCY_TTL_SECONDS)
+        if not is_new:
+            log.debug("duplicate telegram update skipped: %s", idem_key)
+            return Response(status_code=status.HTTP_200_OK)
+
+        # Прокармливаем апдейт диспетчеру только один раз
         await dp.feed_webhook_update(bot, update)
 
         # Всё ок — можно вернуть 200

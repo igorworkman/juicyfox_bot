@@ -127,6 +127,14 @@ _SCHEMA = [
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """,
+    # Idempotency keys for short-lived deduplication (e.g. webhooks)
+    """
+    CREATE TABLE IF NOT EXISTS idempotency_keys (
+        key TEXT PRIMARY KEY,
+        expires_at INTEGER NOT NULL
+    );
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON idempotency_keys(expires_at);",
 ]
 
 
@@ -179,6 +187,35 @@ async def _db():
         yield db
     finally:
         await db.close()
+
+
+# ============== Идемпотентность вебхуков и событий ==============
+
+async def claim_idempotency_key(key: str, ttl_seconds: int = 60) -> bool:
+    """Attempt to reserve an idempotency ``key`` for ``ttl_seconds`` seconds.
+
+    :returns: ``True`` if the key was stored (i.e. the event is new) and
+        ``False`` if the key already exists and is still valid.
+    """
+
+    ttl = int(ttl_seconds)
+    if ttl <= 0:
+        ttl = 1
+
+    now = int(time.time())
+    expires_at = now + ttl
+
+    async with _db() as db:
+        # Drop expired keys so that stale entries do not prevent reprocessing
+        # after the TTL elapses.
+        await db.execute("DELETE FROM idempotency_keys WHERE expires_at <= ?", (now,))
+        cursor = await db.execute(
+            "INSERT OR IGNORE INTO idempotency_keys (key, expires_at) VALUES (?, ?)",
+            (key, expires_at),
+        )
+        await db.commit()
+
+    return cursor.rowcount > 0
 
 
 # ============== История сообщений ==============
