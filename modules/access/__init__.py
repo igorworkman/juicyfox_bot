@@ -116,7 +116,7 @@ async def process_payment_event(event: Dict[str, Any]) -> Dict[str, Any]:
         provider = str(event.get("provider") or "")
         idem_key = provider_key(provider, invoice_id or f"{user_id}:{plan_code}")
 
-        is_new = await claim_idempotency_key(idem_key)
+        is_new = await claim_idempotency_key(idem_key, ttl_seconds=86400)
         if not is_new:
             duplicate = True
             log.info("duplicate payment skipped: %s", idem_key)
