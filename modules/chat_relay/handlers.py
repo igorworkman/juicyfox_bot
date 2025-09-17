@@ -382,9 +382,10 @@ async def relay_incoming_to_group(msg: Message):
         pass
     if status != "active":
         try:
+            lang = get_lang(msg.from_user)
             await send_with_retry(
                 msg.answer,
-                "⛔️ Подписка закончилась, продлите её",
+                tr(lang, "subscription_expired"),
                 logger=log,
             )
         except Exception:
@@ -398,9 +399,10 @@ async def relay_incoming_to_group(msg: Message):
 
     if not await _chat_subscription_active(uid):
         try:
+            lang = get_lang(msg.from_user)
             await send_with_retry(
                 msg.answer,
-                "💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘",
+                tr(lang, "chat_not_active"),
                 logger=log,
             )
         except Exception:
