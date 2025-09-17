@@ -8,7 +8,14 @@ from typing import Any, Dict, Optional
 
 from aiogram import Bot
 
-from shared.db.repo import claim_idempotency_key, idempotency_key_exists
+# REGION AI: imports
+from shared.db.repo import (
+    claim_idempotency_key,
+    get_user_profile,
+    idempotency_key_exists,
+    log_access_grant,
+)
+# END REGION AI
 from shared.utils.idempotency import provider_key
 from shared.utils.telegram import send_with_retry
 
@@ -44,14 +51,19 @@ def _chat_id_for_plan(plan_code: str) -> int:
 
 async def grant(user_id: int, plan_code: str, *, bot: Optional[Bot] = None) -> Dict[str, Any]:
     """
-    Выдать доступ пользователю:
-      - создаём invite-link с ограничением по времени и 1 использованием
-      - возвращаем {'invite_link': 'https://t.me/+...', 'until': <datetime>}
-      - (опц.) шлём ссылку пользователю, если bot передан
+    Выдать доступ пользователю.
+
+    Для чат-планов (``chat_*``) продлеваем доступ без invite-link, логируем срок,
+    отправляем подтверждение пользователю и возвращаем ``{"plan_code", "days", "until"}``.
+
+    Для остальных планов создаём invite-link на 1 использование, возвращаем
+    ``{"invite_link", "until"}`` и (опц.) отправляем ссылку пользователю.
     """
-    chat_id = _chat_id_for_plan(plan_code)
-    days = int(PLAN_MAP[plan_code]["days"])
-    until = datetime.now(timezone.utc) + timedelta(days=days)
+    cfg = PLAN_MAP.get(plan_code)
+    if not cfg:
+        raise AccessError(f"Unknown plan_code={plan_code}")
+
+    days = int(cfg["days"])
 
     if bot is None:
         try:
@@ -63,6 +75,45 @@ async def grant(user_id: int, plan_code: str, *, bot: Optional[Bot] = None) -> D
 
     if bot is None:
         raise AccessError("Bot instance is not available")
+
+    if plan_code.startswith("chat_"):
+        _, current_until_ts = get_user_profile(user_id)
+        now = datetime.now(timezone.utc)
+        if current_until_ts:
+            current_until = datetime.fromtimestamp(current_until_ts, tz=timezone.utc)
+            base = current_until if current_until > now else now
+        else:
+            base = now
+        until = base + timedelta(days=days)
+
+        await log_access_grant(
+            user_id=user_id,
+            plan_code=plan_code,
+            invite_link=None,
+            until_ts=int(until.timestamp()),
+        )
+
+        result = {"plan_code": plan_code, "days": days, "until": until.isoformat()}
+        log.info("access.grant: plan=%s user=%s until=%s", plan_code, user_id, result["until"])
+
+        try:
+            await send_with_retry(
+                bot.send_message,
+                user_id,
+                f"✅ See You Chat активирован на {days} дней",
+                logger=log,
+            )
+        except Exception as e:
+            log.warning(
+                "cannot DM user %s chat activation notice (maybe user never started bot): %s",
+                user_id,
+                e,
+            )
+
+        return result
+
+    chat_id = _chat_id_for_plan(plan_code)
+    until = datetime.now(timezone.utc) + timedelta(days=days)
 
     # создаём персональную ссылку
     link = await bot.create_chat_invite_link(
