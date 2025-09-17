@@ -191,6 +191,23 @@ async def _db():
 
 # ============== Идемпотентность вебхуков и событий ==============
 
+async def idempotency_key_exists(key: str) -> bool:
+    """Return ``True`` if the idempotency ``key`` is currently reserved."""
+
+    now = int(time.time())
+
+    async with _db() as db:
+        await db.execute("DELETE FROM idempotency_keys WHERE expires_at <= ?", (now,))
+        cursor = await db.execute(
+            "SELECT 1 FROM idempotency_keys WHERE key = ? LIMIT 1",
+            (key,),
+        )
+        row = await cursor.fetchone()
+        await db.commit()
+
+    return row is not None
+
+
 async def claim_idempotency_key(key: str, ttl_seconds: int = 60) -> bool:
     """Attempt to reserve an idempotency ``key`` for ``ttl_seconds`` seconds.
 
