@@ -157,7 +157,11 @@ def reply_menu(lang: str) -> ReplyKeyboardMarkup:
             [KeyboardButton(text=chat_label)],
             # [KeyboardButton(text=luxury_label), KeyboardButton(text=vip_label)],  # temporarily hidden
             [KeyboardButton(text=vip_label)],
-            [KeyboardButton(text=donate_label)],
+            [
+                KeyboardButton(text="Support"),
+                KeyboardButton(text=donate_label),
+                KeyboardButton(text="Restart"),
+            ],
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
