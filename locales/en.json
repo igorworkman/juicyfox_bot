@@ -26,6 +26,8 @@
   "donate_menu": "🎁 Donations\n\n5$ – “A little compliment just for me 💐☺️”\n10$ – “You’re lighting a fire inside me 💋💦”\n25$ – “Mmm… now I feel like showing you more 👀✨”\n50$ – “You really know how to turn me on 🔥😉”\n100$ – “You spoil me dangerously… I’m melting 👑🔥”\n200$ – “You’re conquering me… just a bit more and I’m yours 💎💞”\n500$ – “You’ve driven me crazy… I’m under your spell ✨😍👸🏼”",
   "inv_err": "⚠️ Failed to create invoice. Try another currency, sweetheart 😉",
   "donate_error": "⚠️ Unable to process donation. Please try again.",
+  "subscription_expired": "⛔️ Subscription expired, please renew it.",
+  "chat_not_active": "💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘",
   "access_denied": "💬 Darling, activate “Chat” and write me again. I’ll be waiting 😘",
   "life": "💎 Welcome to my world 💋\n{my_channel}",
   "pay_conf": "✅ Done! You’re with me for 30 days 😘",
