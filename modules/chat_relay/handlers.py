@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import logging
 import time
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
 # REGION AI: imports
@@ -21,6 +22,7 @@ try:
         get_group_for_user,
         get_user_by_group,
         get_chat_number,
+        get_user_profile,
     )
 except Exception:  # pragma: no cover
     (
@@ -31,7 +33,8 @@ except Exception:  # pragma: no cover
         get_group_for_user,
         get_user_by_group,
         get_chat_number,
-    ) = (None, None, None, None, None, None, None)  # type: ignore
+        get_user_profile,
+    ) = (None, None, None, None, None, None, None, None)  # type: ignore
 try:
     from shared.config.env import config
 except Exception:  # pragma: no cover
@@ -130,8 +133,7 @@ def _fmt_from(msg: Message) -> str:
     chat_num = None
     if isinstance(uid, int):
         try:
-            from shared.db.repo import get_user_profile  # type: ignore
-            total, until_ts = get_user_profile(uid)
+            total, until_ts = get_user_profile(uid) if get_user_profile else (0.0, None)
             chat_num = get_chat_number(uid) if get_chat_number else None
         except Exception:  # pragma: no cover
             total, until_ts = (0.0, None)
@@ -168,6 +170,60 @@ def _fmt_from(msg: Message) -> str:
 
 def _now_ts() -> int:
     return int(time.time())
+
+
+async def _chat_subscription_active(user_id: int) -> bool:
+    """Return ``True`` when the latest chat grant is still valid."""
+
+    if user_id <= 0:
+        return False
+
+    repo_backend = getattr(_repo, "_ext", None)
+    until_ts: Optional[int] = None
+    checked = False
+    if repo_backend:
+        try:
+            async with repo_backend._db() as db:  # type: ignore[attr-defined]
+                cur = await db.execute(
+                    """
+                    SELECT until_ts
+                    FROM access_grants
+                    WHERE user_id=? AND plan_code LIKE 'chat_%'
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                )
+                row = await cur.fetchone()
+                checked = True
+                if row and row[0] is not None:
+                    until_ts = int(row[0])
+        except Exception as e:  # pragma: no cover - degrade gracefully
+            log.warning(
+                "chat_relay: failed to check chat access for user_id=%s: %s",
+                user_id,
+                e,
+            )
+
+    if until_ts is None and get_user_profile:
+        try:
+            _, until = get_user_profile(user_id)
+            if until is not None:
+                until_ts = int(until)
+            checked = True
+        except Exception:  # pragma: no cover
+            return True
+    if until_ts is None:
+        return not checked
+    try:
+        expires_at = datetime.fromtimestamp(int(until_ts), tz=timezone.utc)
+    except Exception:
+        log.warning(
+            "chat_relay: invalid until_ts=%r for user_id=%s", until_ts, user_id
+        )
+        return False
+
+    return expires_at >= datetime.now(timezone.utc)
 
 
 async def _send_record(msg: Message, chat_id: int, header: Optional[str] | None = None) -> None:
@@ -313,6 +369,11 @@ async def relay_incoming_to_group(msg: Message):
     caption_header = _fmt_from(msg)
     # Поддержка "медиа + подпись": текст берём из msg.text ИЛИ msg.caption
     content_text = (msg.text or msg.caption or "").strip()
+    incoming_log = {
+        "type": "text" if msg.text else "media",
+        "text": content_text or None,
+        "ts": _now_ts(),
+    }
     status = "active"
     try:
         from shared.db.repo import get_user_status  # type: ignore
@@ -331,8 +392,21 @@ async def relay_incoming_to_group(msg: Message):
         await _repo.log_message(
             uid,
             "in",
-            {"type": "text" if msg.text else "media", "text": content_text or None, "ts": _now_ts()},
+            incoming_log,
         )
+        return
+
+    if not await _chat_subscription_active(uid):
+        try:
+            await send_with_retry(
+                msg.answer,
+                "💬 Дорогой, активируй «Chat» и напиши мне снова. Я дождусь 😘",
+                logger=log,
+            )
+        except Exception:
+            pass
+        await _repo.log_message(uid, "in", incoming_log)
+        log.info("chat_relay: inactive chat subscription, skip relay for user_id=%s", uid)
         return
 
     group_id = RELAY_GROUP_ID
