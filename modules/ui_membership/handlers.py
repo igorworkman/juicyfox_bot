@@ -67,8 +67,8 @@ class Donate(StatesGroup):
 # =======================
 # /start и главное меню
 # =======================
-@router.message(Command("start"))
-async def cmd_start(message: Message, state: FSMContext) -> None:
+# REGION AI: shared start handler for /start and Restart button
+async def start_handler(message: Message, state: FSMContext) -> None:
     await state.clear()
     lang = get_lang(message.from_user)
     if START_PHOTO.exists():
@@ -95,6 +95,17 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
         )
         # END REGION AI
     # Inline menu is not shown at start; it will appear on Back button
+
+
+@router.message(Command("start"))
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    await start_handler(message, state)
+
+
+@router.message(lambda m: (m.text or "").strip().lower() == "restart")
+async def restart_button(message: Message, state: FSMContext) -> None:
+    await start_handler(message, state)
+# END REGION AI
 
 
 @router.callback_query(F.data.in_({"ui:back", "back_to_main", "back"}))
